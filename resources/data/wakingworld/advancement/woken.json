@@ -1,0 +1,23 @@
+{
+  "display": {
+    "icon": {
+      "id": "wakingworld:horn_of_waking"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.woken.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.woken.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:rite",
+  "criteria": {
+    "woken": {
+      "trigger": "wakingworld:colossus_woken"
+    }
+  }
+}

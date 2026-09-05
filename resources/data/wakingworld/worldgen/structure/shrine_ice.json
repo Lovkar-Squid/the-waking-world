@@ -1,0 +1,8 @@
+{
+  "type": "wakingworld:shrine",
+  "kind": "ice",
+  "biomes": "#wakingworld:has_structure/shrine_ice",
+  "step": "surface_structures",
+  "spawn_overrides": {},
+  "terrain_adaptation": "none"
+}

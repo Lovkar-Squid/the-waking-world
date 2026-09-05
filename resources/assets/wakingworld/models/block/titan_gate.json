@@ -1,0 +1,22 @@
+{
+  "parent": "minecraft:block/block",
+  "render_type": "minecraft:translucent",
+  "textures": {
+    "particle": "wakingworld:block/titan_gate",
+    "sheet": "wakingworld:block/titan_gate"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 5],
+      "to": [16, 16, 11],
+      "faces": {
+        "north": { "uv": [0, 0, 16, 16], "texture": "#sheet" },
+        "south": { "uv": [0, 0, 16, 16], "texture": "#sheet" },
+        "up":    { "uv": [0, 5, 16, 11], "texture": "#sheet", "cullface": "up" },
+        "down":  { "uv": [0, 5, 16, 11], "texture": "#sheet", "cullface": "down" },
+        "east":  { "uv": [5, 0, 11, 16], "texture": "#sheet", "cullface": "east" },
+        "west":  { "uv": [5, 0, 11, 16], "texture": "#sheet", "cullface": "west" }
+      }
+    }
+  ]
+}

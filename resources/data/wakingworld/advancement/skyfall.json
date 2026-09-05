@@ -1,0 +1,26 @@
+{
+  "display": {
+    "icon": {
+      "id": "minecraft:feather"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.skyfall.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.skyfall.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:hammer",
+  "criteria": {
+    "dive": {
+      "trigger": "wakingworld:dive_slam",
+      "conditions": {
+        "min": 80
+      }
+    }
+  }
+}

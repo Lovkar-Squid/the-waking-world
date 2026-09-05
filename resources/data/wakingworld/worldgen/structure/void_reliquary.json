@@ -1,0 +1,7 @@
+{
+  "type": "wakingworld:void_reliquary",
+  "biomes": "#wakingworld:has_structure/void_reliquary",
+  "step": "surface_structures",
+  "spawn_overrides": {},
+  "terrain_adaptation": "none"
+}

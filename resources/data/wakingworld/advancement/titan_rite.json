@@ -1,0 +1,26 @@
+{
+  "display": {
+    "icon": {
+      "id": "wakingworld:altar"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.titan_rite.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.titan_rite.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:titan_key",
+  "criteria": {
+    "rite": {
+      "trigger": "wakingworld:rite",
+      "conditions": {
+        "kind": "titan"
+      }
+    }
+  }
+}

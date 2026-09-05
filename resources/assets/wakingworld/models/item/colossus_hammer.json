@@ -1,0 +1,652 @@
+{
+  "credit": "The Waking World - Lovkar & Claude",
+  "gui_light": "front",
+  "texture_size": [
+    16,
+    16
+  ],
+  "textures": {
+    "particle": "wakingworld:item/hammer_head",
+    "head": "wakingworld:item/hammer_head",
+    "haft": "wakingworld:item/hammer_haft",
+    "rune": "wakingworld:item/hammer_rune"
+  },
+  "elements": [
+    {
+      "name": "haft",
+      "from": [
+        7,
+        0,
+        7
+      ],
+      "to": [
+        9,
+        14,
+        9
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            2,
+            16
+          ],
+          "texture": "#haft"
+        },
+        "south": {
+          "uv": [
+            2,
+            0,
+            4,
+            16
+          ],
+          "texture": "#haft"
+        },
+        "east": {
+          "uv": [
+            4,
+            0,
+            6,
+            16
+          ],
+          "texture": "#haft"
+        },
+        "west": {
+          "uv": [
+            6,
+            0,
+            8,
+            16
+          ],
+          "texture": "#haft"
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ],
+          "texture": "#head"
+        }
+      }
+    },
+    {
+      "name": "grip",
+      "from": [
+        6.5,
+        1.5,
+        6.5
+      ],
+      "to": [
+        9.5,
+        5.5,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            6,
+            11,
+            10
+          ],
+          "texture": "#haft"
+        },
+        "south": {
+          "uv": [
+            8,
+            6,
+            11,
+            10
+          ],
+          "texture": "#haft"
+        },
+        "east": {
+          "uv": [
+            11,
+            6,
+            14,
+            10
+          ],
+          "texture": "#haft"
+        },
+        "west": {
+          "uv": [
+            11,
+            6,
+            14,
+            10
+          ],
+          "texture": "#haft"
+        },
+        "up": {
+          "uv": [
+            8,
+            6,
+            11,
+            9
+          ],
+          "texture": "#haft"
+        },
+        "down": {
+          "uv": [
+            8,
+            6,
+            11,
+            9
+          ],
+          "texture": "#haft"
+        }
+      }
+    },
+    {
+      "name": "pommel",
+      "from": [
+        6.5,
+        -1,
+        6.5
+      ],
+      "to": [
+        9.5,
+        1,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            3,
+            2
+          ],
+          "texture": "#head"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            3,
+            2
+          ],
+          "texture": "#head"
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            3,
+            2
+          ],
+          "texture": "#head"
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            3,
+            2
+          ],
+          "texture": "#head"
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            3,
+            3
+          ],
+          "texture": "#head"
+        }
+      }
+    },
+    {
+      "name": "collar",
+      "from": [
+        6,
+        9,
+        6
+      ],
+      "to": [
+        10,
+        10,
+        10
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            2,
+            4,
+            3
+          ],
+          "texture": "#haft"
+        },
+        "south": {
+          "uv": [
+            0,
+            2,
+            4,
+            3
+          ],
+          "texture": "#haft"
+        },
+        "east": {
+          "uv": [
+            0,
+            2,
+            4,
+            3
+          ],
+          "texture": "#haft"
+        },
+        "west": {
+          "uv": [
+            0,
+            2,
+            4,
+            3
+          ],
+          "texture": "#haft"
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            4,
+            4
+          ],
+          "texture": "#head"
+        }
+      }
+    },
+    {
+      "name": "head",
+      "from": [
+        3,
+        10,
+        6
+      ],
+      "to": [
+        13,
+        15,
+        10
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            3,
+            5,
+            13,
+            10
+          ],
+          "texture": "#head"
+        },
+        "south": {
+          "uv": [
+            3,
+            5,
+            13,
+            10
+          ],
+          "texture": "#head"
+        },
+        "up": {
+          "uv": [
+            3,
+            6,
+            13,
+            10
+          ],
+          "texture": "#head"
+        },
+        "down": {
+          "uv": [
+            3,
+            6,
+            13,
+            10
+          ],
+          "texture": "#head"
+        }
+      }
+    },
+    {
+      "name": "face_west",
+      "from": [
+        1.5,
+        9,
+        5
+      ],
+      "to": [
+        3,
+        16,
+        11
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            1.5,
+            7
+          ],
+          "texture": "#head"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            1.5,
+            7
+          ],
+          "texture": "#head"
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            6,
+            7
+          ],
+          "texture": "#head"
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#rune"
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1.5,
+            6
+          ],
+          "texture": "#head"
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1.5,
+            6
+          ],
+          "texture": "#head"
+        }
+      }
+    },
+    {
+      "name": "face_east",
+      "from": [
+        13,
+        9,
+        5
+      ],
+      "to": [
+        14.5,
+        16,
+        11
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            1.5,
+            7
+          ],
+          "texture": "#head"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            1.5,
+            7
+          ],
+          "texture": "#head"
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#rune"
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            6,
+            7
+          ],
+          "texture": "#head"
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1.5,
+            6
+          ],
+          "texture": "#head"
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1.5,
+            6
+          ],
+          "texture": "#head"
+        }
+      }
+    },
+    {
+      "name": "spike",
+      "from": [
+        7.5,
+        15,
+        7.5
+      ],
+      "to": [
+        8.5,
+        17.5,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            7,
+            0,
+            8,
+            3
+          ],
+          "texture": "#head"
+        },
+        "south": {
+          "uv": [
+            7,
+            0,
+            8,
+            3
+          ],
+          "texture": "#head"
+        },
+        "east": {
+          "uv": [
+            7,
+            0,
+            8,
+            3
+          ],
+          "texture": "#head"
+        },
+        "west": {
+          "uv": [
+            7,
+            0,
+            8,
+            3
+          ],
+          "texture": "#head"
+        },
+        "up": {
+          "uv": [
+            7,
+            0,
+            8,
+            1
+          ],
+          "texture": "#head"
+        }
+      }
+    }
+  ],
+  "display": {
+    "thirdperson_righthand": {
+      "rotation": [
+        0,
+        -90,
+        10
+      ],
+      "translation": [
+        0,
+        2.5,
+        0.5
+      ],
+      "scale": [
+        0.85,
+        0.85,
+        0.85
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        0,
+        90,
+        -10
+      ],
+      "translation": [
+        0,
+        2.5,
+        0.5
+      ],
+      "scale": [
+        0.85,
+        0.85,
+        0.85
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        -90,
+        -20
+      ],
+      "translation": [
+        1.13,
+        3.2,
+        1.13
+      ],
+      "scale": [
+        0.68,
+        0.68,
+        0.68
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        90,
+        20
+      ],
+      "translation": [
+        1.13,
+        3.2,
+        1.13
+      ],
+      "scale": [
+        0.68,
+        0.68,
+        0.68
+      ]
+    },
+    "gui": {
+      "rotation": [
+        12,
+        35,
+        -45
+      ],
+      "translation": [
+        0,
+        -0.5,
+        0
+      ],
+      "scale": [
+        0.72,
+        0.72,
+        0.72
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        -45
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.75,
+        0.75,
+        0.75
+      ]
+    },
+    "head": {
+      "rotation": [
+        0,
+        180,
+        0
+      ],
+      "translation": [
+        0,
+        13,
+        7
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    }
+  }
+}

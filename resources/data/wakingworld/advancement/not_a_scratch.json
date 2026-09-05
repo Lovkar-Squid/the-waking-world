@@ -1,0 +1,26 @@
+{
+  "display": {
+    "icon": {
+      "id": "wakingworld:hourglass_of_restoration"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.not_a_scratch.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.not_a_scratch.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:hourglass",
+  "criteria": {
+    "restored": {
+      "trigger": "wakingworld:land_restored",
+      "conditions": {
+        "min": 25000
+      }
+    }
+  }
+}

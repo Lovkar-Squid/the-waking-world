@@ -1,0 +1,10 @@
+{
+  "type": "neoforge:add_spawns",
+  "biomes": "#wakingworld:drowned_keeper_spawns",
+  "spawners": {
+    "type": "wakingworld:drowned_keeper",
+    "weight": 5,
+    "minCount": 1,
+    "maxCount": 1
+  }
+}

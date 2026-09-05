@@ -1,0 +1,196 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "wakingworld:dead_letter",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "wakingworld:sleepers_ember",
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 1,
+                "max": 2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "wakingworld:rune_stone",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:item",
+          "name": "wakingworld:rune_earth",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:item",
+          "name": "wakingworld:rune_sandstone",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:item",
+          "name": "wakingworld:rune_ice",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:item",
+          "name": "wakingworld:rune_prismarine",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:item",
+          "name": "wakingworld:rune_moss",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "wakingworld:horn_of_waking",
+          "weight": 2
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "rolls": {
+        "type": "minecraft:uniform",
+        "min": 2,
+        "max": 4
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:diamond",
+          "weight": 10,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 1,
+                "max": 3
+              }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:emerald",
+          "weight": 10,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 2,
+                "max": 5
+              }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:enchanted_golden_apple",
+          "weight": 3
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:enchanted_book",
+          "weight": 10,
+          "functions": [
+            {
+              "function": "minecraft:enchant_with_levels",
+              "levels": {
+                "type": "minecraft:uniform",
+                "min": 20,
+                "max": 39
+              }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "wakingworld:colossus_heart",
+          "weight": 3
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:echo_shard",
+          "weight": 6,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 1,
+                "max": 2
+              }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:amethyst_block",
+          "weight": 6,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 1,
+                "max": 2
+              }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:experience_bottle",
+          "weight": 8,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 3,
+                "max": 6
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

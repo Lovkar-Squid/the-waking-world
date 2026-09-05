@@ -1,0 +1,23 @@
+{
+  "display": {
+    "icon": {
+      "id": "wakingworld:altar"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.rite.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.rite.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:ember",
+  "criteria": {
+    "rite": {
+      "trigger": "wakingworld:rite"
+    }
+  }
+}

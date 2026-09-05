@@ -1,0 +1,30 @@
+{
+  "display": {
+    "icon": {
+      "id": "wakingworld:colossus_heart"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.heart.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.heart.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:root",
+  "criteria": {
+    "heart": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "wakingworld:colossus_heart"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "display": {
+    "icon": {
+      "id": "wakingworld:sleepers_ember"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.ember.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.ember.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:vault",
+  "criteria": {
+    "ember": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "wakingworld:sleepers_ember"
+          }
+        ]
+      }
+    }
+  }
+}

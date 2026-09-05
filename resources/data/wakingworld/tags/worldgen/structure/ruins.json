@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    "wakingworld:ruin_cottage",
+    "wakingworld:ruin_watchtower",
+    "wakingworld:ruin_well",
+    "wakingworld:ruin_graveyard",
+    "wakingworld:ruin_camp",
+    "wakingworld:ruin_chapel",
+    "wakingworld:ruin_farm",
+    "wakingworld:ruin_hamlet"
+  ]
+}

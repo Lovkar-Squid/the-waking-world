@@ -1,0 +1,10 @@
+{
+  "structures": [ { "structure": "wakingworld:vault", "weight": 1 } ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 36,
+    "separation": 14,
+    "salt": 40317722,
+    "exclusion_zone": { "other_set": "minecraft:villages", "chunk_count": 5 }
+  }
+}

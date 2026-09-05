@@ -1,0 +1,33 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "wakingworld:block/altar_side",
+    "top": "wakingworld:block/altar_top",
+    "side": "wakingworld:block/altar_side",
+    "base": "wakingworld:block/altar_base"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 0], "to": [16, 4, 16],
+      "faces": {
+        "down": { "texture": "#base", "cullface": "down" },
+        "up": { "texture": "#base" },
+        "north": { "texture": "#base" }, "south": { "texture": "#base" }, "west": { "texture": "#base" }, "east": { "texture": "#base" }
+      }
+    },
+    {
+      "from": [2, 4, 2], "to": [14, 12, 14],
+      "faces": {
+        "north": { "texture": "#side" }, "south": { "texture": "#side" }, "west": { "texture": "#side" }, "east": { "texture": "#side" }
+      }
+    },
+    {
+      "from": [0, 12, 0], "to": [16, 15, 16],
+      "faces": {
+        "down": { "texture": "#base" },
+        "up": { "texture": "#top" },
+        "north": { "texture": "#base" }, "south": { "texture": "#base" }, "west": { "texture": "#base" }, "east": { "texture": "#base" }
+      }
+    }
+  ]
+}

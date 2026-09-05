@@ -1,0 +1,15 @@
+{
+  "display": {
+    "icon": { "id": "minecraft:oak_door" },
+    "title": { "translate": "advancement.wakingworld.hamlet.title" },
+    "description": { "translate": "advancement.wakingworld.hamlet.description" },
+    "frame": "goal", "show_toast": true, "announce_to_chat": true, "hidden": false
+  },
+  "parent": "wakingworld:ruin",
+  "criteria": {
+    "hamlet": {
+      "trigger": "minecraft:location",
+      "conditions": { "player": [ { "condition": "minecraft:location_check", "predicate": { "structures": "wakingworld:ruin_hamlet" } } ] }
+    }
+  }
+}

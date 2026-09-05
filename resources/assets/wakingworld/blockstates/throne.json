@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=south": {
+      "model": "wakingworld:block/throne"
+    },
+    "facing=west": {
+      "model": "wakingworld:block/throne",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "wakingworld:block/throne",
+      "y": 180
+    },
+    "facing=east": {
+      "model": "wakingworld:block/throne",
+      "y": 270
+    }
+  }
+}

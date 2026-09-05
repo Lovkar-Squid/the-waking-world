@@ -1,0 +1,30 @@
+{
+  "display": {
+    "icon": {
+      "id": "wakingworld:colossus_hammer"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.hammer.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.hammer.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:heart",
+  "criteria": {
+    "hammer": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "wakingworld:colossus_hammer"
+          }
+        ]
+      }
+    }
+  }
+}

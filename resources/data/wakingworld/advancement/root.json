@@ -1,0 +1,28 @@
+{
+  "display": {
+    "icon": {
+      "id": "wakingworld:colossus_heart"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.root.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.root.description"
+    },
+    "frame": "task",
+    "show_toast": false,
+    "announce_to_chat": false,
+    "hidden": false,
+    "background": "minecraft:textures/block/deepslate_tiles.png"
+  },
+  "criteria": {
+    "here": {
+      "trigger": "minecraft:tick"
+    }
+  },
+  "rewards": {
+    "loot": [
+      "wakingworld:gift/almanac"
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "display": {
+    "icon": {
+      "id": "minecraft:end_stone_bricks"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.arena.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.arena.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:titan_key",
+  "criteria": {
+    "in": {
+      "trigger": "minecraft:location",
+      "conditions": {
+        "player": [
+          {
+            "condition": "minecraft:location_check",
+            "predicate": {
+              "structures": "#wakingworld:titan_arena"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

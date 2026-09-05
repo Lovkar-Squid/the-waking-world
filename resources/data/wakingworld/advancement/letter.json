@@ -1,0 +1,15 @@
+{
+  "display": {
+    "icon": { "id": "wakingworld:dead_letter" },
+    "title": { "translate": "advancement.wakingworld.letter.title" },
+    "description": { "translate": "advancement.wakingworld.letter.description" },
+    "frame": "task", "show_toast": true, "announce_to_chat": true, "hidden": false
+  },
+  "parent": "wakingworld:root",
+  "criteria": {
+    "letter": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": { "items": [ { "items": "wakingworld:dead_letter", "predicates": { "minecraft:written_book_content": {} } } ] }
+    }
+  }
+}

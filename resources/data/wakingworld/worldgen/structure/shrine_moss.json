@@ -1,0 +1,8 @@
+{
+  "type": "wakingworld:shrine",
+  "kind": "moss",
+  "biomes": "#wakingworld:has_structure/shrine_moss",
+  "step": "surface_structures",
+  "spawn_overrides": {},
+  "terrain_adaptation": "none"
+}

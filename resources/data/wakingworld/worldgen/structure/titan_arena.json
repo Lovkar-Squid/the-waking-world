@@ -1,0 +1,7 @@
+{
+  "type": "wakingworld:titan_arena",
+  "biomes": "#wakingworld:has_structure/titan_arena",
+  "step": "surface_structures",
+  "spawn_overrides": {},
+  "terrain_adaptation": "none"
+}

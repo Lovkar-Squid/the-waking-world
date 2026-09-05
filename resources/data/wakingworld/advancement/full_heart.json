@@ -1,0 +1,29 @@
+{
+  "display": {
+    "icon": {
+      "id": "minecraft:enchanted_golden_apple"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.full_heart.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.full_heart.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:heart_of_the_end",
+  "criteria": {
+    "eaten": {
+      "trigger": "wakingworld:heart_eaten",
+      "conditions": {
+        "min": 5
+      }
+    }
+  },
+  "rewards": {
+    "experience": 2000
+  }
+}

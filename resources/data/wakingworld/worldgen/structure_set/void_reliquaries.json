@@ -1,0 +1,18 @@
+{
+  "structures": [
+    {
+      "structure": "wakingworld:void_reliquary",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 30,
+    "separation": 12,
+    "salt": 48120377,
+    "exclusion_zone": {
+      "other_set": "minecraft:end_cities",
+      "chunk_count": 4
+    }
+  }
+}

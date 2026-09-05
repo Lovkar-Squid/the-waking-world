@@ -1,0 +1,30 @@
+{
+  "display": {
+    "icon": {
+      "id": "wakingworld:horn_of_waking"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.horn.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.horn.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:vault",
+  "criteria": {
+    "horn": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "wakingworld:horn_of_waking"
+          }
+        ]
+      }
+    }
+  }
+}

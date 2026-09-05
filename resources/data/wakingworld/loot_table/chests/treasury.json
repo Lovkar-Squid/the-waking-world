@@ -1,0 +1,31 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": { "type": "minecraft:uniform", "min": 3, "max": 5 },
+      "entries": [
+        { "type": "minecraft:item", "name": "minecraft:gold_ingot", "weight": 12, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 4, "max": 12 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:gold_block", "weight": 4, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 3 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:emerald", "weight": 10, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 6, "max": 16 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:diamond", "weight": 6, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 2, "max": 5 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:amethyst_shard", "weight": 5, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 4, "max": 10 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:golden_apple", "weight": 5, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 2 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:enchanted_golden_apple", "weight": 1 },
+        { "type": "minecraft:item", "name": "minecraft:totem_of_undying", "weight": 1 },
+        { "type": "minecraft:item", "name": "minecraft:netherite_scrap", "weight": 2, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 2 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:diamond_sword", "weight": 2, "functions": [ { "function": "minecraft:enchant_with_levels", "levels": { "type": "minecraft:uniform", "min": 20, "max": 35 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:diamond_chestplate", "weight": 2, "functions": [ { "function": "minecraft:enchant_with_levels", "levels": { "type": "minecraft:uniform", "min": 20, "max": 35 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:book", "weight": 3, "functions": [ { "function": "minecraft:enchant_with_levels", "levels": { "type": "minecraft:uniform", "min": 25, "max": 40 } } ] }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "wakingworld:sleepers_ember", "weight": 5, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 3 } } ] },
+        { "type": "minecraft:item", "name": "wakingworld:colossus_heart", "weight": 2 },
+        { "type": "minecraft:item", "name": "wakingworld:dead_letter", "weight": 3 },
+        { "type": "minecraft:empty", "weight": 4 }
+      ]
+    }
+  ]
+}

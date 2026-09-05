@@ -1,0 +1,23 @@
+{
+  "display": {
+    "icon": {
+      "id": "minecraft:magma_block"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.core_breaker.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.core_breaker.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:ground_shaker",
+  "criteria": {
+    "core": {
+      "trigger": "wakingworld:core_broken"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "GEG",
+    "AHA",
+    "GEG"
+  ],
+  "key": {
+    "G": { "item": "minecraft:glass" },
+    "E": { "item": "minecraft:echo_shard" },
+    "A": { "item": "minecraft:amethyst_block" },
+    "H": { "item": "wakingworld:colossus_heart" }
+  },
+  "result": { "id": "wakingworld:hourglass_of_restoration", "count": 1 }
+}

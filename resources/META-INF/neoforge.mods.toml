@@ -1,0 +1,27 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="GPL-3.0-or-later"
+issueTrackerURL="https://github.com/Lovkar-Squid/the-waking-world/issues"
+
+[[mods]]
+modId="wakingworld"
+version="0.1.0-beta.1"
+displayName="The Waking World"
+description='''The world has an old, forgotten history - and it is waking up. Colossi built from the land itself rise from their shrines, dead men's letters lead you to them and to walled kingdoms, and six hearts open the way to the Titan in the End. Made by Lovkar & Claude.'''
+logoFile="wakingworld_logo.png"
+authors="Lovkar & Claude"
+displayURL="https://github.com/Lovkar-Squid/the-waking-world"
+
+[[dependencies.wakingworld]]
+modId="neoforge"
+type="required"
+versionRange="[21.1,21.2)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.wakingworld]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1]"
+ordering="NONE"
+side="BOTH"

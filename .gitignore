@@ -1,0 +1,22 @@
+# third-party jars and generated output never go in the repo
+libs/
+clibs/
+stubs/
+tlibs/
+build/
+build2/
+old/
+decomp/
+*.jar
+*.args
+tools/out/
+devpack/overrides/mods/
+logs/
+devpack/
+*.zip
+*.mp4
+*.blend*
+
+# internal notes stay local
+docs/PLAN.md
+docs/CURSEFORGE.md

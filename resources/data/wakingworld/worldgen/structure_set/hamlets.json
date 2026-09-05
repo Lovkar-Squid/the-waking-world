@@ -1,0 +1,10 @@
+{
+  "structures": [ { "structure": "wakingworld:ruin_hamlet", "weight": 1 } ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 44,
+    "separation": 18,
+    "salt": 82045127,
+    "exclusion_zone": { "other_set": "minecraft:villages", "chunk_count": 8 }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "display": {
+    "icon": {
+      "id": "wakingworld:heart_of_the_end"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.titan.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.titan.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:titan_rite",
+  "criteria": {
+    "slain": {
+      "trigger": "wakingworld:colossus_slain",
+      "conditions": {
+        "kind": "titan"
+      }
+    }
+  },
+  "rewards": {
+    "experience": 1000
+  }
+}

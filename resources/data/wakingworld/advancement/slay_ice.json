@@ -1,0 +1,26 @@
+{
+  "display": {
+    "icon": {
+      "id": "minecraft:packed_ice"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.slay_ice.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.slay_ice.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:ground_shaker",
+  "criteria": {
+    "slain": {
+      "trigger": "wakingworld:colossus_slain",
+      "conditions": {
+        "kind": "ice"
+      }
+    }
+  }
+}

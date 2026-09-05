@@ -1,0 +1,45 @@
+{
+  "display": {
+    "icon": {
+      "id": "wakingworld:sigil_moss"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.six_sigils.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.six_sigils.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:ground_shaker",
+  "criteria": {
+    "all": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "wakingworld:sigil_stone"
+          },
+          {
+            "items": "wakingworld:sigil_earth"
+          },
+          {
+            "items": "wakingworld:sigil_sandstone"
+          },
+          {
+            "items": "wakingworld:sigil_ice"
+          },
+          {
+            "items": "wakingworld:sigil_prismarine"
+          },
+          {
+            "items": "wakingworld:sigil_moss"
+          }
+        ]
+      }
+    }
+  }
+}

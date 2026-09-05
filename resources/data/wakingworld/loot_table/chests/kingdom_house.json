@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": { "type": "minecraft:uniform", "min": 2, "max": 4 },
+      "entries": [
+        { "type": "minecraft:item", "name": "minecraft:bread", "weight": 10, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 2, "max": 5 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:apple", "weight": 6, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 4 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:cooked_beef", "weight": 4, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 3 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:emerald", "weight": 6, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 4 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:iron_ingot", "weight": 5, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 3 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:white_wool", "weight": 4, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 2, "max": 6 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:candle", "weight": 4, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 3 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:book", "weight": 3 },
+        { "type": "minecraft:item", "name": "minecraft:paper", "weight": 4, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 2, "max": 6 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:arrow", "weight": 4, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 4, "max": 12 } } ] },
+        { "type": "minecraft:item", "name": "minecraft:map", "weight": 2 },
+        { "type": "minecraft:item", "name": "wakingworld:dead_letter", "weight": 1 }
+      ]
+    }
+  ]
+}

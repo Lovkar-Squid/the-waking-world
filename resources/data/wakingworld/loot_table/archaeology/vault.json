@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:archaeology",
+  "pools": [
+    { "rolls": 1, "entries": [
+        { "type": "minecraft:item", "name": "minecraft:skull_pottery_sherd", "weight": 4 },
+        { "type": "minecraft:item", "name": "minecraft:mourner_pottery_sherd", "weight": 4 },
+        { "type": "minecraft:item", "name": "minecraft:heart_pottery_sherd", "weight": 3 },
+        { "type": "minecraft:item", "name": "minecraft:burn_pottery_sherd", "weight": 3 },
+        { "type": "minecraft:item", "name": "minecraft:amethyst_shard", "weight": 4 },
+        { "type": "minecraft:item", "name": "minecraft:echo_shard", "weight": 2 },
+        { "type": "minecraft:item", "name": "minecraft:gold_nugget", "weight": 3 },
+        { "type": "minecraft:item", "name": "minecraft:bone", "weight": 3 },
+        { "type": "minecraft:item", "name": "wakingworld:sleepers_ember", "weight": 2 },
+        { "type": "minecraft:item", "name": "wakingworld:rune_stone", "weight": 1 },
+        { "type": "minecraft:item", "name": "wakingworld:rune_ice", "weight": 1 },
+        { "type": "minecraft:item", "name": "wakingworld:dead_letter", "weight": 2 }
+      ] }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "display": {
+    "icon": {
+      "id": "minecraft:elytra"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.airmail.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.airmail.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:woken",
+  "criteria": {
+    "thrown": {
+      "trigger": "wakingworld:thrown",
+      "conditions": {
+        "min": 1
+      }
+    }
+  }
+}

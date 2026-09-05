@@ -1,0 +1,8 @@
+{
+  "type": "wakingworld:shrine",
+  "kind": "prismarine",
+  "biomes": "#wakingworld:has_structure/shrine_prismarine",
+  "step": "surface_structures",
+  "spawn_overrides": {},
+  "terrain_adaptation": "none"
+}

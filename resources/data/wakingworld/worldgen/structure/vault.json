@@ -1,0 +1,7 @@
+{
+  "type": "wakingworld:vault",
+  "biomes": "#wakingworld:has_structure/vault",
+  "step": "underground_structures",
+  "spawn_overrides": {},
+  "terrain_adaptation": "none"
+}

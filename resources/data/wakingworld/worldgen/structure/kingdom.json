@@ -1,0 +1,12 @@
+{
+  "type": "wakingworld:kingdom",
+  "biomes": "#wakingworld:has_structure/kingdom",
+  "step": "top_layer_modification",
+  "spawn_overrides": {
+    "monster": {
+      "bounding_box": "full",
+      "spawns": []
+    }
+  },
+  "terrain_adaptation": "beard_thin"
+}

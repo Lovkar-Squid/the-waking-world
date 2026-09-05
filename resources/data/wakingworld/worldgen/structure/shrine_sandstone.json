@@ -1,0 +1,8 @@
+{
+  "type": "wakingworld:shrine",
+  "kind": "sandstone",
+  "biomes": "#wakingworld:has_structure/shrine_sandstone",
+  "step": "surface_structures",
+  "spawn_overrides": {},
+  "terrain_adaptation": "none"
+}

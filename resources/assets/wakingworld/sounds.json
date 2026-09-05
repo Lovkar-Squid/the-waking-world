@@ -1,0 +1,679 @@
+{
+  "music.colossus.stone": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "wakingworld:music/stone",
+        "stream": true
+      }
+    ]
+  },
+  "music.colossus.earth": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "wakingworld:music/earth",
+        "stream": true
+      }
+    ]
+  },
+  "music.colossus.sandstone": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "wakingworld:music/sandstone",
+        "stream": true
+      }
+    ]
+  },
+  "music.colossus.ice": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "wakingworld:music/ice",
+        "stream": true
+      }
+    ]
+  },
+  "music.colossus.prismarine": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "wakingworld:music/prismarine",
+        "stream": true
+      }
+    ]
+  },
+  "music.colossus.moss": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "wakingworld:music/moss",
+        "stream": true
+      }
+    ]
+  },
+  "music.colossus.awakening": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "wakingworld:music/awakening",
+        "stream": true
+      }
+    ]
+  },
+  "music.colossus.victory": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "wakingworld:music/victory",
+        "stream": true
+      }
+    ]
+  },
+  "music.colossus.titan": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "wakingworld:music/titan",
+        "stream": true
+      }
+    ]
+  },
+  "music.colossus.titan_awakening": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "wakingworld:music/titan_awakening",
+        "stream": true
+      }
+    ]
+  },
+  "music.colossus.titan_victory": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "wakingworld:music/titan_victory",
+        "stream": true
+      }
+    ]
+  },
+  "item.horn_of_waking.blow": {
+    "category": "player",
+    "subtitle": "subtitles.wakingworld.horn",
+    "sounds": [
+      {
+        "name": "wakingworld:item/horn_blow",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:item/horn_blow2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "item.horn_of_waking.answer": {
+    "category": "block",
+    "subtitle": "subtitles.wakingworld.horn_answer",
+    "sounds": [
+      {
+        "name": "wakingworld:item/horn_answer",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.drowned_keeper.ambient": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.drowned_keeper.ambient",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/drowned_keeper/ambient1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/drowned_keeper/ambient2",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/drowned_keeper/ambient3",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.drowned_keeper.ambient_water": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.drowned_keeper.ambient_water",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/drowned_keeper/ambient_water1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/drowned_keeper/ambient_water2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.drowned_keeper.attack": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.drowned_keeper.attack",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/drowned_keeper/attack",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.drowned_keeper.death": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.drowned_keeper.death",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/drowned_keeper/death",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.drowned_keeper.hurt": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.drowned_keeper.hurt",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/drowned_keeper/hurt1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/drowned_keeper/hurt2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.drowned_keeper.step": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.drowned_keeper.step",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/drowned_keeper/step1",
+        "volume": 0.5
+      },
+      {
+        "name": "wakingworld:mob/drowned_keeper/step2",
+        "volume": 0.5
+      }
+    ]
+  },
+  "entity.drowned_keeper.swim": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.drowned_keeper.swim",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/drowned_keeper/swim",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.ember_wraith.ambient": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.ember_wraith.ambient",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/ember_wraith/ambient1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/ember_wraith/ambient2",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/ember_wraith/ambient3",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.ember_wraith.death": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.ember_wraith.death",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/ember_wraith/death",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.ember_wraith.flare": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.ember_wraith.flare",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/ember_wraith/flare",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.ember_wraith.hurt": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.ember_wraith.hurt",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/ember_wraith/hurt1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/ember_wraith/hurt2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.ember_wraith.step": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.ember_wraith.step",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/ember_wraith/step1",
+        "volume": 0.5
+      },
+      {
+        "name": "wakingworld:mob/ember_wraith/step2",
+        "volume": 0.5
+      }
+    ]
+  },
+  "entity.guard.attack": {
+    "category": "neutral",
+    "subtitle": "subtitles.wakingworld.guard.attack",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/guard/attack1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/guard/attack2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.guard.death": {
+    "category": "neutral",
+    "subtitle": "subtitles.wakingworld.guard.death",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/guard/death",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.guard.hurt": {
+    "category": "neutral",
+    "subtitle": "subtitles.wakingworld.guard.hurt",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/guard/hurt1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/guard/hurt2",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/guard/hurt3",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.guard.shoot": {
+    "category": "neutral",
+    "subtitle": "subtitles.wakingworld.guard.shoot",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/guard/shoot",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.guard.step": {
+    "category": "neutral",
+    "subtitle": "subtitles.wakingworld.guard.step",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/guard/step1",
+        "volume": 0.5
+      },
+      {
+        "name": "wakingworld:mob/guard/step2",
+        "volume": 0.5
+      }
+    ]
+  },
+  "entity.king.ambient": {
+    "category": "neutral",
+    "subtitle": "subtitles.wakingworld.king.ambient",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/king/ambient1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/king/ambient2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.king.angry": {
+    "category": "neutral",
+    "subtitle": "subtitles.wakingworld.king.angry",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/king/angry",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.king.death": {
+    "category": "neutral",
+    "subtitle": "subtitles.wakingworld.king.death",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/king/death",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.king.greet": {
+    "category": "neutral",
+    "subtitle": "subtitles.wakingworld.king.greet",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/king/greet",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.king.hurt": {
+    "category": "neutral",
+    "subtitle": "subtitles.wakingworld.king.hurt",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/king/hurt1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/king/hurt2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.rune_sentinel.ambient": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.rune_sentinel.ambient",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/rune_sentinel/ambient1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/rune_sentinel/ambient2",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/rune_sentinel/ambient3",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.rune_sentinel.death": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.rune_sentinel.death",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/rune_sentinel/death",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.rune_sentinel.hurt": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.rune_sentinel.hurt",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/rune_sentinel/hurt1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/rune_sentinel/hurt2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.rune_sentinel.shoot": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.rune_sentinel.shoot",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/rune_sentinel/shoot",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.rune_sentinel.step": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.rune_sentinel.step",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/rune_sentinel/step1",
+        "volume": 0.5
+      },
+      {
+        "name": "wakingworld:mob/rune_sentinel/step2",
+        "volume": 0.5
+      }
+    ]
+  },
+  "entity.stone_thrall.ambient": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.stone_thrall.ambient",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/stone_thrall/ambient1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/stone_thrall/ambient2",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/stone_thrall/ambient3",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.stone_thrall.death": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.stone_thrall.death",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/stone_thrall/death",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.stone_thrall.hollow_ambient": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.stone_thrall.hollow_ambient",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/stone_thrall/hollow_ambient1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/stone_thrall/hollow_ambient2",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/stone_thrall/hollow_ambient3",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.stone_thrall.hollow_death": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.stone_thrall.hollow_death",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/stone_thrall/hollow_death",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.stone_thrall.hollow_hurt": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.stone_thrall.hollow_hurt",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/stone_thrall/hollow_hurt1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/stone_thrall/hollow_hurt2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.stone_thrall.hurt": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.stone_thrall.hurt",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/stone_thrall/hurt1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/stone_thrall/hurt2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.stone_thrall.step": {
+    "category": "hostile",
+    "subtitle": "subtitles.wakingworld.stone_thrall.step",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/stone_thrall/step1",
+        "volume": 0.5
+      },
+      {
+        "name": "wakingworld:mob/stone_thrall/step2",
+        "volume": 0.5
+      }
+    ]
+  },
+  "entity.townsfolk.ambient": {
+    "category": "neutral",
+    "subtitle": "subtitles.wakingworld.townsfolk.ambient",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/townsfolk/ambient1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/townsfolk/ambient2",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/townsfolk/ambient3",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.townsfolk.death": {
+    "category": "neutral",
+    "subtitle": "subtitles.wakingworld.townsfolk.death",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/townsfolk/death",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.townsfolk.greet": {
+    "category": "neutral",
+    "subtitle": "subtitles.wakingworld.townsfolk.greet",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/townsfolk/greet",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.townsfolk.hurt": {
+    "category": "neutral",
+    "subtitle": "subtitles.wakingworld.townsfolk.hurt",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/townsfolk/hurt1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/townsfolk/hurt2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.townsfolk.no": {
+    "category": "neutral",
+    "subtitle": "subtitles.wakingworld.townsfolk.no",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/townsfolk/no1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/townsfolk/no2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.townsfolk.yes": {
+    "category": "neutral",
+    "subtitle": "subtitles.wakingworld.townsfolk.yes",
+    "sounds": [
+      {
+        "name": "wakingworld:mob/townsfolk/yes1",
+        "volume": 1.0
+      },
+      {
+        "name": "wakingworld:mob/townsfolk/yes2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.titan_gate.open": {
+    "category": "block",
+    "subtitle": "subtitles.wakingworld.gate_open",
+    "sounds": [
+      {
+        "name": "wakingworld:block/titan_gate/open",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.titan_gate.close": {
+    "category": "block",
+    "subtitle": "subtitles.wakingworld.gate_close",
+    "sounds": [
+      {
+        "name": "wakingworld:block/titan_gate/close",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.titan_gate.ambient": {
+    "category": "block",
+    "subtitle": "subtitles.wakingworld.gate_ambient",
+    "sounds": [
+      {
+        "name": "wakingworld:block/titan_gate/ambient",
+        "volume": 0.6
+      }
+    ]
+  }
+}

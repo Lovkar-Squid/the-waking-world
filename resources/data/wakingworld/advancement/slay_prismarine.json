@@ -1,0 +1,26 @@
+{
+  "display": {
+    "icon": {
+      "id": "minecraft:prismarine"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.slay_prismarine.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.slay_prismarine.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:ground_shaker",
+  "criteria": {
+    "slain": {
+      "trigger": "wakingworld:colossus_slain",
+      "conditions": {
+        "kind": "prismarine"
+      }
+    }
+  }
+}

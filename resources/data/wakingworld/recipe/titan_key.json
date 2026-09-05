@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ABC",
+    "DHE",
+    "FOF"
+  ],
+  "key": {
+    "A": { "item": "wakingworld:sigil_stone" },
+    "B": { "item": "wakingworld:sigil_earth" },
+    "C": { "item": "wakingworld:sigil_sandstone" },
+    "D": { "item": "wakingworld:sigil_ice" },
+    "E": { "item": "wakingworld:sigil_prismarine" },
+    "H": { "item": "wakingworld:colossus_heart" },
+    "F": { "item": "minecraft:obsidian" },
+    "O": { "item": "wakingworld:sigil_moss" }
+  },
+  "result": { "id": "wakingworld:titan_key", "count": 1 }
+}

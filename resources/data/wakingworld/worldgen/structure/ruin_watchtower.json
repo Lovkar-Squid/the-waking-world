@@ -1,0 +1,8 @@
+{
+  "type": "wakingworld:ruin",
+  "kind": "watchtower",
+  "biomes": "#wakingworld:has_structure/ruin",
+  "step": "surface_structures",
+  "spawn_overrides": {},
+  "terrain_adaptation": "none"
+}

@@ -1,0 +1,10 @@
+{
+  "structures": [ { "structure": "wakingworld:kingdom", "weight": 1 } ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 40,
+    "separation": 16,
+    "salt": 91827364,
+    "exclusion_zone": { "other_set": "minecraft:villages", "chunk_count": 7 }
+  }
+}

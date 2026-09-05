@@ -1,0 +1,42 @@
+{
+  "structures": [
+    {
+      "structure": "wakingworld:ruin_cottage",
+      "weight": 5
+    },
+    {
+      "structure": "wakingworld:ruin_well",
+      "weight": 3
+    },
+    {
+      "structure": "wakingworld:ruin_camp",
+      "weight": 3
+    },
+    {
+      "structure": "wakingworld:ruin_watchtower",
+      "weight": 3
+    },
+    {
+      "structure": "wakingworld:ruin_graveyard",
+      "weight": 2
+    },
+    {
+      "structure": "wakingworld:ruin_chapel",
+      "weight": 1
+    },
+    {
+      "structure": "wakingworld:ruin_farm",
+      "weight": 2
+    }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 13,
+    "separation": 5,
+    "salt": 71934511,
+    "exclusion_zone": {
+      "other_set": "minecraft:villages",
+      "chunk_count": 3
+    }
+  }
+}
