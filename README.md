@@ -119,6 +119,14 @@ Five writers, five voices: a weary miner, a quiet walker, an old monk, an excite
 sergeant. Voices are stored in the world (`data/wakingworld/voices/`), so a letter is only ever
 spoken once.
 
+### Recommended modpack
+
+**[Lovkar's Waking World Ultimate](https://www.curseforge.com/minecraft/modpacks/lovkars-waking-world-ultimate)**
+on CurseForge is the mod with everything below already set up - the shaders and our settings, the
+performance mods, Waystones, backpacks, Better Combat, dungeons for the road - about fifty projects,
+NeoForge 1.21.1. Install it from the CurseForge app and only add your Gemini key. The list is in
+[docs/MODPACK.md](docs/MODPACK.md).
+
 ### Recommended shaders
 
 The trailer and the screenshots were made with **Complementary Reimagined r5.9** patched by
