@@ -2,9 +2,9 @@
 
 *The world has an old, forgotten history - and it is waking up.*
 
-[![The Waking World - trailer](docs/art/hero-leap.jpg)](https://youtu.be/PniTn4ldStY)
+[![The Waking World - trailer](docs/art/hero-leap.jpg)](https://youtu.be/K47KIgOEuzc)
 
-**[Watch the trailer](https://youtu.be/PniTn4ldStY)** (1:51) - **[Download on CurseForge](https://www.curseforge.com/minecraft/mc-mods/the-waking-world)** - **[Releases](https://github.com/Lovkar-Squid/the-waking-world/releases)**
+**[Watch the trailer](https://youtu.be/K47KIgOEuzc)** (1:51) - **[Download on CurseForge](https://www.curseforge.com/minecraft/mc-mods/the-waking-world)** - **[Releases](https://github.com/Lovkar-Squid/the-waking-world/releases)**
 
 A standalone mod for **NeoForge 1.21.1**. Somewhere under the hills, six kinds of sleeping giants wait
 for a horn. Find the letters the dead left behind, follow them to the shrines and the vaults, gather
