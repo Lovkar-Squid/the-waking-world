@@ -60,6 +60,10 @@ public final class WakingCommands {
                                         .executes(ctx -> meteor(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"),
                                                 IntegerArgumentType.getInteger(ctx, "size"))))))
                 .then(Commands.literal("shower").executes(WakingCommands::shower))
+                .then(Commands.literal("lands").executes(WakingCommands::lands)
+                        .then(Commands.literal("name").executes(ctx -> nameLand(ctx, null))
+                                .then(Commands.argument("at", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
+                                        .executes(ctx -> nameLand(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"))))))
                 .then(Commands.literal("tornado").executes(ctx -> tornado(ctx, null, 0))
                         .then(Commands.argument("at", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
                                 .executes(ctx -> tornado(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"), 0))
@@ -414,6 +418,44 @@ public final class WakingCommands {
         final String where = String.format("%.0f %.0f %.0f", target.x, target.y, target.z);
         ctx.getSource().sendSuccess(() -> Component.literal("A star is falling towards " + where + " (size " + size + ")"), true);
         return 1;
+    }
+
+    /** Name a piece of country now, without waiting for somebody to walk into it. */
+    private static int nameLand(CommandContext<CommandSourceStack> ctx, BlockPos at) {
+        net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
+        BlockPos where = at != null ? at : BlockPos.containing(ctx.getSource().getPosition());
+        me.lovkar.wakingworld.land.Lands.Land land = me.lovkar.wakingworld.land.Lands.get(level).nameAt(level, where);
+        if (land == null) {
+            ctx.getSource().sendFailure(Component.literal("Could not name it."));
+            return 0;
+        }
+        ctx.getSource().sendSuccess(() -> Component.literal(land.name()).withStyle(net.minecraft.ChatFormatting.GOLD)
+                .append(Component.literal("  " + land.lore()).withStyle(net.minecraft.ChatFormatting.GRAY)), false);
+        return 1;
+    }
+
+    /** Where you are, and everywhere you have been. */
+    private static int lands(CommandContext<CommandSourceStack> ctx) {
+        net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
+        me.lovkar.wakingworld.land.Lands lands = me.lovkar.wakingworld.land.Lands.get(level);
+        if (!(ctx.getSource().getEntity() instanceof net.minecraft.server.level.ServerPlayer p)) {
+            final int n = lands.count();
+            ctx.getSource().sendSuccess(() -> Component.literal(n + " land(s) named in this world"), false);
+            return n;
+        }
+        me.lovkar.wakingworld.land.Lands.Land here = lands.here(p);
+        java.util.List<me.lovkar.wakingworld.land.Lands.Land> been = lands.visited(p);
+        ctx.getSource().sendSuccess(() -> Component.literal(here == null ? "This country has no name yet." : "You are in ")
+                .withStyle(net.minecraft.ChatFormatting.GRAY)
+                .append(here == null ? Component.empty()
+                        : Component.literal(here.name()).withStyle(net.minecraft.ChatFormatting.GOLD)), false);
+        for (me.lovkar.wakingworld.land.Lands.Land l : been) {
+            ctx.getSource().sendSuccess(() -> Component.literal("  " + l.name()).withStyle(net.minecraft.ChatFormatting.YELLOW)
+                    .append(Component.literal("  " + l.lore()).withStyle(net.minecraft.ChatFormatting.DARK_GRAY)), false);
+        }
+        final int n = been.size();
+        ctx.getSource().sendSuccess(() -> Component.literal(n + " of " + lands.count() + " named lands walked").withStyle(net.minecraft.ChatFormatting.DARK_GRAY), false);
+        return n;
     }
 
     /** A column of wind, walking. */

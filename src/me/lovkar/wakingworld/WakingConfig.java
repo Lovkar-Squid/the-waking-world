@@ -56,6 +56,9 @@ public final class WakingConfig {
     private static final ModConfigSpec.DoubleValue EARTHQUAKE_CHANCE;
     private static final ModConfigSpec.IntValue DAYS_BETWEEN_EARTHQUAKES;
     private static final ModConfigSpec.IntValue EARTHQUAKE_SECONDS;
+    private static final ModConfigSpec.BooleanValue NAMED_LANDS;
+    private static final ModConfigSpec.IntValue LAND_SIZE;
+    private static final ModConfigSpec.BooleanValue GEMINI_LANDS;
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -155,6 +158,14 @@ public final class WakingConfig {
         EARTHQUAKE_SECONDS = b.comment("How long the shaking lasts, in seconds.")
                 .defineInRange("earthquakeSeconds", 26, 5, 300);
         b.pop();
+        b.push("lands");
+        NAMED_LANDS = b.comment("The Named Lands: the world is divided into squares, and each one is named the first time somebody walks into it.",
+                "The name is shown once, as a title card, and then lives in /wakingworld lands.").define("namedLands", true);
+        LAND_SIZE = b.comment("How wide a named land is, in blocks. Smaller means more names and more title cards.")
+                .defineInRange("landSize", 384, 96, 4096);
+        GEMINI_LANDS = b.comment("Let Gemini name the lands from what is actually on the ground there (needs geminiApiKey).",
+                "Off or without a key: the built-in names, which are chosen by the terrain the same way.").define("geminiLands", true);
+        b.pop();
         SPEC = b.build();
     }
 
@@ -183,6 +194,18 @@ public final class WakingConfig {
                 .define("showAuras", true);
         b.pop();
         CLIENT_SPEC = b.build();
+    }
+
+    public static boolean namedLands() {
+        return loaded() && NAMED_LANDS.get();
+    }
+
+    public static int landSize() {
+        return loaded() ? LAND_SIZE.get() : 384;
+    }
+
+    public static boolean geminiLands() {
+        return loaded() && GEMINI_LANDS.get();
     }
 
     public static boolean tornadoes() {

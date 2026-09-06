@@ -153,6 +153,7 @@ public class WakingWorld {
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.supporter.SupporterList::onServerTick);
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.cataclysm.Cataclysms::onLevelTick);
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.cataclysm.BloodMoon::onEntityJoin);
+        NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.land.Lands::onLevelTick);
         if (FMLEnvironment.dist.isClient()) {
             container.registerConfig(ModConfig.Type.CLIENT, WakingConfig.CLIENT_SPEC);
             WakingWorldClient.init(modBus, container);

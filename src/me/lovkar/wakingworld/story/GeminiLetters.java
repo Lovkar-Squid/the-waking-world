@@ -95,7 +95,7 @@ public final class GeminiLetters {
     private static final java.util.regex.Pattern MODEL_NAME = java.util.regex.Pattern.compile("models/([A-Za-z0-9._-]+)");
 
     /** The model a 404 body points to, if it points to one other than {@code model}. */
-    static String successorIn(String body, String model) {
+    public static String successorIn(String body, String model) {
         if (body == null) return null;
         java.util.regex.Matcher m = MODEL_NAME.matcher(body);
         while (m.find()) {
@@ -165,7 +165,7 @@ public final class GeminiLetters {
     }
 
     /** The first candidate's first written part - the thinking models' thought parts (no text, or marked "thought") are skipped. */
-    static String answerText(JsonObject root) {
+    public static String answerText(JsonObject root) {
         if (!root.has("candidates")) return null;
         JsonArray candidates = root.getAsJsonArray("candidates");
         if (candidates.isEmpty()) return null;
