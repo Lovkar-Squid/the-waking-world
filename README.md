@@ -4,7 +4,7 @@
 
 [![The Waking World - trailer](docs/art/hero-leap.jpg)](https://youtu.be/K47KIgOEuzc)
 
-**[Watch the trailer](https://youtu.be/K47KIgOEuzc)** (1:51) - **[Download on CurseForge](https://www.curseforge.com/minecraft/mc-mods/the-waking-world)** - **[Releases](https://github.com/Lovkar-Squid/the-waking-world/releases)** - **[Discord](https://discord.gg/BVztrTtXFu)**
+**[Watch the trailer](https://youtu.be/K47KIgOEuzc)** (1:51) - **[Download on CurseForge](https://www.curseforge.com/minecraft/mc-mods/the-waking-world)** - **[Releases](https://github.com/Lovkar-Squid/the-waking-world/releases)** - **[Discord](https://discord.gg/BVztrTtXFu)** - **[Patreon](https://www.patreon.com/Lovkar)**
 
 A standalone mod for **NeoForge 1.21.1**. Somewhere under the hills, six kinds of sleeping giants wait
 for a horn. Find the letters the dead left behind, follow them to the shrines and the vaults, gather
@@ -170,8 +170,8 @@ debugging tools (`snapshot`, `diff`, `dump`, `terrain`, `kingdomscan`).
 
 ## Supporters
 
-The mod is free and stays free. Its Patreon supporters get **cosmetic** perks in the game - nothing
-that changes how it plays:
+The mod is free and stays free. Its [Patreon](https://www.patreon.com/Lovkar) supporters (Waker, Colossus and
+Titan tiers) get **cosmetic** perks in the game - nothing that changes how it plays:
 
 - **Auras** in the mod's own rune language - the Waker's Runes, the Colossus Sigil in the colours of the
   six lands, the Titan's Void and the Waking Crown.

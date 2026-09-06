@@ -2,7 +2,7 @@
 """Builds the CurseForge modpack zip "Lovkar's Waking World Ultimate" (manifest + modlist + overrides)."""
 import json, zipfile, sys, os, io
 VERSION = sys.argv[1] if len(sys.argv) > 1 else "1.0.0"
-TWW_FILE = int(sys.argv[2]) if len(sys.argv) > 2 else 8817339   # The Waking World 0.1.0-beta.1 on CurseForge
+TWW_FILE = int(sys.argv[2]) if len(sys.argv) > 2 else 8824171   # The Waking World 0.1.0-beta.5 on CurseForge (beta.1 was 8817339)
 # (projectID, fileID, name, url-slug-class)
 MODS = [
  (1683580, TWW_FILE, "The Waking World", "mc-mods/the-waking-world"),
