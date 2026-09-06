@@ -31,6 +31,12 @@ public final class WakingConfig {
     private static final ModConfigSpec.DoubleValue RITE_GIFT_MULTIPLIER;
     private static final ModConfigSpec.IntValue LESSER_ALTAR_RUNES;
     private static final ModConfigSpec.DoubleValue RITE_COST_MULTIPLIER;
+    private static final ModConfigSpec.BooleanValue METEOR_SHOWERS;
+    private static final ModConfigSpec.DoubleValue METEOR_CHANCE;
+    private static final ModConfigSpec.IntValue DAYS_BETWEEN_SHOWERS;
+    private static final ModConfigSpec.IntValue METEORS_PER_SHOWER;
+    private static final ModConfigSpec.IntValue SHOWER_LENGTH;
+    private static final ModConfigSpec.IntValue METEOR_SAFE_RADIUS;
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -77,6 +83,20 @@ public final class WakingConfig {
         DRAGON_EGG_EVERY_DRAGON = b.comment("On: every Ender Dragon that dies leaves an egg on the podium if none lies there, not only the first (vanilla) - so a lost egg can be replaced.")
                 .define("dragonEggEveryDragon", true);
         b.pop();
+        b.push("cataclysms");
+        METEOR_SHOWERS = b.comment("The Falling Sky: on a rare night the stars come down around whoever is out in the open.",
+                "Off: no meteor showers at all (the /wakingworld meteor commands still work).").define("meteorShowers", true);
+        METEOR_CHANCE = b.comment("The chance, rolled once at dusk on any night that is allowed one, that a shower starts (0.1 = one night in ten).")
+                .defineInRange("meteorChance", 0.10, 0.0, 1.0);
+        DAYS_BETWEEN_SHOWERS = b.comment("Days that must pass after a shower before another may start.")
+                .defineInRange("daysBetweenShowers", 8, 0, 1000);
+        METEORS_PER_SHOWER = b.comment("How many stars fall in one shower (they come 5-13 seconds apart).")
+                .defineInRange("meteorsPerShower", 14, 1, 200);
+        SHOWER_LENGTH = b.comment("How long a shower may last, in seconds, however many stars are left.")
+                .defineInRange("showerLengthSeconds", 180, 20, 3600);
+        METEOR_SAFE_RADIUS = b.comment("No star falls this close to the world spawn or to any player's bed (0 = nowhere is safe).")
+                .defineInRange("meteorSafeRadius", 64, 0, 512);
+        b.pop();
         SPEC = b.build();
     }
 
@@ -105,6 +125,30 @@ public final class WakingConfig {
                 .define("showAuras", true);
         b.pop();
         CLIENT_SPEC = b.build();
+    }
+
+    public static boolean meteorShowers() {
+        return loaded() && METEOR_SHOWERS.get();
+    }
+
+    public static double meteorChance() {
+        return loaded() ? METEOR_CHANCE.get() : 0.10;
+    }
+
+    public static int daysBetweenShowers() {
+        return loaded() ? DAYS_BETWEEN_SHOWERS.get() : 8;
+    }
+
+    public static int meteorsPerShower() {
+        return loaded() ? METEORS_PER_SHOWER.get() : 14;
+    }
+
+    public static int showerLength() {
+        return loaded() ? SHOWER_LENGTH.get() : 180;
+    }
+
+    public static int meteorSafeRadius() {
+        return loaded() ? METEOR_SAFE_RADIUS.get() : 64;
     }
 
     public static double cameraShake() {

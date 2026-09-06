@@ -50,6 +50,10 @@ public final class WakingItems {
             new Item.Properties().rarity(Rarity.EPIC).stacksTo(4).fireResistant());
     public static final DeferredItem<HeartOfTheEndItem> HEART_OF_THE_END = ITEMS.registerItem("heart_of_the_end", HeartOfTheEndItem::new,
             new Item.Properties().rarity(Rarity.EPIC).stacksTo(1).fireResistant());
+    /** The heart of a fallen star, prised out of the Starstone in its crater: the one metal the sky brings. */
+    public static final DeferredItem<Item> STAR_IRON = ITEMS.registerItem("star_iron",
+            p -> new LoreItem(p, "item.wakingworld.star_iron.tooltip", true), new Item.Properties().rarity(Rarity.RARE).fireResistant());
+
     /** The rite's fuel - only the vaults have them. */
     public static final DeferredItem<Item> SLEEPERS_EMBER = ITEMS.registerItem("sleepers_ember",
             p -> new LoreItem(p, "item.wakingworld.sleepers_ember.tooltip", true), new Item.Properties().rarity(Rarity.RARE).fireResistant());
@@ -130,6 +134,8 @@ public final class WakingItems {
                         out.accept(HOURGLASS.get());
                         out.accept(HEART_OF_THE_END.get());
                         out.accept(SLEEPERS_EMBER.get());
+                        out.accept(STAR_IRON.get());
+                        out.accept(me.lovkar.wakingworld.cataclysm.CataclysmBlocks.STARSTONE_ITEM.get());
                         for (DeferredItem<Item> r : runes()) out.accept(r.get());
                         for (DeferredItem<Item> d : discs()) out.accept(d.get());
                         out.accept(me.lovkar.wakingworld.ritual.WakingRitual.ALTAR_ITEM.get());
@@ -178,6 +184,7 @@ public final class WakingItems {
             event.accept(COLOSSUS_HEART);
             for (DeferredItem<Item> s : sigils()) event.accept(s);
             event.accept(SLEEPERS_EMBER);
+            event.accept(STAR_IRON);
             for (DeferredItem<Item> r : runes()) event.accept(r);
         } else if (event.getTabKey() == tab("tools_and_utilities")) {
             event.accept(HORN_OF_WAKING);

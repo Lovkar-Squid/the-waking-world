@@ -489,5 +489,12 @@
   "trade.wakingworld.greet.titan": "The one the Titan bowed to... I am honoured, truly. Look around, take your time.",
   "entity.wakingworld.guard.say.waker": "Hail, Waker. The walls stand easier with you in the town.",
   "entity.wakingworld.guard.say.colossus": "Hail, Colossus-friend. Your giant is not welcome inside the walls - you are.",
-  "entity.wakingworld.guard.say.titan": "Hail! The one who faced the Titan. Stand easy, lads - this one is with us."
+  "entity.wakingworld.guard.say.titan": "Hail! The one who faced the Titan. Stand easy, lads - this one is with us.",
+  "block.wakingworld.starstone": "Starstone",
+  "item.wakingworld.star_iron": "Star Iron",
+  "item.wakingworld.star_iron.tooltip": "Still warm. It fell a long way to reach you.",
+  "cataclysm.wakingworld.meteor.warning": "The sky is wrong tonight. Something is coming down.",
+  "cataclysm.wakingworld.meteor.over": "The sky is quiet again.",
+  "commands.wakingworld.meteor": "A star falls.",
+  "commands.wakingworld.shower": "The shower begins."
 }

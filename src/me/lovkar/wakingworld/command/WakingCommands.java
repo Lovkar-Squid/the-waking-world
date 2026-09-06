@@ -53,6 +53,13 @@ public final class WakingCommands {
                                                 .executes(ctx -> summon(ctx, StringArgumentType.getString(ctx, "variant"),
                                                         IntegerArgumentType.getInteger(ctx, "height"), true))))))
                 .then(Commands.literal("kill").executes(WakingCommands::killAll))
+                .then(Commands.literal("meteor").executes(ctx -> meteor(ctx, null, 2))
+                        .then(Commands.argument("at", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
+                                .executes(ctx -> meteor(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"), 2))
+                                .then(Commands.argument("size", IntegerArgumentType.integer(1, 3))
+                                        .executes(ctx -> meteor(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"),
+                                                IntegerArgumentType.getInteger(ctx, "size"))))))
+                .then(Commands.literal("shower").executes(WakingCommands::shower))
                 .then(Commands.literal("restore").executes(WakingCommands::restore))
                 .then(Commands.literal("target").then(Commands.argument("who", net.minecraft.commands.arguments.EntityArgument.entity())
                         .executes(ctx -> target(ctx, net.minecraft.commands.arguments.EntityArgument.getEntity(ctx, "who")))))
@@ -362,6 +369,33 @@ public final class WakingCommands {
         final int count = n;
         ctx.getSource().sendSuccess(() -> Component.literal(count + " colossi now target " + who.getName().getString()), true);
         return n;
+    }
+
+    /** One star, on its way: where you are looking, or where you say. */
+    private static int meteor(CommandContext<CommandSourceStack> ctx, BlockPos at, int size) {
+        net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
+        net.minecraft.world.phys.Vec3 target;
+        if (at != null) {
+            target = new net.minecraft.world.phys.Vec3(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
+        } else {
+            net.minecraft.world.phys.Vec3 from = ctx.getSource().getPosition();
+            double angle = level.random.nextDouble() * Math.PI * 2;
+            double dist = 40 + level.random.nextDouble() * 40;
+            BlockPos ground = level.getHeightmapPos(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                    BlockPos.containing(from.x + Math.cos(angle) * dist, 0, from.z + Math.sin(angle) * dist));
+            target = new net.minecraft.world.phys.Vec3(ground.getX() + 0.5, ground.getY(), ground.getZ() + 0.5);
+        }
+        me.lovkar.wakingworld.cataclysm.Cataclysms.fall(level, target, size, true);
+        final String where = String.format("%.0f %.0f %.0f", target.x, target.y, target.z);
+        ctx.getSource().sendSuccess(() -> Component.literal("A star is falling towards " + where + " (size " + size + ")"), true);
+        return 1;
+    }
+
+    /** The whole shower, right now. */
+    private static int shower(CommandContext<CommandSourceStack> ctx) {
+        me.lovkar.wakingworld.cataclysm.Cataclysms.force(ctx.getSource().getLevel());
+        ctx.getSource().sendSuccess(() -> Component.literal("The sky turns: a meteor shower begins."), true);
+        return 1;
     }
 
     private static int killAll(CommandContext<CommandSourceStack> ctx) {

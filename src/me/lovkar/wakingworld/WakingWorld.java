@@ -102,6 +102,16 @@ public class WakingWorld {
                     .clientTrackingRange(10)
                     .build("king"));
 
+    /** A falling star: the first of the Cataclysms. */
+    public static final DeferredHolder<EntityType<?>, EntityType<me.lovkar.wakingworld.cataclysm.MeteorEntity>> METEOR = ENTITIES.register("meteor",
+            () -> EntityType.Builder.<me.lovkar.wakingworld.cataclysm.MeteorEntity>of(me.lovkar.wakingworld.cataclysm.MeteorEntity::new, MobCategory.MISC)
+                    .sized(2.4F, 2.4F)
+                    .clientTrackingRange(32)
+                    .updateInterval(1)
+                    .fireImmune()
+                    .noSummon()
+                    .build("meteor"));
+
     public WakingWorld(IEventBus modBus, ModContainer container) {
         container.registerConfig(ModConfig.Type.SERVER, WakingConfig.SPEC);
         ENTITIES.register(modBus);
@@ -112,6 +122,7 @@ public class WakingWorld {
         me.lovkar.wakingworld.particle.WakingParticles.register(modBus);
         me.lovkar.wakingworld.ritual.WakingRitual.register(modBus);
         me.lovkar.wakingworld.kingdom.KingdomBlocks.register(modBus);
+        me.lovkar.wakingworld.cataclysm.CataclysmBlocks.register(modBus);
         modBus.addListener(WakingWorld::registerAttributes);
         modBus.addListener(me.lovkar.wakingworld.network.WakingNet::register);
         modBus.addListener(me.lovkar.wakingworld.entity.WakingSpawns::register);
@@ -131,6 +142,7 @@ public class WakingWorld {
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.kingdom.KingdomEvents::onLevelTick);
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.supporter.SupporterList::onServerStarted);
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.supporter.SupporterList::onServerTick);
+        NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.cataclysm.Cataclysms::onLevelTick);
         if (FMLEnvironment.dist.isClient()) {
             container.registerConfig(ModConfig.Type.CLIENT, WakingConfig.CLIENT_SPEC);
             WakingWorldClient.init(modBus, container);
