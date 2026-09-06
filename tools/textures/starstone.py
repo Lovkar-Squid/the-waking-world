@@ -39,29 +39,31 @@ def starstone():
             im.putpixel((x, y), c + (255,))
     # veins: a few random walks across the face, glowing hottest at their heart
     heat = [[0.0] * 16 for _ in range(16)]
-    for _ in range(3):
+    for _ in range(2):
         x, y = rnd.randrange(16), rnd.randrange(16)
         ang = rnd.random() * math.tau
-        for _step in range(rnd.randint(14, 22)):
-            ang += rnd.uniform(-0.9, 0.9)
+        for _step in range(rnd.randint(11, 16)):
+            ang += rnd.uniform(-0.7, 0.7)
             x = (x + math.cos(ang)) % 16
             y = (y + math.sin(ang)) % 16
             ix, iy = int(x), int(y)
-            heat[iy][ix] = max(heat[iy][ix], 1.0)
-            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            heat[iy][ix] = max(heat[iy][ix], 0.8 + rnd.random() * 0.2)
+            # only the odd pixel bleeds sideways, so the vein stays a line and not a river
+            if rnd.random() < 0.35:
+                dx, dy = rnd.choice(((1, 0), (-1, 0), (0, 1), (0, -1)))
                 jx, jy = (ix + dx) % 16, (iy + dy) % 16
-                heat[jy][jx] = max(heat[jy][jx], 0.45 + rnd.random() * 0.2)
+                heat[jy][jx] = max(heat[jy][jx], 0.18 + rnd.random() * 0.16)
     for y in range(16):
         for x in range(16):
             h = heat[y][x]
             if h <= 0:
                 continue
             base = im.getpixel((x, y))[:3]
-            if h > 0.85:
-                c = mix(MID, HOT, (h - 0.85) / 0.15)
+            if h > 0.94:
+                c = mix(MID, HOT, (h - 0.94) / 0.06)
             else:
-                c = mix(LOW, MID, h / 0.85)
-            im.putpixel((x, y), mix(base, c, min(1.0, 0.35 + h * 0.75)) + (255,))
+                c = mix(LOW, MID, min(1.0, h / 0.90))
+            im.putpixel((x, y), mix(base, c, min(1.0, 0.30 + h * 0.70)) + (255,))
     im.save(os.path.join(BLOCK, "starstone.png"))
     return im
 
