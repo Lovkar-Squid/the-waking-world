@@ -500,5 +500,9 @@
   "cataclysm.wakingworld.volcano.warning": "The ground is shaking, and somewhere close it has started to smoke.",
   "cataclysm.wakingworld.volcano.over": "The mountain has stopped growing.",
   "cataclysm.wakingworld.bloodmoon.warning": "The moon has come up red. Nothing out there is going to stop before dawn.",
-  "cataclysm.wakingworld.bloodmoon.over": "The moon is white again, and what the night sent has gone with it."
+  "cataclysm.wakingworld.bloodmoon.over": "The moon is white again, and what the night sent has gone with it.",
+  "cataclysm.wakingworld.tornado.warning": "The air has gone still and green. Something is coming down out of it.",
+  "cataclysm.wakingworld.earthquake.warning": "The ground is turning over. Get off anything you built high.",
+  "cataclysm.wakingworld.earthquake.over": "The ground has settled.",
+  "entity.wakingworld.tornado": "Tornado"
 }

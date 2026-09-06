@@ -48,6 +48,14 @@ public final class WakingConfig {
     private static final ModConfigSpec.IntValue DAYS_BETWEEN_BLOOD_MOONS;
     private static final ModConfigSpec.IntValue BLOOD_MOON_WAVE;
     private static final ModConfigSpec.IntValue BLOOD_MOON_WAVE_SECONDS;
+    private static final ModConfigSpec.BooleanValue TORNADOES;
+    private static final ModConfigSpec.DoubleValue TORNADO_CHANCE;
+    private static final ModConfigSpec.IntValue DAYS_BETWEEN_TORNADOES;
+    private static final ModConfigSpec.IntValue TORNADO_SECONDS;
+    private static final ModConfigSpec.BooleanValue EARTHQUAKES;
+    private static final ModConfigSpec.DoubleValue EARTHQUAKE_CHANCE;
+    private static final ModConfigSpec.IntValue DAYS_BETWEEN_EARTHQUAKES;
+    private static final ModConfigSpec.IntValue EARTHQUAKE_SECONDS;
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -129,6 +137,23 @@ public final class WakingConfig {
                 .defineInRange("bloodMoonWaveSize", 6, 1, 40);
         BLOOD_MOON_WAVE_SECONDS = b.comment("Seconds between waves.")
                 .defineInRange("bloodMoonWaveSeconds", 12, 3, 300);
+        TORNADOES = b.comment("The Wandering Column: a tornado that walks across the country, lifting what is loose.",
+                "It never takes a block that is under a roof, in a lit room, or holds anything.",
+                "Off: no tornadoes (the /wakingworld tornado command still works).").define("tornadoes", true);
+        TORNADO_CHANCE = b.comment("The chance, rolled once in the afternoon on any day that is allowed one, that a tornado forms.")
+                .defineInRange("tornadoChance", 0.07, 0.0, 1.0);
+        DAYS_BETWEEN_TORNADOES = b.comment("Days that must pass after a tornado before another may form.")
+                .defineInRange("daysBetweenTornadoes", 9, 0, 1000);
+        TORNADO_SECONDS = b.comment("How long a tornado lives, in seconds.")
+                .defineInRange("tornadoSeconds", 90, 10, 1200);
+        EARTHQUAKES = b.comment("The Turning Ground: half a minute of shaking, and a fault opened across the country.",
+                "Off: no earthquakes (the /wakingworld earthquake command still works).").define("earthquakes", true);
+        EARTHQUAKE_CHANCE = b.comment("The chance, rolled once a day on any day that is allowed one, that the ground turns.")
+                .defineInRange("earthquakeChance", 0.07, 0.0, 1.0);
+        DAYS_BETWEEN_EARTHQUAKES = b.comment("Days that must pass after an earthquake before another may come.")
+                .defineInRange("daysBetweenEarthquakes", 11, 0, 1000);
+        EARTHQUAKE_SECONDS = b.comment("How long the shaking lasts, in seconds.")
+                .defineInRange("earthquakeSeconds", 26, 5, 300);
         b.pop();
         SPEC = b.build();
     }
@@ -158,6 +183,38 @@ public final class WakingConfig {
                 .define("showAuras", true);
         b.pop();
         CLIENT_SPEC = b.build();
+    }
+
+    public static boolean tornadoes() {
+        return loaded() && TORNADOES.get();
+    }
+
+    public static double tornadoChance() {
+        return loaded() ? TORNADO_CHANCE.get() : 0.07;
+    }
+
+    public static int daysBetweenTornadoes() {
+        return loaded() ? DAYS_BETWEEN_TORNADOES.get() : 9;
+    }
+
+    public static int tornadoSeconds() {
+        return loaded() ? TORNADO_SECONDS.get() : 90;
+    }
+
+    public static boolean earthquakes() {
+        return loaded() && EARTHQUAKES.get();
+    }
+
+    public static double earthquakeChance() {
+        return loaded() ? EARTHQUAKE_CHANCE.get() : 0.07;
+    }
+
+    public static int daysBetweenEarthquakes() {
+        return loaded() ? DAYS_BETWEEN_EARTHQUAKES.get() : 11;
+    }
+
+    public static int earthquakeSeconds() {
+        return loaded() ? EARTHQUAKE_SECONDS.get() : 26;
     }
 
     public static boolean bloodMoons() {

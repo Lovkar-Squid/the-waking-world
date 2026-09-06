@@ -132,6 +132,7 @@ public final class WakingWorldClient {
         event.registerEntityRenderer(WakingWorld.COLOSSUS.get(), ColossusRenderer::new);
         event.registerEntityRenderer(WakingWorld.THROWN_MASS.get(), ThrownMassRenderer::new);
         event.registerEntityRenderer(WakingWorld.METEOR.get(), MeteorRenderer::new);
+        event.registerEntityRenderer(WakingWorld.TORNADO.get(), TornadoRenderer::new);
         event.registerEntityRenderer(WakingWorld.RUBBLE.get(), net.minecraft.client.renderer.entity.FallingBlockRenderer::new);
         event.registerBlockEntityRenderer(me.lovkar.wakingworld.ritual.WakingRitual.ALTAR_ENTITY.get(), AltarRenderer::new);
         event.registerEntityRenderer(WakingWorld.STONE_THRALL.get(), StoneThrallRenderer::new);

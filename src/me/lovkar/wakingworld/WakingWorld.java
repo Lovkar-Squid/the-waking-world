@@ -112,6 +112,15 @@ public class WakingWorld {
                     .noSummon()
                     .build("meteor"));
 
+    public static final DeferredHolder<EntityType<?>, EntityType<me.lovkar.wakingworld.cataclysm.TornadoEntity>> TORNADO = ENTITIES.register("tornado",
+            () -> EntityType.Builder.<me.lovkar.wakingworld.cataclysm.TornadoEntity>of(me.lovkar.wakingworld.cataclysm.TornadoEntity::new, MobCategory.MISC)
+                    .sized(6.0F, 30.0F)
+                    .clientTrackingRange(16)
+                    .updateInterval(2)
+                    .fireImmune()
+                    .noSummon()
+                    .build("tornado"));
+
     public WakingWorld(IEventBus modBus, ModContainer container) {
         container.registerConfig(ModConfig.Type.SERVER, WakingConfig.SPEC);
         ENTITIES.register(modBus);

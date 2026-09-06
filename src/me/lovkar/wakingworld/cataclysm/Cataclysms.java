@@ -66,6 +66,7 @@ public final class Cataclysms extends SavedData {
         if (WakingConfig.meteorShowers()) get(level).tick(level);
         Volcano.onLevelTick(level);
         BloodMoon.onLevelTick(level);
+        Weather.onLevelTick(level);
     }
 
     /** True while the sky is falling - the other cataclysms wait their turn. */

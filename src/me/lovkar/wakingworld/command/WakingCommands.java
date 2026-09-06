@@ -60,6 +60,15 @@ public final class WakingCommands {
                                         .executes(ctx -> meteor(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"),
                                                 IntegerArgumentType.getInteger(ctx, "size"))))))
                 .then(Commands.literal("shower").executes(WakingCommands::shower))
+                .then(Commands.literal("tornado").executes(ctx -> tornado(ctx, null, 0))
+                        .then(Commands.argument("at", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
+                                .executes(ctx -> tornado(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"), 0))
+                                .then(Commands.argument("seconds", com.mojang.brigadier.arguments.IntegerArgumentType.integer(5, 1200))
+                                        .executes(ctx -> tornado(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"),
+                                                com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "seconds"))))))
+                .then(Commands.literal("earthquake").executes(ctx -> earthquake(ctx, null))
+                        .then(Commands.argument("at", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
+                                .executes(ctx -> earthquake(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at")))))
                 .then(Commands.literal("bloodmoon")
                         .then(Commands.literal("on").executes(ctx -> bloodMoon(ctx, true)))
                         .then(Commands.literal("off").executes(ctx -> bloodMoon(ctx, false)))
@@ -404,6 +413,29 @@ public final class WakingCommands {
         me.lovkar.wakingworld.cataclysm.Cataclysms.fall(level, target, size, true);
         final String where = String.format("%.0f %.0f %.0f", target.x, target.y, target.z);
         ctx.getSource().sendSuccess(() -> Component.literal("A star is falling towards " + where + " (size " + size + ")"), true);
+        return 1;
+    }
+
+    /** A column of wind, walking. */
+    private static int tornado(CommandContext<CommandSourceStack> ctx, BlockPos at, int seconds) {
+        net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
+        net.minecraft.world.phys.Vec3 from = ctx.getSource().getPosition();
+        BlockPos ground = at != null ? at : me.lovkar.wakingworld.cataclysm.Cataclysms.surface(level, from.x, from.z);
+        me.lovkar.wakingworld.cataclysm.TornadoEntity.spawn(level,
+                new net.minecraft.world.phys.Vec3(ground.getX() + 0.5, ground.getY(), ground.getZ() + 0.5), seconds);
+        final String w = ground.getX() + " " + ground.getY() + " " + ground.getZ();
+        ctx.getSource().sendSuccess(() -> Component.literal("A column comes down at " + w), true);
+        return 1;
+    }
+
+    /** The ground turns. */
+    private static int earthquake(CommandContext<CommandSourceStack> ctx, BlockPos at) {
+        net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
+        net.minecraft.world.phys.Vec3 from = ctx.getSource().getPosition();
+        BlockPos ground = at != null ? at : me.lovkar.wakingworld.cataclysm.Cataclysms.surface(level, from.x, from.z);
+        me.lovkar.wakingworld.cataclysm.Weather.forceQuake(level,
+                new net.minecraft.world.phys.Vec3(ground.getX() + 0.5, ground.getY(), ground.getZ() + 0.5));
+        ctx.getSource().sendSuccess(() -> Component.literal("The ground turns."), true);
         return 1;
     }
 
