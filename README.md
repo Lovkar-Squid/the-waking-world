@@ -112,7 +112,10 @@ unless you turn billing on in Google Cloud yourself.
    (a minute or two the first time) and the letter opens once it is ready.
 
 The key never leaves the server and is never shown to players; on any error the mod falls back to the
-built-in letters and to silent ones. `geminiModel` defaults to `gemini-3.6-flash` (when Google retires
+built-in letters and to silent ones. What does leave the server when Gemini is on is the letter prompt -
+the names of the nearby structures and the recent events of your world (a giant woken, a king crowned),
+never chat, player names or anything personal - sent to Google's Gemini API with your key. With it off,
+the mod makes no network requests at all. `geminiModel` defaults to `gemini-3.6-flash` (when Google retires
 a model, the mod follows the successor its error message names); `voiceModel` defaults to
 `gemini-2.5-flash-preview-tts`, whose free tier is more generous than the 3.1 preview's ten voices a day.
 Five writers, five voices: a weary miner, a quiet walker, an old monk, an excited child, a gruff
