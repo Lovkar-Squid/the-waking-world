@@ -3,6 +3,40 @@
 All notable changes to The Waking World. The format follows [Keep a Changelog](https://keepachangelog.com/);
 versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-releases.
 
+## [0.1.0-beta.5] - 2026-09-06
+
+The supporter update: cosmetic perks for the mod's Patreon supporters, a music disc from every giant, and
+the small fixes found since the first beta. Nothing here changes the gameplay - the fights, the drops and
+the rites are the same for everyone.
+
+### Added
+- **Supporter perks** (Patreon, cosmetic only). Link a Minecraft account in the game with `/wwpatreon`;
+  the page that opens lets you pick your look, and `/wwpatreon aura <name>`, `/wwpatreon colossus <name>`,
+  `/wwpatreon credits on|off`, `/wwpatreon status` and `/wwpatreon refresh` do the same without leaving
+  the game. Perks come from a small supporter service; the mod only draws what it is told. The service
+  publishes no names - a salted hash per account and the chosen look - and asks Mojang to confirm the
+  account before it links or changes anything.
+- **Auras**, drawn with the mod's own rune, ring and ember particles: the Waker's Runes; the Colossus
+  Sigil (glyphs orbiting your feet and a ring of light every few seconds) in ember orange or the colours
+  of the six lands; the Titan's Void (twin pulse and embers) and the Waking Crown (a halo of gold glyphs).
+  Client config `supporters.showAuras` hides them on your own screen.
+- **Colossus styles**: the giants a supporter's rite wakes rise dressed as the Sentinel (blackstone and
+  iron, glowing seams, a visor), the Eldest (deepslate with gold-lit carvings and moss) or the Seraph
+  (white plating, violet light along the edges, a visor, lit horns). Same silhouette, same hit boxes -
+  every style is checked against the plain giant of every land - other stone. The Titan is never dressed.
+- **Music discs**: every colossus leaves its own theme behind when it falls, the Titan too - seven discs
+  for the jukebox (Jukebox/Note Blocks volume slider).
+- **The Hall of Wakers** at the back of the Almanac's first chapter: the supporters who chose to be named.
+- The kingdom greets its wakers: the king's audience, a word at the traders' stalls (same prices for all),
+  a salute from the guards.
+- A supporter's Horn of Waking sounds in the colour of their aura.
+- A colossus remembers who woke it (`Waker` in its data).
+
+### Changed
+- The glowing veins are drawn from their own random stream, so a styled giant weathers exactly like the
+  plain one. Giants saved by beta.1 may show a different pattern of veins after the update; nothing else.
+- The music themes are also registered as `record.colossus.<kind>` sound events for the discs.
+
 ## [0.1.0-beta.1] - 2026-09-05
 
 The first public build, for NeoForge 1.21.1. Everything below is new.

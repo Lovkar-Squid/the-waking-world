@@ -125,8 +125,11 @@ public class TradeScreen extends Screen {
             g.drawString(font, I18n.get("trade.wakingworld.purse", emeralds), left + 26, top + 163, PALE, true);
         }
         String about = I18n.get("trade.wakingworld.about." + profession());
+        // a supporter is greeted at the stall - words only, the prices are the same for everyone
+        String tier = minecraft.player == null ? null : me.lovkar.wakingworld.supporter.SupporterCosmetics.tier(minecraft.player.getUUID());
+        if (tier != null) about = I18n.get("trade.wakingworld.greet." + tier);
         List<net.minecraft.util.FormattedCharSequence> lines = font.split(Component.literal(about).withStyle(ChatFormatting.ITALIC), 210);
-        for (int i = 0; i < Math.min(2, lines.size()); i++) g.drawString(font, lines.get(i), left + 14, top + 174 + i * 9, 0xC8B890, true);
+        for (int i = 0; i < Math.min(2, lines.size()); i++) g.drawString(font, lines.get(i), left + 14, top + 174 + i * 9, tier != null ? 0xE8D8A0 : 0xC8B890, true);
         // the list's own arrows
         up.visible = scroll > 0;
         down.visible = scroll + ROWS < offers.size();

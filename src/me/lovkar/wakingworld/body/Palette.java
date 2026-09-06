@@ -62,6 +62,8 @@ public final class Palette {
     public final Block eye;
     /** stone, sandstone, ice, prismarine, moss or earth - drives the boss-bar colour and the display name. */
     public final String kind;
+    /** A supporter's cosmetic style ("" = none): the name is then "kind+style", so the giant keeps its land's shape in other clothes. */
+    private final String style;
     private String serialized;
 
     private Palette(String name, List<Weighted> body, Block core, Block eye) {
@@ -72,7 +74,27 @@ public final class Palette {
         int t = 0;
         for (Weighted x : this.body) t += x.weight;
         this.total = Math.max(1, t);
-        this.kind = PRESET_KINDS.containsKey(name) ? PRESET_KINDS.get(name) : kindOf(this.body);
+        int plus = name.indexOf('+');
+        String base = plus > 0 ? name.substring(0, plus) : name;
+        this.style = plus > 0 ? name.substring(plus + 1) : "";
+        this.kind = PRESET_KINDS.containsKey(base) ? PRESET_KINDS.get(base) : kindOf(this.body);
+    }
+
+    /** The cosmetic style this palette wears (NONE for every ordinary giant). */
+    public ColossusStyle style() {
+        ColossusStyle s = ColossusStyle.byId(style);
+        return s == null ? ColossusStyle.NONE : s;
+    }
+
+    /**
+     * The same giant in a supporter's style: the land's kind (and so its silhouette) is kept, the
+     * blocks and the glow are the style's. The Titan keeps its own look.
+     */
+    public static Palette styled(Palette base, ColossusStyle style) {
+        if (style == null || style == ColossusStyle.NONE || base == null || "titan".equals(base.kind) || base.style() != ColossusStyle.NONE) return base;
+        List<Weighted> list = new ArrayList<>();
+        for (Object[] e : style.body) list.add(new Weighted((Block) e[0], (Integer) e[1]));
+        return new Palette(base.kind + "+" + style.id, list, style.core, style.eye);
     }
 
     /** The boss bar wears the giant's colour: magma-cored earth and stone red, sand yellow, ice white, sea blue, moss green. */

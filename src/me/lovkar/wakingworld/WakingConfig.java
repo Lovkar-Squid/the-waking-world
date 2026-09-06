@@ -86,6 +86,7 @@ public final class WakingConfig {
     private static final ModConfigSpec.DoubleValue CAMERA_SHAKE;
     private static final ModConfigSpec.BooleanValue BOSS_MUSIC;
     private static final ModConfigSpec.BooleanValue READ_LETTERS;
+    private static final ModConfigSpec.BooleanValue SHOW_AURAS;
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -98,6 +99,10 @@ public final class WakingConfig {
         b.push("letters");
         READ_LETTERS = b.comment("Read a Dead Letter aloud when it is opened, if the server made a voice for it (the speaker on the letter starts and stops it either way). Uses the Voice/Speech volume slider.")
                 .define("readLettersAloud", true);
+        b.pop();
+        b.push("supporters");
+        SHOW_AURAS = b.comment("Draw the supporters' auras (yours and other players'). Off hides them on this client only; it changes nothing about who has one.")
+                .define("showAuras", true);
         b.pop();
         CLIENT_SPEC = b.build();
     }
@@ -112,6 +117,10 @@ public final class WakingConfig {
 
     public static boolean readLettersAloud() {
         return CLIENT_SPEC.isLoaded() ? READ_LETTERS.get() : true;
+    }
+
+    public static boolean showAuras() {
+        return CLIENT_SPEC.isLoaded() ? SHOW_AURAS.get() : true;
     }
 
     public static String geminiApiKey() {

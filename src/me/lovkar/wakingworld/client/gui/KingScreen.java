@@ -66,7 +66,10 @@ public class KingScreen extends Screen {
         switch (t) {
             case "greeting" -> {
                 int n = Math.floorMod(king.getId(), 3) + 1;
-                flow.paragraph(Component.translatable(king.generation() > 0 && Math.floorMod(king.getId(), 2) == 0 ? "king.wakingworld.greeting.new" : "king.wakingworld.greeting." + n), INK);
+                // a supporter is known here: the king greets a Waker, a friend of the colossi or the Titan's equal by name
+                String tier = minecraft.player == null ? null : me.lovkar.wakingworld.supporter.SupporterCosmetics.tier(minecraft.player.getUUID());
+                if (tier != null) flow.paragraph(Component.translatable("king.wakingworld.greeting." + tier), INK);
+                else flow.paragraph(Component.translatable(king.generation() > 0 && Math.floorMod(king.getId(), 2) == 0 ? "king.wakingworld.greeting.new" : "king.wakingworld.greeting." + n), INK);
                 flow.paragraph(Component.translatable("king.wakingworld.greeting.ask"), FADED);
             }
             case "treasury" -> {

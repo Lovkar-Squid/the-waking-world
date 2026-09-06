@@ -33,6 +33,15 @@ public final class WakingSounds {
     public static final DeferredHolder<SoundEvent, SoundEvent> MUSIC_TITAN_AWAKENING = music("titan_awakening");
     public static final DeferredHolder<SoundEvent, SoundEvent> MUSIC_TITAN_VICTORY = music("titan_victory");
 
+    /** The same themes as the music discs play them: registered in the "record" category, so the jukebox slider applies. */
+    public static final DeferredHolder<SoundEvent, SoundEvent> RECORD_STONE = record("stone");
+    public static final DeferredHolder<SoundEvent, SoundEvent> RECORD_EARTH = record("earth");
+    public static final DeferredHolder<SoundEvent, SoundEvent> RECORD_SANDSTONE = record("sandstone");
+    public static final DeferredHolder<SoundEvent, SoundEvent> RECORD_ICE = record("ice");
+    public static final DeferredHolder<SoundEvent, SoundEvent> RECORD_PRISMARINE = record("prismarine");
+    public static final DeferredHolder<SoundEvent, SoundEvent> RECORD_MOSS = record("moss");
+    public static final DeferredHolder<SoundEvent, SoundEvent> RECORD_TITAN = record("titan");
+
     /** The Horn of Waking's own voice, and the answer from under the altar when the rite begins. */
     public static final DeferredHolder<SoundEvent, SoundEvent> HORN_BLOW = sound("item.horn_of_waking.blow");
     public static final DeferredHolder<SoundEvent, SoundEvent> HORN_ANSWER = sound("item.horn_of_waking.answer");
@@ -95,6 +104,11 @@ public final class WakingSounds {
     /** The battle theme for a palette kind (stone for anything unknown). */
     public static SoundEvent battleTheme(String kind) {
         return BY_KIND.getOrDefault(kind, MUSIC_STONE).get();
+    }
+
+    private static DeferredHolder<SoundEvent, SoundEvent> record(String name) {
+        ResourceLocation id = ResourceLocation.fromNamespaceAndPath(WakingWorld.MODID, "record.colossus." + name);
+        return SOUNDS.register("record.colossus." + name, () -> SoundEvent.createVariableRangeEvent(id));
     }
 
     private static DeferredHolder<SoundEvent, SoundEvent> music(String name) {

@@ -317,7 +317,8 @@ public class AltarBlockEntity extends BlockEntity {
         dir = dir.normalize();
         double out = "titan".equals(kind) ? 24 : 36;
         Vec3 spot = c.add(dir.scale(out));
-        ColossusEntity woken = Waker.wakeAt(server, who == null ? c.subtract(dir.scale(20)) : who.position(), Rites.palette(kind), Rites.height(kind), spot);
+        ColossusEntity woken = Waker.wakeAt(server, who == null ? c.subtract(dir.scale(20)) : who.position(), Rites.palette(kind), Rites.height(kind), spot,
+                who == null ? null : who.getUUID());
         Ceremony.climax(server, this, kind, worldPosition, woken != null);
         for (int i = 0; i < SLOTS; i++) offerings.set(i, ItemStack.EMPTY);
         for (AltarBlockEntity lesser : lesserAltars()) lesser.consume(); // the six runes burn with the rite

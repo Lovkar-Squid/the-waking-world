@@ -117,6 +117,28 @@ public final class WakingNet {
         }
     }
 
+    /** Client -> server: I changed my supporter cosmetics on the service - tell everyone to look again. */
+    public record CosmeticsChanged() implements CustomPacketPayload {
+        public static final Type<CosmeticsChanged> TYPE = new Type<>(WakingNet.id("cosmetics_changed"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, CosmeticsChanged> CODEC = StreamCodec.unit(new CosmeticsChanged());
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /** Server -> client: a supporter changed their look; fetch the list again. */
+    public record RefreshCosmetics() implements CustomPacketPayload {
+        public static final Type<RefreshCosmetics> TYPE = new Type<>(WakingNet.id("refresh_cosmetics"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, RefreshCosmetics> CODEC = StreamCodec.unit(new RefreshCosmetics());
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
     /** Client -> server: send me this letter's voice. */
     public record RequestVoice(java.util.UUID id) implements CustomPacketPayload {
         public static final Type<RequestVoice> TYPE = new Type<>(WakingNet.id("request_voice"));
@@ -182,6 +204,20 @@ public final class WakingNet {
         registrar.playToServer(CineReady.TYPE, CineReady.CODEC, (p, ctx) -> {
             if (ctx.player() instanceof ServerPlayer player) me.lovkar.wakingworld.story.Cinematics.ready(player);
         });
+        registrar.playToServer(CosmeticsChanged.TYPE, CosmeticsChanged.CODEC, (p, ctx) -> {
+            if (ctx.player() instanceof ServerPlayer player) me.lovkar.wakingworld.supporter.SupporterCosmetics.onChanged(player);
+        });
+        registrar.playToClient(RefreshCosmetics.TYPE, RefreshCosmetics.CODEC, (p, ctx) -> me.lovkar.wakingworld.supporter.SupporterList.refreshAsync());
+    }
+
+    /** Client: my cosmetics changed on the service. */
+    public static void cosmeticsChanged() {
+        PacketDistributor.sendToServer(new CosmeticsChanged());
+    }
+
+    /** Server: everyone fetch the supporter list again. */
+    public static void refreshCosmetics() {
+        PacketDistributor.sendToAllPlayers(new RefreshCosmetics());
     }
 
     public static void cineSetup(ServerPlayer player, int renderDistance) {

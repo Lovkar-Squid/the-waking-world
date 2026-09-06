@@ -164,9 +164,13 @@ public final class WakingCommands {
         if (terrain) {
             palette = Palette.fromTerrain(level, ground, Math.max(10, height / 2));
         }
+        // a summoned giant is the caller's giant: a supporter's comes dressed in their style, like one their rite woke
+        java.util.UUID caller = src.getEntity() instanceof net.minecraft.world.entity.player.Player p ? p.getUUID() : null;
+        palette = me.lovkar.wakingworld.supporter.SupporterCosmetics.dress(palette, caller);
         ColossusEntity colossus = WakingWorld.COLOSSUS.get().create(level);
         if (colossus == null) return 0;
         colossus.setBodyParams(palette, level.random.nextInt(), height);
+        colossus.setWaker(caller);
         // face the caller
         float yaw = (float) (Math.toDegrees(Math.atan2(-(from.x - ground.getX()), from.z - ground.getZ())));
         colossus.moveTo(ground.getX() + 0.5, ground.getY(), ground.getZ() + 0.5, yaw, 0.0F);

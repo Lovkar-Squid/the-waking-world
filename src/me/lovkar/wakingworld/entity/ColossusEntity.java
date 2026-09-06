@@ -98,6 +98,9 @@ public class ColossusEntity extends Monster {
     /** Ticks left of the awakening (rising out of the ground); 0 = awake. */
     private static final EntityDataAccessor<Integer> DATA_WAKE =
             SynchedEntityData.defineId(ColossusEntity.class, EntityDataSerializers.INT);
+    /** The player whose rite woke it (empty: rose some other way). Cosmetics only - a supporter's giant wears their style. */
+    private static final EntityDataAccessor<java.util.Optional<java.util.UUID>> DATA_WAKER =
+            SynchedEntityData.defineId(ColossusEntity.class, EntityDataSerializers.OPTIONAL_UUID);
 
     /** How long the rise out of the ground takes. */
     public static final int WAKE_TICKS = 120;
@@ -343,6 +346,16 @@ public class ColossusEntity extends Monster {
         builder.define(DATA_SKIP, (byte) 0);
         builder.define(DATA_WAKE, 0);
         builder.define(DATA_BOSS_ID, java.util.Optional.empty());
+        builder.define(DATA_WAKER, java.util.Optional.empty());
+    }
+
+    /** The player whose rite woke this giant, if any. */
+    public java.util.Optional<java.util.UUID> waker() {
+        return this.entityData.get(DATA_WAKER);
+    }
+
+    public void setWaker(java.util.UUID id) {
+        this.entityData.set(DATA_WAKER, java.util.Optional.ofNullable(id));
     }
 
     @Override
@@ -480,6 +493,7 @@ public class ColossusEntity extends Monster {
         tag.putInt("Height", bodyHeight());
         tag.putByte("Cores", (byte) brokenCores());
         if (altarPos != null) tag.put("Altar", net.minecraft.nbt.NbtUtils.writeBlockPos(altarPos));
+        waker().ifPresent(id -> tag.putUUID("Waker", id));
     }
 
     @Override
@@ -491,6 +505,7 @@ public class ColossusEntity extends Monster {
         setBodyParams(p, seed, height);
         if (tag.contains("Cores")) this.entityData.set(DATA_CORES, tag.getByte("Cores"));
         altarPos = tag.contains("Altar") ? net.minecraft.nbt.NbtUtils.readBlockPos(tag, "Altar").orElse(null) : null;
+        if (tag.hasUUID("Waker")) setWaker(tag.getUUID("Waker"));
         refreshBossBar();
     }
 
@@ -2899,6 +2914,8 @@ public class ColossusEntity extends Monster {
         drops.add(new net.minecraft.world.item.ItemStack(me.lovkar.wakingworld.item.WakingItems.COLOSSUS_HEART.get(), titan ? 3 : 1));
         net.minecraft.world.item.Item sigil = me.lovkar.wakingworld.item.WakingItems.sigilFor(palette().kind);
         if (sigil != null) drops.add(new net.minecraft.world.item.ItemStack(sigil));
+        net.minecraft.world.item.Item disc = me.lovkar.wakingworld.item.WakingItems.discFor(palette().kind); // its own theme, to keep
+        if (disc != null) drops.add(new net.minecraft.world.item.ItemStack(disc));
         if (titan) {
             drops.add(new net.minecraft.world.item.ItemStack(me.lovkar.wakingworld.item.WakingItems.HEART_OF_THE_END.get()));
             drops.add(new net.minecraft.world.item.ItemStack(me.lovkar.wakingworld.item.WakingItems.TITAN_KEY.get())); // the Key comes back to whoever offered it

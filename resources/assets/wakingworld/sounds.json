@@ -675,5 +675,68 @@
         "volume": 0.6
       }
     ]
+  },
+  "record.colossus.stone": {
+    "category": "record",
+    "sounds": [
+      {
+        "name": "wakingworld:music/stone",
+        "stream": true
+      }
+    ]
+  },
+  "record.colossus.earth": {
+    "category": "record",
+    "sounds": [
+      {
+        "name": "wakingworld:music/earth",
+        "stream": true
+      }
+    ]
+  },
+  "record.colossus.sandstone": {
+    "category": "record",
+    "sounds": [
+      {
+        "name": "wakingworld:music/sandstone",
+        "stream": true
+      }
+    ]
+  },
+  "record.colossus.ice": {
+    "category": "record",
+    "sounds": [
+      {
+        "name": "wakingworld:music/ice",
+        "stream": true
+      }
+    ]
+  },
+  "record.colossus.prismarine": {
+    "category": "record",
+    "sounds": [
+      {
+        "name": "wakingworld:music/prismarine",
+        "stream": true
+      }
+    ]
+  },
+  "record.colossus.moss": {
+    "category": "record",
+    "sounds": [
+      {
+        "name": "wakingworld:music/moss",
+        "stream": true
+      }
+    ]
+  },
+  "record.colossus.titan": {
+    "category": "record",
+    "sounds": [
+      {
+        "name": "wakingworld:music/titan",
+        "stream": true
+      }
+    ]
   }
 }

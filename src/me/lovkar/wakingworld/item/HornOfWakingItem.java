@@ -43,8 +43,24 @@ public class HornOfWakingItem extends Item {
             for (net.minecraft.server.level.ServerPlayer sp : ((ServerLevel) level).getPlayers(pl -> pl.distanceToSqr(player) < 80 * 80)) {
                 ((ServerLevel) level).sendParticles(sp, ParticleTypes.SONIC_BOOM, false, player.getX(), player.getY() + 1.2, player.getZ(), 1, 0, 0, 0, 0);
             }
+            // a supporter's horn sounds in the colour of their aura: a ring of light at their feet as the note begins
+            int rgb = me.lovkar.wakingworld.supporter.SupporterCosmetics.auraColor(player.getUUID());
+            if (rgb >= 0) ((ServerLevel) level).sendParticles(me.lovkar.wakingworld.particle.WakingParticles.ring(rgb, 0.8f), player.getX(), player.getY() + 0.05, player.getZ(), 0, 0, 0.12, 0, 1.0);
         }
         return InteractionResultHolder.consume(stack);
+    }
+
+    /** While the note holds: for a supporter, rune glyphs in their aura's colour pour out of the horn's mouth. */
+    @Override
+    public void onUseTick(Level level, LivingEntity user, ItemStack stack, int remaining) {
+        if (!(level instanceof ServerLevel server) || !(user instanceof Player player) || remaining % 2 != 0) return;
+        int rgb = me.lovkar.wakingworld.supporter.SupporterCosmetics.auraColor(player.getUUID());
+        if (rgb < 0) return;
+        net.minecraft.world.phys.Vec3 look = player.getLookAngle();
+        net.minecraft.world.phys.Vec3 mouth = player.getEyePosition().add(look.scale(0.7)).add(0, -0.25, 0);
+        server.sendParticles(me.lovkar.wakingworld.particle.WakingParticles.rune(rgb, 0.55f), mouth.x, mouth.y, mouth.z, 1,
+                look.x * 0.25, 0.04 + look.y * 0.1, look.z * 0.25, 0.08);
+        if (remaining % 8 == 0) server.sendParticles(me.lovkar.wakingworld.particle.WakingParticles.ember(rgb, 0.6f), mouth.x, mouth.y, mouth.z, 3, 0.15, 0.1, 0.15, 0.06);
     }
 
     @Override
@@ -78,6 +94,8 @@ public class HornOfWakingItem extends Item {
         player.getCooldowns().addCooldown(this, 100);
         player.displayClientMessage(Component.translatable(stirred ? "item.wakingworld.horn_of_waking.stirred" : "item.wakingworld.horn_of_waking.nothing").withStyle(ChatFormatting.GRAY), true);
         server.sendParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 1.2, player.getZ(), 12, 0.4, 0.3, 0.4, 0.05);
+        int rgb = me.lovkar.wakingworld.supporter.SupporterCosmetics.auraColor(player.getUUID());
+        if (rgb >= 0) server.sendParticles(me.lovkar.wakingworld.particle.WakingParticles.rune(rgb, 0.8f), player.getX(), player.getY() + 1.4, player.getZ(), 14, 0.6, 0.5, 0.6, 0.06);
         return stack;
     }
 

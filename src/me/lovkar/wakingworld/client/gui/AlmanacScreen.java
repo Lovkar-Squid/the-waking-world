@@ -92,8 +92,8 @@ public class AlmanacScreen extends Screen {
     }
 
     private void build() {
-        // I. welcome + advice
-        add("welcome", of(WakingItems.ALMANAC.get()), flow()
+        // I. welcome + advice, and the Hall of Wakers at the back of the chapter
+        PageLayout.Flow w = flow()
                 .centered(t("welcome.sub"), FADED)
                 .paragraph(t("welcome.1"), INK)
                 .paragraph(t("welcome.2"), INK)
@@ -102,7 +102,9 @@ public class AlmanacScreen extends Screen {
                 .paragraph(t("advice.1"), INK)
                 .paragraph(t("advice.2"), INK)
                 .paragraph(t("advice.3"), INK)
-                .centered(t("advice.sign"), FADED));
+                .centered(t("advice.sign"), FADED);
+        hall(w);
+        add("welcome", of(WakingItems.ALMANAC.get()), w);
         // II. the sleepers
         PageLayout.Flow s = flow().paragraph(t("sleepers.1"), INK).paragraph(t("sleepers.2"), INK);
         String[] kinds = {"stone", "earth", "sandstone", "ice", "prismarine", "moss"};
@@ -170,6 +172,27 @@ public class AlmanacScreen extends Screen {
                         of(WakingItems.RUNE_ICE.get()), of(WakingItems.RUNE_PRISMARINE.get()), of(WakingItems.RUNE_MOSS.get()))
                 .paragraph(t("key.gate"), INK)
                 .paragraph(t("key.2"), INK));
+    }
+
+    /**
+     * The Hall of Wakers: the supporters of the mod who chose to be named, in their tiers' colours,
+     * from the supporter service's opt-in credits. Nobody is named who did not tick the box.
+     */
+    private void hall(PageLayout.Flow f) {
+        f.heading(t("hall.title"), HEAD).paragraph(t("hall.1"), INK);
+        int named = 0;
+        String[] tiers = {"titan", "colossus", "waker"};
+        int[] colors = {0xB266FF, 0xFF9628, 0x5CFF3C};
+        for (int i = 0; i < tiers.length; i++) {
+            java.util.List<String> names = me.lovkar.wakingworld.supporter.SupporterList.credits(tiers[i]);
+            if (names.isEmpty()) continue;
+            f.centered(t("hall." + tiers[i]), CAPTION);
+            for (String n : names) f.swatch(colors[i], Component.literal(n), INK);
+            f.gap(4);
+            named += names.size();
+        }
+        if (named == 0) f.centered(t("hall.empty"), FADED);
+        f.paragraph(t("hall.2"), FADED);
     }
 
     private static net.minecraft.world.item.Item runeFor(String kind) {

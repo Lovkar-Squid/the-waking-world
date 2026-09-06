@@ -391,9 +391,13 @@ public final class ColossusShapes {
     public static ColossusBody beast(Palette palette, int seed, int height) {
         VoxelGrid g = beastGrid(palette.kind, seed, height);
         Random rnd = new Random(g.fillSeed);
+        // the veins get a stream of their own, so a style that goes without them leaves the fill and the weathering
+        // - and so the hit boxes - exactly as they are on the plain giant
+        Random veinRnd = new Random(g.fillSeed * 31L + 17L);
         double H = g.height;
         BlockState core = palette.core.defaultBlockState();
         BlockState eye = palette.eye.defaultBlockState();
+        ColossusStyle style = palette.style(); // a supporter's cosmetic: other blocks, other glow, the same shape
         List<PartDef> parts = new ArrayList<>();
         for (int id = 1; id <= 6; id++) {
             int[] b = g.bounds(id);
@@ -411,10 +415,11 @@ public final class ColossusShapes {
                         part.set(i - b[0], j - b[1], k - b[2], s);
                     }
             weather(part, rnd, 0.025f, part.isLeg());
-            runes(part, palette, rnd, H);
+            if (style.veins) runes(part, palette, veinRnd, H);
             parts.add(part);
         }
         halos(parts, beastCores(g.height), palette);
+        StyleDecor.apply(parts, palette, H, veinRnd);
         return new ColossusBody(palette, seed, g.height, parts, beastCores(g.height));
     }
 

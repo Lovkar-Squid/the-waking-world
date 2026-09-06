@@ -291,7 +291,9 @@ public class GuardEntity extends PathfinderMob implements RangedAttackMob {
     public net.minecraft.world.InteractionResult mobInteract(Player player, InteractionHand hand) {
         if (!level().isClientSide && hand == InteractionHand.MAIN_HAND) {
             boolean angry = angryAt(player);
-            player.displayClientMessage(Component.translatable(angry ? "entity.wakingworld.guard.say.angry" : "entity.wakingworld.guard.say." + (getRandom().nextInt(4) + 1)), true);
+            String tier = angry ? null : me.lovkar.wakingworld.supporter.SupporterCosmetics.tier(player.getUUID()); // a waker of the world gets a salute
+            player.displayClientMessage(Component.translatable(angry ? "entity.wakingworld.guard.say.angry" : tier != null && getRandom().nextBoolean()
+                    ? "entity.wakingworld.guard.say." + tier : "entity.wakingworld.guard.say." + (getRandom().nextInt(4) + 1)), true);
             return net.minecraft.world.InteractionResult.CONSUME;
         }
         return super.mobInteract(player, hand);

@@ -1,0 +1,8 @@
+{
+  "comparator_output": 1,
+  "description": {
+    "translate": "jukebox_song.wakingworld.colossus_stone"
+  },
+  "length_in_seconds": 139.2,
+  "sound_event": "wakingworld:record.colossus.stone"
+}

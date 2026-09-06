@@ -60,6 +60,35 @@ public final class WakingItems {
     public static final DeferredItem<Item> RUNE_PRISMARINE = rune("prismarine");
     public static final DeferredItem<Item> RUNE_MOSS = rune("moss");
 
+    /** A colossus' own theme, pressed onto a disc: every giant leaves its music behind when it falls (the Titan its own). */
+    public static final DeferredItem<Item> DISC_STONE = disc("stone");
+    public static final DeferredItem<Item> DISC_EARTH = disc("earth");
+    public static final DeferredItem<Item> DISC_SANDSTONE = disc("sandstone");
+    public static final DeferredItem<Item> DISC_ICE = disc("ice");
+    public static final DeferredItem<Item> DISC_PRISMARINE = disc("prismarine");
+    public static final DeferredItem<Item> DISC_MOSS = disc("moss");
+    public static final DeferredItem<Item> DISC_TITAN = disc("titan");
+
+    private static DeferredItem<Item> disc(String kind) {
+        net.minecraft.resources.ResourceKey<net.minecraft.world.item.JukeboxSong> song = net.minecraft.resources.ResourceKey.create(
+                Registries.JUKEBOX_SONG, ResourceLocation.fromNamespaceAndPath(WakingWorld.MODID, "colossus_" + kind));
+        return ITEMS.registerItem("music_disc_" + kind, Item::new, new Item.Properties().stacksTo(1).rarity(Rarity.RARE).jukeboxPlayable(song));
+    }
+
+    private static final Map<String, DeferredItem<Item>> DISCS = Map.of(
+            "stone", DISC_STONE, "earth", DISC_EARTH, "sandstone", DISC_SANDSTONE, "ice", DISC_ICE,
+            "prismarine", DISC_PRISMARINE, "moss", DISC_MOSS, "titan", DISC_TITAN);
+
+    /** The music disc a colossus of this kind leaves behind, or null. */
+    public static Item discFor(String kind) {
+        DeferredItem<Item> d = DISCS.get(kind);
+        return d == null ? null : d.get();
+    }
+
+    public static List<DeferredItem<Item>> discs() {
+        return List.of(DISC_STONE, DISC_EARTH, DISC_SANDSTONE, DISC_ICE, DISC_PRISMARINE, DISC_MOSS, DISC_TITAN);
+    }
+
     private static DeferredItem<Item> rune(String kind) {
         return ITEMS.registerItem("rune_" + kind, p -> new LoreItem(p, "item.wakingworld.rune.tooltip", false), new Item.Properties().rarity(Rarity.UNCOMMON));
     }
@@ -102,6 +131,7 @@ public final class WakingItems {
                         out.accept(HEART_OF_THE_END.get());
                         out.accept(SLEEPERS_EMBER.get());
                         for (DeferredItem<Item> r : runes()) out.accept(r.get());
+                        for (DeferredItem<Item> d : discs()) out.accept(d.get());
                         out.accept(me.lovkar.wakingworld.ritual.WakingRitual.ALTAR_ITEM.get());
                         out.accept(me.lovkar.wakingworld.kingdom.KingdomBlocks.THRONE_ITEM.get());
                         out.accept(STONE_THRALL_EGG.get());

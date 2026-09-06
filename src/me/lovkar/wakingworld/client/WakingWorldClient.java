@@ -109,6 +109,12 @@ public final class WakingWorldClient {
         NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.HIGHEST, Cinematic::guiPre);
         NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOWEST, Cinematic::guiPost);
         NeoForge.EVENT_BUS.addListener(LetterVoicePlayer::clientTick);
+        // supporter perks (cosmetic): aura around supporters + the /wwpatreon link command
+        NeoForge.EVENT_BUS.addListener(SupporterAura::clientTick);
+        NeoForge.EVENT_BUS.addListener(SupporterLink::registerClientCommands);
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingIn e) ->
+                me.lovkar.wakingworld.supporter.SupporterList.refreshAsync()); // a fresh list for every world or server joined
+        me.lovkar.wakingworld.supporter.SupporterList.refreshAsync();
     }
 
     private static void registerLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
