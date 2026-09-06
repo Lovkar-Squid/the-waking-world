@@ -1,4 +1,71 @@
 {
   "replace": false,
-  "values": [ "minecraft:plains", "minecraft:sunflower_plains", "minecraft:forest", "minecraft:flower_forest", "minecraft:birch_forest", "minecraft:old_growth_birch_forest", "minecraft:dark_forest", "minecraft:taiga", "minecraft:old_growth_pine_taiga", "minecraft:old_growth_spruce_taiga", "minecraft:snowy_taiga", "minecraft:snowy_plains", "minecraft:savanna", "minecraft:savanna_plateau", "minecraft:desert", "minecraft:badlands", "minecraft:wooded_badlands", "minecraft:jungle", "minecraft:sparse_jungle", "minecraft:swamp", "minecraft:meadow", "minecraft:cherry_grove", "minecraft:windswept_hills", "minecraft:windswept_forest", "minecraft:stony_shore", "minecraft:grove" ]
+  "values": [
+    "minecraft:plains",
+    "minecraft:sunflower_plains",
+    "minecraft:forest",
+    "minecraft:flower_forest",
+    "minecraft:birch_forest",
+    "minecraft:old_growth_birch_forest",
+    "minecraft:dark_forest",
+    "minecraft:taiga",
+    "minecraft:old_growth_pine_taiga",
+    "minecraft:old_growth_spruce_taiga",
+    "minecraft:snowy_taiga",
+    "minecraft:snowy_plains",
+    "minecraft:savanna",
+    "minecraft:savanna_plateau",
+    "minecraft:desert",
+    "minecraft:badlands",
+    "minecraft:wooded_badlands",
+    "minecraft:jungle",
+    "minecraft:sparse_jungle",
+    "minecraft:swamp",
+    "minecraft:meadow",
+    "minecraft:cherry_grove",
+    "minecraft:windswept_hills",
+    "minecraft:windswept_forest",
+    "minecraft:stony_shore",
+    "minecraft:grove",
+    {
+      "id": "#c:is_plains",
+      "required": false
+    },
+    {
+      "id": "#c:is_forest",
+      "required": false
+    },
+    {
+      "id": "#c:is_taiga",
+      "required": false
+    },
+    {
+      "id": "#c:is_savanna",
+      "required": false
+    },
+    {
+      "id": "#c:is_desert",
+      "required": false
+    },
+    {
+      "id": "#c:is_badlands",
+      "required": false
+    },
+    {
+      "id": "#c:is_jungle",
+      "required": false
+    },
+    {
+      "id": "#c:is_swamp",
+      "required": false
+    },
+    {
+      "id": "#c:is_mountain",
+      "required": false
+    },
+    {
+      "id": "#c:is_snowy",
+      "required": false
+    }
+  ]
 }

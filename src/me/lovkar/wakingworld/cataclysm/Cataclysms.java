@@ -63,15 +63,25 @@ public final class Cataclysms extends SavedData {
         if (!(event.getLevel() instanceof ServerLevel level)) return;
         if (level.dimension() != Level.OVERWORLD) return;
         if (level.getGameTime() % 20 != 0) return;              // once a second is plenty
-        if (!WakingConfig.meteorShowers()) return;
-        Cataclysms state = get(level);
-        state.tick(level);
+        if (WakingConfig.meteorShowers()) get(level).tick(level);
+        Volcano.onLevelTick(level);
+        BloodMoon.onLevelTick(level);
+    }
+
+    /** True while the sky is falling - the other cataclysms wait their turn. */
+    public static boolean busy(ServerLevel level) {
+        return get(level).phase != Phase.IDLE;
     }
 
     private void tick(ServerLevel level) {
         List<ServerPlayer> players = level.players();
-        if (players.isEmpty()) return;
         RandomSource rnd = level.random;
+        // a shower with nobody left to see it is over: stars are aimed at players, so with none
+        // there is nothing to aim at, and the phase would otherwise sit there for good
+        if (players.isEmpty()) {
+            if (phase != Phase.IDLE) end(level);
+            return;
+        }
 
         switch (phase) {
             case IDLE -> {
@@ -147,8 +157,8 @@ public final class Cataclysms extends SavedData {
             double dist = 40 + rnd.nextDouble() * 72;
             double x = near.getX() + Math.cos(angle) * dist;
             double z = near.getZ() + Math.sin(angle) * dist;
-            BlockPos ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, BlockPos.containing(x, 0, z));
-            if (!safe(level, ground)) continue;
+            BlockPos ground = surface(level, x, z);
+            if (!away(level, ground)) continue;
             int size = rnd.nextInt(10) < 6 ? 1 : (rnd.nextInt(10) < 8 ? 2 : 3);
             fall(level, new Vec3(x, ground.getY(), z), size, true);
             return;
@@ -176,8 +186,21 @@ public final class Cataclysms extends SavedData {
         level.getChunkSource().addRegionTicket(METEOR_TICKET, cp, 4, cp);
     }
 
+    /**
+     * The ground at (x, z) - with the chunk loaded first.
+     *
+     * <p>{@code getHeightmapPos} on a chunk that is not there yet answers the bottom of the world, and
+     * a cataclysm aimed at the bottom of the world is a cataclysm at bedrock. Everything that picks a
+     * spot out at the edge of what is loaded goes through here.</p>
+     */
+    public static BlockPos surface(ServerLevel level, double x, double z) {
+        BlockPos guess = BlockPos.containing(x, 0, z);
+        level.getChunk(guess);                                  // loads or generates it
+        return level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, guess);
+    }
+
     /** Not on a player's doorstep: their spawn point, the world spawn, and anywhere too close to a player. */
-    private boolean safe(ServerLevel level, BlockPos at) {
+    static boolean away(ServerLevel level, BlockPos at) {
         int keep = WakingConfig.meteorSafeRadius();
         if (keep > 0) {
             if (level.getSharedSpawnPos().closerThan(at, keep)) return false;

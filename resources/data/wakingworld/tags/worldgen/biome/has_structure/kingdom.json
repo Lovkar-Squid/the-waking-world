@@ -13,6 +13,22 @@
     "minecraft:old_growth_birch_forest",
     "minecraft:taiga",
     "minecraft:snowy_taiga",
-    "minecraft:cherry_grove"
+    "minecraft:cherry_grove",
+    {
+      "id": "#c:is_plains",
+      "required": false
+    },
+    {
+      "id": "#c:is_forest",
+      "required": false
+    },
+    {
+      "id": "#c:is_taiga",
+      "required": false
+    },
+    {
+      "id": "#c:is_savanna",
+      "required": false
+    }
   ]
 }

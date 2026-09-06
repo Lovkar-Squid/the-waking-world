@@ -23,6 +23,10 @@ public interface ClientHooks {
     default void wave(Vec3 from, double speed, double maxRadius, float strength) {
     }
 
+    /** The moon has turned red, or it has not any more: the sky and the fog go with it. */
+    default void bloodMoon(boolean on) {
+    }
+
     /** Opens the Waker's Almanac. */
     default void openAlmanac() {
     }

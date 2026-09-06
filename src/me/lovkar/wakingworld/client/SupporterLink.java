@@ -21,6 +21,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 
 import java.net.URI;
@@ -128,6 +129,23 @@ public final class SupporterLink {
         }
     }
 
+    /**
+     * The date a lapsed pledge's cosmetics run to, as a plain day. Null while the pledge is live -
+     * the service only sends {@code expires} once someone has actually stopped paying, and there is
+     * no reason to put a date in front of a supporter who has not.
+     */
+    private static String untilWhen(String iso) {
+        if (iso == null || iso.isBlank()) return null;
+        try {
+            java.time.Instant at = java.time.Instant.parse(iso);
+            if (!at.isAfter(java.time.Instant.now())) return null;   // already swept, nothing to promise
+            return java.time.format.DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.ENGLISH)
+                    .withZone(java.time.ZoneId.systemDefault()).format(at);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private static void start(CommandSourceStack src) {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer p = mc.player;
@@ -196,13 +214,21 @@ public final class SupporterLink {
                     String aura = j.has("aura") && !j.get("aura").isJsonNull() ? j.get("aura").getAsString() : null;
                     String colossus = j.has("colossus") && !j.get("colossus").isJsonNull() ? j.get("colossus").getAsString() : null;
                     boolean credits = j.has("credits") && j.get("credits").getAsBoolean();
+                    String expires = j.has("expires") && !j.get("expires").isJsonNull() ? j.get("expires").getAsString() : null;
                     SupporterList.updateOwn(id, new SupporterList.Entry(tier, aura, colossus));
                     if (field == null) {
-                        result = Component.literal("Tier ").withStyle(ChatFormatting.GRAY)
+                        MutableComponent line = Component.literal("Tier ").withStyle(ChatFormatting.GRAY)
                                 .append(Component.literal(tier.toUpperCase(Locale.ROOT)).withStyle(ChatFormatting.GOLD))
                                 .append(Component.literal("  aura ").withStyle(ChatFormatting.GRAY)).append(Component.literal(String.valueOf(aura)).withStyle(ChatFormatting.AQUA))
                                 .append(Component.literal("  colossi ").withStyle(ChatFormatting.GRAY)).append(Component.literal(String.valueOf(colossus)).withStyle(ChatFormatting.AQUA))
                                 .append(Component.literal("  credits ").withStyle(ChatFormatting.GRAY)).append(Component.literal(credits ? "on" : "off").withStyle(ChatFormatting.AQUA));
+                        String until = untilWhen(expires);
+                        if (until != null) {
+                            line.append(Component.literal("\nThe pledge has ended - these run until ").withStyle(ChatFormatting.GRAY))
+                                .append(Component.literal(until).withStyle(ChatFormatting.YELLOW))
+                                .append(Component.literal(", the day you have paid through.").withStyle(ChatFormatting.GRAY));
+                        }
+                        result = line;
                     } else if (field.equals("credits")) {
                         result = Component.literal(credits ? "Your name now stands in the Hall of Wakers (in the Almanac, for everyone)."
                                 : "Your name is out of the Hall of Wakers.").withStyle(ChatFormatting.GREEN);

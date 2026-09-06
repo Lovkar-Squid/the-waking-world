@@ -38,6 +38,11 @@ public final class WakingWorldClient {
             }
 
             @Override
+            public void bloodMoon(boolean red) {
+                RedSky.set(red);
+            }
+
+            @Override
             public void openAlmanac() {
                 net.minecraft.client.Minecraft.getInstance().setScreen(new me.lovkar.wakingworld.client.gui.AlmanacScreen());
             }
@@ -110,6 +115,8 @@ public final class WakingWorldClient {
         NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOWEST, Cinematic::guiPost);
         NeoForge.EVENT_BUS.addListener(LetterVoicePlayer::clientTick);
         // supporter perks (cosmetic): aura around supporters + the /wwpatreon link command
+        NeoForge.EVENT_BUS.addListener(RedSky::clientTick);
+        NeoForge.EVENT_BUS.addListener(RedSky::onFogColour);
         NeoForge.EVENT_BUS.addListener(SupporterAura::clientTick);
         NeoForge.EVENT_BUS.addListener(SupporterLink::registerClientCommands);
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingIn e) ->

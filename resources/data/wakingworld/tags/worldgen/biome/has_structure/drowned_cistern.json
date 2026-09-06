@@ -7,6 +7,22 @@
     "minecraft:snowy_beach",
     "minecraft:stony_shore",
     "minecraft:river",
-    "minecraft:dark_forest"
+    "minecraft:dark_forest",
+    {
+      "id": "#c:is_swamp",
+      "required": false
+    },
+    {
+      "id": "#c:is_beach",
+      "required": false
+    },
+    {
+      "id": "#c:is_river",
+      "required": false
+    },
+    {
+      "id": "#c:is_aquatic",
+      "required": false
+    }
   ]
 }

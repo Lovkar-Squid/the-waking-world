@@ -1,4 +1,25 @@
 {
   "replace": false,
-  "values": [ "minecraft:desert", "minecraft:badlands", "minecraft:eroded_badlands", "minecraft:wooded_badlands" ]
+  "values": [
+    "minecraft:desert",
+    "minecraft:badlands",
+    "minecraft:eroded_badlands",
+    "minecraft:wooded_badlands",
+    {
+      "id": "#c:is_desert",
+      "required": false
+    },
+    {
+      "id": "#c:is_badlands",
+      "required": false
+    },
+    {
+      "id": "#c:is_sandy",
+      "required": false
+    },
+    {
+      "id": "#c:is_wasteland",
+      "required": false
+    }
+  ]
 }

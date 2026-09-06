@@ -60,6 +60,22 @@ public final class WakingCommands {
                                         .executes(ctx -> meteor(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"),
                                                 IntegerArgumentType.getInteger(ctx, "size"))))))
                 .then(Commands.literal("shower").executes(WakingCommands::shower))
+                .then(Commands.literal("bloodmoon")
+                        .then(Commands.literal("on").executes(ctx -> bloodMoon(ctx, true)))
+                        .then(Commands.literal("off").executes(ctx -> bloodMoon(ctx, false)))
+                        .then(Commands.literal("wave").executes(ctx -> bloodWave(ctx, 6))
+                                .then(Commands.argument("count", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 40))
+                                        .executes(ctx -> bloodWave(ctx, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "count"))))))
+                .then(Commands.literal("volcano").executes(ctx -> volcano(ctx, null, 0, 0))
+                        .then(Commands.argument("at", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
+                                .executes(ctx -> volcano(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"), 0, 0))
+                                .then(Commands.argument("height", com.mojang.brigadier.arguments.IntegerArgumentType.integer(6, 120))
+                                        .executes(ctx -> volcano(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"),
+                                                com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "height"), 0))
+                                        .then(Commands.argument("foot", com.mojang.brigadier.arguments.IntegerArgumentType.integer(6, 48))
+                                                .executes(ctx -> volcano(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"),
+                                                        com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "height"),
+                                                        com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "foot")))))))
                 .then(Commands.literal("restore").executes(WakingCommands::restore))
                 .then(Commands.literal("target").then(Commands.argument("who", net.minecraft.commands.arguments.EntityArgument.entity())
                         .executes(ctx -> target(ctx, net.minecraft.commands.arguments.EntityArgument.getEntity(ctx, "who")))))
@@ -388,6 +404,48 @@ public final class WakingCommands {
         me.lovkar.wakingworld.cataclysm.Cataclysms.fall(level, target, size, true);
         final String where = String.format("%.0f %.0f %.0f", target.x, target.y, target.z);
         ctx.getSource().sendSuccess(() -> Component.literal("A star is falling towards " + where + " (size " + size + ")"), true);
+        return 1;
+    }
+
+    /** Turn the moon, or turn it back. */
+    private static int bloodMoon(CommandContext<CommandSourceStack> ctx, boolean on) {
+        me.lovkar.wakingworld.cataclysm.BloodMoon.force(ctx.getSource().getLevel(), on);
+        ctx.getSource().sendSuccess(() -> Component.literal(on ? "The moon turns." : "The moon is itself again."), true);
+        return 1;
+    }
+
+    /** One wave of the siege, around wherever the command was run. */
+    private static int bloodWave(CommandContext<CommandSourceStack> ctx, int count) {
+        net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
+        net.minecraft.server.level.ServerPlayer target = ctx.getSource().getEntity() instanceof net.minecraft.server.level.ServerPlayer p ? p : null;
+        int made = me.lovkar.wakingworld.cataclysm.BloodMoon.siege(level, ctx.getSource().getPosition(), target, count, level.random);
+        final int n = made;
+        ctx.getSource().sendSuccess(() -> Component.literal(n + " of " + count + " found a dark place to stand"), true);
+        return n;
+    }
+
+    /** A mountain, here and now. */
+    private static int volcano(CommandContext<CommandSourceStack> ctx, BlockPos at, int height, int foot) {
+        net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
+        BlockPos where = at;
+        if (where == null) {
+            net.minecraft.world.phys.Vec3 from = ctx.getSource().getPosition();
+            for (int tries = 0; tries < 24 && where == null; tries++) {
+                double angle = level.random.nextDouble() * Math.PI * 2;
+                double dist = 60 + level.random.nextDouble() * 40;
+                BlockPos p = me.lovkar.wakingworld.cataclysm.Cataclysms.surface(level,
+                        from.x + Math.cos(angle) * dist, from.z + Math.sin(angle) * dist);
+                // dry land, or the cone comes up as an island and the shore is a wall of rock
+                if (p.getY() >= level.getSeaLevel() + 2 && level.getFluidState(p.below()).isEmpty()) where = p;
+            }
+            if (where == null) {
+                ctx.getSource().sendFailure(Component.literal("No dry ground near here - name a spot: /wakingworld volcano <x y z>"));
+                return 0;
+            }
+        }
+        me.lovkar.wakingworld.cataclysm.Volcano.force(level, where, height, foot);
+        final String w = where.getX() + " " + where.getY() + " " + where.getZ();
+        ctx.getSource().sendSuccess(() -> Component.literal("A vent opens at " + w + " - stand back."), true);
         return 1;
     }
 

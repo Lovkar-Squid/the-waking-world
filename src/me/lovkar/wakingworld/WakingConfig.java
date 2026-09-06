@@ -37,6 +37,17 @@ public final class WakingConfig {
     private static final ModConfigSpec.IntValue METEORS_PER_SHOWER;
     private static final ModConfigSpec.IntValue SHOWER_LENGTH;
     private static final ModConfigSpec.IntValue METEOR_SAFE_RADIUS;
+    private static final ModConfigSpec.BooleanValue VOLCANOES;
+    private static final ModConfigSpec.DoubleValue VOLCANO_CHANCE;
+    private static final ModConfigSpec.IntValue DAYS_BETWEEN_VOLCANOES;
+    private static final ModConfigSpec.IntValue VOLCANO_HEIGHT;
+    private static final ModConfigSpec.IntValue VOLCANO_RADIUS;
+    private static final ModConfigSpec.IntValue VOLCANO_MINUTES;
+    private static final ModConfigSpec.BooleanValue BLOOD_MOONS;
+    private static final ModConfigSpec.DoubleValue BLOOD_MOON_CHANCE;
+    private static final ModConfigSpec.IntValue DAYS_BETWEEN_BLOOD_MOONS;
+    private static final ModConfigSpec.IntValue BLOOD_MOON_WAVE;
+    private static final ModConfigSpec.IntValue BLOOD_MOON_WAVE_SECONDS;
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -96,6 +107,28 @@ public final class WakingConfig {
                 .defineInRange("showerLengthSeconds", 180, 20, 3600);
         METEOR_SAFE_RADIUS = b.comment("No star falls this close to the world spawn or to any player's bed (0 = nowhere is safe).")
                 .defineInRange("meteorSafeRadius", 64, 0, 512);
+        VOLCANOES = b.comment("The Rising Mountain: a volcano that builds itself in front of you over a few minutes and leaves a real mountain.",
+                "Off: no volcanoes (the /wakingworld volcano command still works).").define("volcanoes", true);
+        VOLCANO_CHANCE = b.comment("The chance, rolled once in the morning on any day that is allowed one, that a volcano opens.")
+                .defineInRange("volcanoChance", 0.06, 0.0, 1.0);
+        DAYS_BETWEEN_VOLCANOES = b.comment("Days that must pass after a volcano before another may open.")
+                .defineInRange("daysBetweenVolcanoes", 14, 0, 1000);
+        VOLCANO_HEIGHT = b.comment("How many courses tall the cone grows - roughly its height in blocks above the ground it stands on.")
+                .defineInRange("volcanoHeight", 28, 6, 120);
+        VOLCANO_RADIUS = b.comment("The radius of the foot of the cone, in blocks. The cone tapers as it climbs.")
+                .defineInRange("volcanoRadius", 16, 6, 48);
+        VOLCANO_MINUTES = b.comment("How long the mountain takes to rise, in minutes. Longer is calmer on the server and better to watch.")
+                .defineInRange("volcanoMinutes", 4, 1, 60);
+        BLOOD_MOONS = b.comment("The Blood Moon: a night that keeps sending monsters at you until the sun comes up.",
+                "Off: no blood moons (the /wakingworld bloodmoon command still works).").define("bloodMoons", true);
+        BLOOD_MOON_CHANCE = b.comment("The chance, rolled once at nightfall on any night that is allowed one, that the moon turns.")
+                .defineInRange("bloodMoonChance", 0.08, 0.0, 1.0);
+        DAYS_BETWEEN_BLOOD_MOONS = b.comment("Days that must pass after a blood moon before another may rise.")
+                .defineInRange("daysBetweenBloodMoons", 10, 0, 1000);
+        BLOOD_MOON_WAVE = b.comment("How many monsters a wave may place around one player (it starts smaller and works up).")
+                .defineInRange("bloodMoonWaveSize", 6, 1, 40);
+        BLOOD_MOON_WAVE_SECONDS = b.comment("Seconds between waves.")
+                .defineInRange("bloodMoonWaveSeconds", 12, 3, 300);
         b.pop();
         SPEC = b.build();
     }
@@ -125,6 +158,50 @@ public final class WakingConfig {
                 .define("showAuras", true);
         b.pop();
         CLIENT_SPEC = b.build();
+    }
+
+    public static boolean bloodMoons() {
+        return loaded() && BLOOD_MOONS.get();
+    }
+
+    public static double bloodMoonChance() {
+        return loaded() ? BLOOD_MOON_CHANCE.get() : 0.08;
+    }
+
+    public static int daysBetweenBloodMoons() {
+        return loaded() ? DAYS_BETWEEN_BLOOD_MOONS.get() : 10;
+    }
+
+    public static int bloodMoonWaveSize() {
+        return loaded() ? BLOOD_MOON_WAVE.get() : 6;
+    }
+
+    public static int bloodMoonWaveSeconds() {
+        return loaded() ? BLOOD_MOON_WAVE_SECONDS.get() : 12;
+    }
+
+    public static boolean volcanoes() {
+        return loaded() && VOLCANOES.get();
+    }
+
+    public static double volcanoChance() {
+        return loaded() ? VOLCANO_CHANCE.get() : 0.06;
+    }
+
+    public static int daysBetweenVolcanoes() {
+        return loaded() ? DAYS_BETWEEN_VOLCANOES.get() : 14;
+    }
+
+    public static int volcanoHeight() {
+        return loaded() ? VOLCANO_HEIGHT.get() : 28;
+    }
+
+    public static int volcanoRadius() {
+        return loaded() ? VOLCANO_RADIUS.get() : 16;
+    }
+
+    public static int volcanoMinutes() {
+        return loaded() ? VOLCANO_MINUTES.get() : 4;
     }
 
     public static boolean meteorShowers() {

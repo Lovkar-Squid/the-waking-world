@@ -128,6 +128,18 @@ public final class WakingNet {
         }
     }
 
+    /** Server -> client: the moon is red tonight (or it is not any more). */
+    public record BloodMoonState(boolean on) implements CustomPacketPayload {
+        public static final Type<BloodMoonState> TYPE = new Type<>(WakingNet.id("blood_moon"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, BloodMoonState> CODEC = StreamCodec.composite(
+                net.minecraft.network.codec.ByteBufCodecs.BOOL, BloodMoonState::on, BloodMoonState::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
     /** Server -> client: a supporter changed their look; fetch the list again. */
     public record RefreshCosmetics() implements CustomPacketPayload {
         public static final Type<RefreshCosmetics> TYPE = new Type<>(WakingNet.id("refresh_cosmetics"));
@@ -208,11 +220,21 @@ public final class WakingNet {
             if (ctx.player() instanceof ServerPlayer player) me.lovkar.wakingworld.supporter.SupporterCosmetics.onChanged(player);
         });
         registrar.playToClient(RefreshCosmetics.TYPE, RefreshCosmetics.CODEC, (p, ctx) -> me.lovkar.wakingworld.supporter.SupporterList.refreshAsync());
+        registrar.playToClient(BloodMoonState.TYPE, BloodMoonState.CODEC, (p, ctx) -> WakingWorld.hooks.bloodMoon(p.on()));
     }
 
     /** Client: my cosmetics changed on the service. */
     public static void cosmeticsChanged() {
         PacketDistributor.sendToServer(new CosmeticsChanged());
+    }
+
+    /** Server: the moon turns (everyone), or tells one client what it already is. */
+    public static void bloodMoon(boolean on) {
+        PacketDistributor.sendToAllPlayers(new BloodMoonState(on));
+    }
+
+    public static void bloodMoon(ServerPlayer player, boolean on) {
+        PacketDistributor.sendToPlayer(player, new BloodMoonState(on));
     }
 
     /** Server: everyone fetch the supporter list again. */

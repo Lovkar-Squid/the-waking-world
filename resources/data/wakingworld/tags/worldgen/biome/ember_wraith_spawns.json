@@ -4,6 +4,14 @@
     "minecraft:desert",
     "minecraft:badlands",
     "minecraft:eroded_badlands",
-    "minecraft:wooded_badlands"
+    "minecraft:wooded_badlands",
+    {
+      "id": "#c:is_desert",
+      "required": false
+    },
+    {
+      "id": "#c:is_badlands",
+      "required": false
+    }
   ]
 }

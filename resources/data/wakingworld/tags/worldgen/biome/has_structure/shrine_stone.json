@@ -1,4 +1,24 @@
 {
   "replace": false,
-  "values": [ "minecraft:stony_peaks", "minecraft:windswept_hills", "minecraft:windswept_gravelly_hills", "minecraft:windswept_forest", "minecraft:jagged_peaks", "minecraft:stony_shore", "minecraft:meadow" ]
+  "values": [
+    "minecraft:stony_peaks",
+    "minecraft:windswept_hills",
+    "minecraft:windswept_gravelly_hills",
+    "minecraft:windswept_forest",
+    "minecraft:jagged_peaks",
+    "minecraft:stony_shore",
+    "minecraft:meadow",
+    {
+      "id": "#c:is_mountain",
+      "required": false
+    },
+    {
+      "id": "#c:is_windswept",
+      "required": false
+    },
+    {
+      "id": "#c:is_hill",
+      "required": false
+    }
+  ]
 }

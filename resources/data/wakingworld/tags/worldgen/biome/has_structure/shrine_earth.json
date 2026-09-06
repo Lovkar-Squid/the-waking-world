@@ -1,4 +1,31 @@
 {
   "replace": false,
-  "values": [ "minecraft:plains", "minecraft:forest", "minecraft:birch_forest", "minecraft:taiga", "minecraft:old_growth_pine_taiga", "minecraft:old_growth_spruce_taiga", "minecraft:sunflower_plains", "minecraft:flower_forest", "minecraft:savanna", "minecraft:savanna_plateau" ]
+  "values": [
+    "minecraft:plains",
+    "minecraft:forest",
+    "minecraft:birch_forest",
+    "minecraft:taiga",
+    "minecraft:old_growth_pine_taiga",
+    "minecraft:old_growth_spruce_taiga",
+    "minecraft:sunflower_plains",
+    "minecraft:flower_forest",
+    "minecraft:savanna",
+    "minecraft:savanna_plateau",
+    {
+      "id": "#c:is_plains",
+      "required": false
+    },
+    {
+      "id": "#c:is_forest",
+      "required": false
+    },
+    {
+      "id": "#c:is_taiga",
+      "required": false
+    },
+    {
+      "id": "#c:is_savanna",
+      "required": false
+    }
+  ]
 }

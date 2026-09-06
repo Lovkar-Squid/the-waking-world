@@ -3,6 +3,14 @@
   "values": [
     "minecraft:swamp",
     "minecraft:mangrove_swamp",
-    "minecraft:river"
+    "minecraft:river",
+    {
+      "id": "#c:is_swamp",
+      "required": false
+    },
+    {
+      "id": "#c:is_river",
+      "required": false
+    }
   ]
 }
