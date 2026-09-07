@@ -90,6 +90,10 @@ public final class BloodMoon extends SavedData {
         if (!running) {
             if (players.isEmpty()) return;
             if (Cataclysms.busy(level) || Volcano.busy(level)) return;
+        // nothing new starts while the camera is rolling: a world-driven cataclysm on top of a
+        // scene is a ruined take, and there is no way to tell from the footage what happened
+        if (me.lovkar.wakingworld.story.Cinematics.running()) return;
+
             int day = (int) (level.getDayTime() / 24000L);
             if (day < cooldownUntilDay) return;
             if (t < 13000 || t > 13600) return;                  // rolled once, at nightfall

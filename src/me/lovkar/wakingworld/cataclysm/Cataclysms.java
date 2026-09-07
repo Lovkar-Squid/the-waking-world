@@ -86,6 +86,9 @@ public final class Cataclysms extends SavedData {
 
         switch (phase) {
             case IDLE -> {
+        // nothing new starts while the camera is rolling: a world-driven cataclysm on top of a
+        // scene is a ruined take, and there is no way to tell from the footage what happened
+        if (me.lovkar.wakingworld.story.Cinematics.running()) return;
                 int day = (int) (level.getDayTime() / 24000L);
                 if (day < cooldownUntilDay) return;
                 // it starts at dusk, and only when somebody is awake to see it

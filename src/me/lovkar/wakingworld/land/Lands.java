@@ -98,6 +98,14 @@ public final class Lands extends SavedData {
         announce(p, land);
     }
 
+    /**
+     * Show a land's card to one player whether or not they have seen it before, and without marking
+     * it seen. For the camera: a trailer has to be able to shoot the same card twice.
+     */
+    public static void card(ServerPlayer p, Land land) {
+        if (land != null) announce(p, land);
+    }
+
     /** The title card, and a line in the chat log so it can be read again. */
     private static void announce(ServerPlayer p, Land land) {
         p.connection.send(new ClientboundSetTitlesAnimationPacket(10, 60, 20));
@@ -203,6 +211,17 @@ public final class Lands extends SavedData {
             land = name(level, cx, cz);
         }
         return land;
+    }
+
+    /**
+     * The land at a spot without waiting for one: the name if it is already written, else the writing
+     * of it is started and null comes back. {@link #nameAt} sleeps the calling thread for up to 25
+     * seconds waiting on the model, which is fine for a command and ruinous anywhere near a tick.
+     */
+    public Land nameSoon(ServerLevel level, BlockPos at) {
+        int cx = cellOf(at.getX()), cz = cellOf(at.getZ());
+        Land land = named.get(key(cx, cz));
+        return land != null ? land : name(level, cx, cz);
     }
 
     /** The land somebody is standing in, if it has a name yet. */

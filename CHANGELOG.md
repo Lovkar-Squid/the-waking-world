@@ -24,6 +24,13 @@ the supporter perks switched off.
   from the templates when it does not; a name is written once and then kept.
 - `/wakingworld volcano | bloodmoon | tornado | earthquake | lands`, and a config section for each
   cataclysm's odds.
+- **Camera scenes for the cataclysms**: `/wakingworld cine lands | tornado | earthquake | volcano |
+  meteor | bloodmoon`, and `cataclysms` for all six in trailer order - about three minutes, the light
+  running from first light to midnight across the cut. Each one finds its own open ground, so they
+  play in any world without a structure to stand on. `/wakingworld site` reports the spot the camera
+  would pick, and `/wakingworld volcano <x y z> <height> <foot> <seconds>` forces the pace of a rise.
+- Nothing the world drives can start while the camera is rolling. A meteor shower or a blood moon
+  landing on top of a scene is a ruined take that gives no sign in the footage of what went wrong.
 
 ### Changed
 - **The supporter perks are switched off.** Every class is still here and nothing about them changed,
@@ -36,6 +43,11 @@ the supporter perks switched off.
 ### Fixed
 - A land could be given a name a neighbour already had; clashes are re-rolled now.
 - A meteor could fall into a chunk that was not ticking and never land.
+- The volcano switch turned off a cone that was already going up, not just the opening of new ones -
+  so a volcano forced from the command stood half-built for ever, though the config promises the
+  command still works.
+- A forced volcano's rise took longer than it was told to: the pulse clock only wakes every twenty
+  ticks and any pace that was not a whole number of seconds quietly rounded up.
 - A battle theme the sound engine declined to start left the whole fight silent. The director
   measured the track's age in ticks of the track itself, which stand still in exactly that case, so
   it went on believing the music was still starting and never retried. It reads the clock now, and a

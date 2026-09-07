@@ -66,6 +66,10 @@ public final class Weather extends SavedData {
         List<ServerPlayer> players = level.players();
         if (players.isEmpty()) return;
         if (Cataclysms.busy(level) || Volcano.busy(level) || BloodMoon.running(level)) return;
+        // nothing new starts while the camera is rolling: a world-driven cataclysm on top of a
+        // scene is a ruined take, and there is no way to tell from the footage what happened
+        if (me.lovkar.wakingworld.story.Cinematics.running()) return;
+
         RandomSource rnd = level.random;
         int day = (int) (level.getDayTime() / 24000L);
         long t = level.getDayTime() % 24000L;

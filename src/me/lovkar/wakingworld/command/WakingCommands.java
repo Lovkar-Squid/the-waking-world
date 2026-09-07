@@ -88,7 +88,12 @@ public final class WakingCommands {
                                         .then(Commands.argument("foot", com.mojang.brigadier.arguments.IntegerArgumentType.integer(6, 48))
                                                 .executes(ctx -> volcano(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"),
                                                         com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "height"),
-                                                        com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "foot")))))))
+                                                        com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "foot")))
+                                                .then(Commands.argument("seconds", com.mojang.brigadier.arguments.IntegerArgumentType.integer(8, 600))
+                                                        .executes(ctx -> volcano(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"),
+                                                                com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "height"),
+                                                                com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "foot"),
+                                                                com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "seconds"))))))))
                 .then(Commands.literal("restore").executes(WakingCommands::restore))
                 .then(Commands.literal("target").then(Commands.argument("who", net.minecraft.commands.arguments.EntityArgument.entity())
                         .executes(ctx -> target(ctx, net.minecraft.commands.arguments.EntityArgument.getEntity(ctx, "who")))))
@@ -97,8 +102,12 @@ public final class WakingCommands {
                                 .executes(ctx -> snapshot(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getLoadedBlockPos(ctx, "from"),
                                         net.minecraft.commands.arguments.coordinates.BlockPosArgument.getLoadedBlockPos(ctx, "to"))))))
                 .then(Commands.literal("diff").executes(WakingCommands::diff))
+                .then(Commands.literal("site").executes(ctx -> site(ctx, 70, 260))
+                        .then(Commands.argument("maxOut", IntegerArgumentType.integer(16, 2000))
+                                .executes(ctx -> site(ctx, 0, IntegerArgumentType.getInteger(ctx, "maxOut")))))
                 .then(Commands.literal("cine").then(Commands.argument("scene", com.mojang.brigadier.arguments.StringArgumentType.word())
-                        .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(new String[]{"shrine", "rite", "fight", "kingdom", "titan", "all", "stop"}, b))
+                        .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(new String[]{"shrine", "rite", "fight", "kingdom", "titan", "all",
+                                "lands", "tornado", "earthquake", "volcano", "meteor", "bloodmoon", "cataclysms", "stop"}, b))
                         .executes(ctx -> cine(ctx, com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "scene"), me.lovkar.wakingworld.story.Cinematics.DEFAULT_RENDER_DISTANCE))
                         .then(Commands.argument("renderDistance", IntegerArgumentType.integer(4, 24))
                                 .executes(ctx -> cine(ctx, com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "scene"), IntegerArgumentType.getInteger(ctx, "renderDistance"))))))
@@ -366,6 +375,28 @@ public final class WakingCommands {
 
     /** Debug: every colossus in the level goes for the given entity. */
     /** The director: plays a trailer scene with the caller as the camera. */
+    /**
+     * Where the camera would set a cataclysm up: the same search the scenes run, reported rather than
+     * used, so a spot can be looked at before three minutes are spent recording at it.
+     */
+    private static int site(CommandContext<CommandSourceStack> ctx, int minOut, int maxOut) {
+        ServerLevel level = ctx.getSource().getLevel();
+        net.minecraft.core.BlockPos from = net.minecraft.core.BlockPos.containing(ctx.getSource().getPosition());
+        long began = System.nanoTime();
+        net.minecraft.core.BlockPos at = me.lovkar.wakingworld.story.Cinematics.scout(level, from, minOut, maxOut);
+        long took = (System.nanoTime() - began) / 1_000_000L;
+        if (at == null) {
+            ctx.getSource().sendFailure(Component.literal("No open ground within " + maxOut + " blocks - all sea or all hillside."));
+            return 0;
+        }
+        int spread = me.lovkar.wakingworld.story.Cinematics.levelness(level, at);
+        int away = (int) Math.sqrt(at.distSqr(from));
+        ctx.getSource().sendSuccess(() -> Component.literal(
+                "Open ground at " + at.getX() + " " + at.getY() + " " + at.getZ()
+                        + " (" + away + " m away, " + spread + " blocks of fall across 52, found in " + took + " ms)"), false);
+        return 1;
+    }
+
     private static int cine(CommandContext<CommandSourceStack> ctx, String scene, int renderDistance) {
         if (scene.equals("stop")) {
             if (!me.lovkar.wakingworld.story.Cinematics.running()) ctx.getSource().sendFailure(Component.literal("Nothing is rolling."));
@@ -379,7 +410,9 @@ public final class WakingCommands {
         }
         String result = me.lovkar.wakingworld.story.Cinematics.start(player, scene, renderDistance);
         if (result == null) {
-            ctx.getSource().sendFailure(Component.literal("No such scene. Scenes: shrine, rite, fight, kingdom, titan, all."));
+            ctx.getSource().sendFailure(Component.literal(
+                    "No such scene. 0.1: shrine, rite, fight, kingdom, titan, all. "
+                            + "0.2: lands, tornado, earthquake, volcano, meteor, bloodmoon, cataclysms."));
             return 0;
         }
         ctx.getSource().sendSuccess(() -> Component.literal(result), false);
@@ -500,6 +533,11 @@ public final class WakingCommands {
 
     /** A mountain, here and now. */
     private static int volcano(CommandContext<CommandSourceStack> ctx, BlockPos at, int height, int foot) {
+        return volcano(ctx, at, height, foot, 0);
+    }
+
+    /** {@code seconds} > 0 forces the pace of the rise - what the camera uses, and how to preview it. */
+    private static int volcano(CommandContext<CommandSourceStack> ctx, BlockPos at, int height, int foot, int seconds) {
         net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
         BlockPos where = at;
         if (where == null) {
@@ -517,9 +555,10 @@ public final class WakingCommands {
                 return 0;
             }
         }
-        me.lovkar.wakingworld.cataclysm.Volcano.force(level, where, height, foot);
+        me.lovkar.wakingworld.cataclysm.Volcano.force(level, where, height, foot, seconds);
         final String w = where.getX() + " " + where.getY() + " " + where.getZ();
-        ctx.getSource().sendSuccess(() -> Component.literal("A vent opens at " + w + " - stand back."), true);
+        ctx.getSource().sendSuccess(() -> Component.literal("A vent opens at " + w
+                + (seconds > 0 ? " - up in " + seconds + " s." : " - stand back.")), true);
         return 1;
     }
 

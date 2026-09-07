@@ -45,7 +45,11 @@ import java.util.function.Consumer;
  * and what it looks at, tick by tick); the client puts the player in the camera's place, hides the
  * HUD but the boss bar, draws the letterbox and fades in and out ({@code client/Cinematic}). The
  * player is a spectator for the duration and comes back to their game mode and place afterwards.
- * Scenes: {@code shrine}, {@code rite}, {@code fight}, {@code kingdom}, {@code titan}, {@code all}.
+ * Scenes: {@code shrine}, {@code rite}, {@code fight}, {@code kingdom}, {@code titan}, {@code all}
+ * for the mod's first half, and {@code lands}, {@code tornado}, {@code earthquake}, {@code volcano},
+ * {@code meteor}, {@code bloodmoon}, {@code cataclysms} for 0.2. The cataclysm scenes do not look for
+ * a structure - they pick open ground themselves and then make the thing happen in front of the
+ * camera, so they play anywhere.
  * <p>
  * Nothing may load in front of the camera. A run first <b>prepares</b> its stages: chunk tickets load
  * and generate every chunk the camera will see (render distance + 1 round each stage, in the background,
@@ -153,6 +157,9 @@ public final class Cinematics {
         AltarBlockEntity altar;
         ColossusEntity giant;
         ArmorStand dummy;
+        me.lovkar.wakingworld.cataclysm.TornadoEntity column;
+        boolean litTheMoon;                 // this scene lit the blood moon and owes the world a dawn
+        boolean storming;                   // and this one called up the storm the tornado walks in
 
         Run(ServerPlayer player) {
             this.player = player;
@@ -194,6 +201,7 @@ public final class Cinematics {
         if (run == null || !(event.getLevel() instanceof ServerLevel level) || run.player.serverLevel() != level) return;
         if (run.player.isRemoved() || run.player.hasDisconnected()) {
             releaseStages(run);
+            restore(run);           // the world does not stay in the middle of a scene nobody is watching
             active = null;
             return;
         }
@@ -251,11 +259,38 @@ public final class Cinematics {
         run.stages.clear();
     }
 
+    /**
+     * Everything a scene borrowed from the world, given back. A take that is cut short - or a player
+     * who simply logs out mid-shot - must not leave a blood moon standing over a world that has no
+     * dawn coming (the scenes set the time to midnight, and a blood moon only ends when the day time
+     * leaves the night), a tornado eating somebody's roof, or a week of rain.
+     */
+    private static void restore(Run run) {
+        ServerLevel level = run.levelBefore != null ? run.levelBefore : run.player.server.overworld();
+        try {
+            if (run.litTheMoon) {
+                me.lovkar.wakingworld.cataclysm.BloodMoon.force(level, false);
+                run.litTheMoon = false;
+            }
+            if (run.column != null) {
+                if (run.column.isAlive()) run.column.discard();
+                run.column = null;
+            }
+            if (run.storming) {
+                level.setWeatherParameters(24000, 0, false, false);
+                run.storming = false;
+            }
+        } catch (Exception e) {
+            WakingWorld.LOGGER.warn("cine: could not put the world back: {}", e.toString());
+        }
+        if (run.dummy != null && run.dummy.isAlive()) run.dummy.discard();
+    }
+
     private static void finish(Run run) {
         active = null;
         releaseStages(run);
+        restore(run);
         WakingNet.cineStop(run.player);
-        if (run.dummy != null && run.dummy.isAlive()) run.dummy.discard();
         if (run.levelBefore != null && run.posBefore != null) {
             run.player.teleportTo(run.levelBefore, run.posBefore.x, run.posBefore.y, run.posBefore.z, run.player.getYRot(), run.player.getXRot());
         }
@@ -280,6 +315,13 @@ public final class Cinematics {
             case "fight" -> t = fight(run, t, false);
             case "kingdom" -> t = kingdom(run, t);
             case "titan" -> t = titan(run, t);
+            case "lands" -> t = lands(run, t, null);
+            case "tornado" -> t = tornado(run, t, null);
+            case "earthquake" -> t = earthquake(run, t, null);
+            case "volcano" -> t = volcano(run, t, null);
+            case "meteor" -> t = meteor(run, t, null);
+            case "bloodmoon" -> t = bloodmoon(run, t, null);
+            case "cataclysms" -> t = cataclysms(run, t);
             case "all" -> {
                 // every scene that has a stage within reach, in order; the ones without are left out
                 t = shrine(run, t);
@@ -745,5 +787,420 @@ public final class Cinematics {
             roll(r, keys, 10, 40);
         });
         return d + 880;
+    }
+
+    // ------------------------------------------------------------------ 0.2: the cataclysms
+
+    /**
+     * Ground height straight out of the generator's noise. Nothing is loaded or generated to ask it,
+     * which is the whole point: a scout that walked the world with {@code getChunk} would freeze the
+     * server for the seconds it took (the same trap {@code kingdomSite} fell into). It is still a
+     * full noise column and costs milliseconds, so the number of calls is the cost of a search.
+     */
+    private static int baseHeight(ServerLevel level, int x, int z) {
+        return level.getChunkSource().getGenerator().getBaseHeight(
+                x, z, Heightmap.Types.WORLD_SURFACE_WG, level, level.getChunkSource().randomState());
+    }
+
+    private static BlockPos openGround(ServerLevel level, BlockPos from, int minOut, int maxOut) {
+        return openGround(level, from, minOut, maxOut, 28);
+    }
+
+    /**
+     * Open ground for a cataclysm: dry, above the sea and as level as can be found, out in the ring
+     * between {@code minOut} and {@code maxOut} blocks from a starting point. Candidates lie on a
+     * golden-angle spiral so they spread evenly without ever falling into a grid, and each is scored
+     * by the height spread of four samples 26 blocks out - the first spot within five blocks of level
+     * is taken rather than the best of everything, because every sample is a noise column.
+     */
+    private static BlockPos openGround(ServerLevel level, BlockPos from, int minOut, int maxOut, int tries) {
+        int sea = level.getSeaLevel();
+        BlockPos best = null;
+        int bestSpread = Integer.MAX_VALUE;
+        for (int i = 0; i < tries; i++) {
+            double a = i * 2.39996323;                       // the golden angle
+            double d = minOut + (maxOut - minOut) * (i / (double) Math.max(1, tries - 1));
+            int x = from.getX() + (int) Math.round(Math.cos(a) * d);
+            int z = from.getZ() + (int) Math.round(Math.sin(a) * d);
+            int h = baseHeight(level, x, z);
+            if (h <= sea + 2) continue;                      // sea, lake or swamp floor
+            int lo = h, hi = h;
+            for (int k = 0; k < 4; k++) {                    // four quarters catch a hillside
+                double b = k * Math.PI / 2 + 0.4;
+                int sh = baseHeight(level, x + (int) (Math.cos(b) * 26), z + (int) (Math.sin(b) * 26));
+                lo = Math.min(lo, sh);
+                hi = Math.max(hi, sh);
+            }
+            if (lo <= sea) continue;                         // one foot in the water
+            int spread = hi - lo;
+            if (spread < bestSpread) {
+                bestSpread = spread;
+                best = new BlockPos(x, h, z);
+            }
+            if (spread <= 5) break;                          // good enough - stop paying for better
+        }
+        return best;
+    }
+
+    /**
+     * The real ground at a scouted spot. {@link #baseHeight} answers the noise, which is a block or
+     * two out once the surface rules have run - so the winner, and only the winner, is asked properly.
+     */
+    private static BlockPos settle(ServerLevel level, BlockPos scouted) {
+        return me.lovkar.wakingworld.cataclysm.Cataclysms.surface(level, scouted.getX() + 0.5, scouted.getZ() + 0.5);
+    }
+
+    /**
+     * Open ground the camera would use, for {@code /wakingworld site}: the same search the cataclysm
+     * scenes run, so what it reports is what they will pick.
+     */
+    public static BlockPos scout(ServerLevel level, BlockPos from, int minOut, int maxOut) {
+        BlockPos scouted = openGround(level, from, minOut, maxOut);
+        return scouted == null ? null : settle(level, scouted);
+    }
+
+    /** How level the ground is round a spot: the height spread of four samples 26 blocks out. */
+    public static int levelness(ServerLevel level, BlockPos at) {
+        int lo = Integer.MAX_VALUE, hi = Integer.MIN_VALUE;
+        for (int k = 0; k < 4; k++) {
+            double b = k * Math.PI / 2 + 0.4;
+            int h = baseHeight(level, at.getX() + (int) (Math.cos(b) * 26), at.getZ() + (int) (Math.sin(b) * 26));
+            lo = Math.min(lo, h);
+            hi = Math.max(hi, h);
+        }
+        return hi - lo;
+    }
+
+    /** Open ground for one cataclysm scene, or null when there is nothing but water within reach. */
+    private static BlockPos cataclysmSite(Run run) {
+        return openGround(run.player.serverLevel(), run.player.blockPosition(), 70, 260);
+    }
+
+    /**
+     * The Named Lands: a long, high crossing of the country with the title card thrown up over it.
+     * ~24 s.
+     *
+     * <p>The flight is 380 blocks long and looks 90 further, which is past a single stage - so it
+     * stages the two ends as well as the middle, the way {@code kingdom} stages its approach.</p>
+     */
+    private static int lands(Run run, int t0, BlockPos site) {
+        ServerLevel level = run.player.serverLevel();
+        BlockPos where = site != null ? site : cataclysmSite(run);
+        if (where == null) return -1;
+        run.stage(level, where);
+        run.stage(level, where.offset(-190, 0, -40));         // the camera starts here, seeing further back
+        run.stage(level, where.offset(190, 0, 40));           // and ends here, looking further on
+        run.add(t0, r -> {
+            BlockPos g = settle(level, where);                // never a raw heightmap read: see settle()
+            Vec3 c = new Vec3(g.getX() + 0.5, g.getY(), g.getZ() + 0.5);
+            level.setDayTime(23200);                          // first light, long shadows
+            level.setWeatherParameters(24000, 0, false, false);
+            // ask for the name now so the model has the whole flight to answer; nameSoon never blocks
+            me.lovkar.wakingworld.land.Lands.get(level).nameSoon(level, where);
+            Vec3 from = c.add(-190, 78, -40);
+            Vec3 to = c.add(190, 58, 40);
+            teleport(r.player, level, from);
+            List<Key> keys = new ArrayList<>();
+            for (int i = 0; i <= 22; i++) {
+                double p = i / 22.0;
+                Vec3 cam = from.add(to.subtract(from).scale(p));
+                Vec3 look = cam.add(to.subtract(from).normalize().scale(90)).add(0, -26, 0);
+                keys.add(shot(level, i * 20, cam, look, 70f));
+            }
+            roll(r, keys, 25, 25);
+        });
+        // the card lands a third of the way in, once the country is on screen; by now the model has
+        // either answered or the template name is standing in for it
+        run.add(t0 + 160, r -> {
+            me.lovkar.wakingworld.land.Lands book = me.lovkar.wakingworld.land.Lands.get(level);
+            me.lovkar.wakingworld.land.Lands.Land land = book.nameSoon(level, where);
+            if (land == null) WakingWorld.LOGGER.info("cine: the land here still has no name - no card");
+            me.lovkar.wakingworld.land.Lands.card(r.player, land);
+        });
+        return t0 + 465;
+    }
+
+    /**
+     * The Wandering Column: a tornado spawned in the open and ridden alongside, then let go past a
+     * camera on the ground. ~30 s.
+     *
+     * <p>The spawn has to happen in the same step as the camera path - the keys ride the entity and
+     * need its id to be built - so it is given a life long enough to survive the wait behind black
+     * as well as the shot.</p>
+     */
+    private static int tornado(Run run, int t0, BlockPos site) {
+        ServerLevel level = run.player.serverLevel();
+        BlockPos where = site != null ? site : cataclysmSite(run);
+        if (where == null) return -1;
+        run.stage(level, where);
+        run.add(t0, r -> {
+            BlockPos g = settle(level, where);
+            Vec3 c = new Vec3(g.getX() + 0.5, g.getY(), g.getZ() + 0.5);
+            level.setDayTime(6000);                           // full day: the debris has to read
+            level.setWeatherParameters(0, 8000, true, false);  // storm, no thunder in the way
+            r.storming = true;
+            me.lovkar.wakingworld.cataclysm.TornadoEntity t =
+                    me.lovkar.wakingworld.cataclysm.TornadoEntity.spawn(level, c, 75);
+            r.column = t;
+            // riding it: out to the side and a little above, framed on the lower half of the column
+            List<Key> keys = new ArrayList<>();
+            for (int i = 0; i <= 17; i++) {
+                double p = i / 17.0;
+                Vec3 offset = orbit(Vec3.ZERO, 62 - p * 16, 26 + p * 10, 40 + p * 150);
+                keys.add(ride(level, i * 20, t, offset, new Vec3(0, 26, 0), 68f));
+            }
+            teleport(r.player, level, c.add(orbit(Vec3.ZERO, 62, 26, 40)));
+            roll(r, keys, 20, 15);
+        });
+        // then a camera standing still on the ground while it works nearby
+        run.add(t0 + 370, r -> {
+            if (r.column == null || !r.column.isAlive()) return;
+            Vec3 t = r.column.position();
+            // its own y is the ground under it; the camera is then lifted clear the usual way, which
+            // reads chunks the stage has held open all along
+            Vec3 cam = clear(level, new Vec3(t.x + 46, t.y + 6, t.z + 46), t.add(0, 20, 0));
+            teleport(r.player, level, cam);
+            List<Key> keys = new ArrayList<>();
+            for (int i = 0; i <= 9; i++) keys.add(shot(level, i * 20, cam, r.column, new Vec3(0, 20, 0), 72f));
+            roll(r, keys, 15, 25);
+        });
+        // and it is put away with the shot. Left running it walks on into the next scene - in the reel
+        // the earthquake takes this very field - roaring and shaking over somebody else's take.
+        run.add(t0 + 570, r -> {
+            if (r.column != null) {
+                if (r.column.isAlive()) r.column.discard();
+                r.column = null;
+            }
+        });
+        return t0 + 575;
+    }
+
+    /**
+     * The Turning Ground: a low camera on open ground while the faults open under it. ~26 s, which is
+     * what {@code earthquakeSeconds} is set to.
+     *
+     * <p>It goes through {@code Weather.forceQuake}, the same door the command uses.
+     * {@code Earthquake.shake} on its own opens the whole fault in a single tick and then nothing
+     * moves again - the shaking that makes the shot is {@code Weather} driving it second by second.</p>
+     */
+    private static int earthquake(Run run, int t0, BlockPos site) {
+        ServerLevel level = run.player.serverLevel();
+        BlockPos where = site != null ? site : cataclysmSite(run);
+        if (where == null) return -1;
+        run.stage(level, where);
+        run.add(t0, r -> {
+            BlockPos g = settle(level, where);
+            Vec3 c = new Vec3(g.getX() + 0.5, g.getY(), g.getZ() + 0.5);
+            r.anchor = c;
+            level.setDayTime(5000);
+            level.setWeatherParameters(24000, 0, false, false);
+            // low and close, so the ground fills the frame and the shake is felt rather than watched
+            List<Key> keys = new ArrayList<>();
+            for (int i = 0; i <= 10; i++) {
+                double p = i / 10.0;
+                keys.add(shot(level, i * 20, orbit(c, 22 + p * 10, 3.5, 30 + p * 55), c.add(0, 1, 0), 74f));
+            }
+            // then up and back, to see what it left
+            for (int i = 1; i <= 10; i++) {
+                double p = i / 10.0;
+                keys.add(shot(level, 200 + i * 20, orbit(c, 32 + p * 34, 4 + p * 30, 85 + p * 45), c.add(0, 1, 0), 68f));
+            }
+            teleport(r.player, level, orbit(c, 22, 8, 30));
+            roll(r, keys, 20, 25);
+        });
+        // the ground opens once the client is through the fade, not behind it
+        run.add(t0 + 25, r -> {
+            if (r.anchor != null) me.lovkar.wakingworld.cataclysm.Weather.forceQuake(level, r.anchor);
+        });
+        return t0 + 425;
+    }
+
+    /**
+     * The Rising Mountain: flat ground, a warning of smoke and tremors, then the cone coming up while
+     * the camera pulls back and up to keep it in frame. ~55 s.
+     *
+     * <p>36 courses over 36 seconds, which is one course a second - the pace the pulse clock can
+     * actually keep, since it only wakes once every twenty ticks. The configured minutes are right
+     * for a world and far too slow for a shot.</p>
+     */
+    private static final int CONE = 36, CONE_FOOT = 22, CONE_SECONDS = 36;
+
+    private static int volcano(Run run, int t0, BlockPos site) {
+        ServerLevel level = run.player.serverLevel();
+        BlockPos where = site != null ? site : cataclysmSite(run);
+        if (where == null) return -1;
+        run.stage(level, where);
+        run.stage(level, where.offset(-120, 0, 0));            // the pull-back sees a long way west
+        run.add(t0, r -> {
+            BlockPos g = settle(level, where);
+            Vec3 c = new Vec3(g.getX() + 0.5, g.getY(), g.getZ() + 0.5);
+            r.anchor = c;
+            // late afternoon, not dusk: the shot runs 50 s and would otherwise walk the clock into
+            // 13000-14000, which is exactly when the world rolls for a shower and a blood moon
+            level.setDayTime(11400);
+            level.setWeatherParameters(24000, 0, false, false);
+            teleport(r.player, level, orbit(c, 70, 22, 200));
+            List<Key> keys = new ArrayList<>();
+            // the warning: smoke and shaking over ground that is still flat (Volcano.force gives it 5 s)
+            for (int i = 0; i <= 6; i++) keys.add(shot(level, i * 20, orbit(c, 70 - i * 1.5, 22, 200 + i * 4), c.add(0, 6, 0), 64f));
+            // the rise: back and up, the crater kept about a third up the frame the whole way
+            for (int i = 1; i <= 36; i++) {
+                double p = i / 36.0;
+                keys.add(shot(level, 120 + i * 20, orbit(c, 66 + p * 52, 24 + p * 34, 220 + p * 130),
+                        c.add(0, 6 + p * CONE * 0.72, 0), 64f));
+            }
+            // and a last hold on the finished mountain, framed on the cone rather than the sky over it
+            for (int i = 1; i <= 6; i++) {
+                keys.add(shot(level, 840 + i * 20, orbit(c, 120 + i * 2, 44, 350 + i * 3), c.add(0, CONE * 0.55, 0), 62f));
+            }
+            roll(r, keys, 25, 30);
+        });
+        run.add(t0 + 25, r -> {
+            if (r.anchor != null) {
+                me.lovkar.wakingworld.cataclysm.Volcano.force(
+                        level, BlockPos.containing(r.anchor), CONE, CONE_FOOT, CONE_SECONDS);
+            }
+        });
+        return t0 + 990;
+    }
+
+    /**
+     * The Falling Sky: stars streak the night away over the country, then one comes down in front of
+     * the camera and the shot pushes into the crater it leaves. ~30 s.
+     *
+     * <p>The far ones are placed relative to where the camera is looking rather than at fixed
+     * compass angles, or two of the three fall behind it.</p>
+     */
+    private static int meteor(Run run, int t0, BlockPos site) {
+        ServerLevel level = run.player.serverLevel();
+        BlockPos where = site != null ? site : cataclysmSite(run);
+        if (where == null) return -1;
+        run.stage(level, where);
+        run.add(t0, r -> {
+            BlockPos g = settle(level, where);
+            Vec3 c = new Vec3(g.getX() + 0.5, g.getY(), g.getZ() + 0.5);
+            level.setDayTime(18000);                           // midnight: the trails have to glow
+            level.setWeatherParameters(24000, 0, false, false);
+            r.anchor = c;
+            teleport(r.player, level, orbit(c, 54, 16, 315));
+            List<Key> keys = new ArrayList<>();
+            // wide and low, the sky over the horizon, while the far ones come down
+            for (int i = 0; i <= 7; i++) keys.add(shot(level, i * 20, orbit(c, 54 - i, 16 + i * 0.6, 315 + i * 3), c.add(0, 34, 0), 70f));
+            // the near one lands at ~205: the camera is already on the spot it is aimed at
+            for (int i = 1; i <= 6; i++) {
+                double p = i / 6.0;
+                keys.add(shot(level, 140 + i * 20, orbit(c, 47 + p * 6, 21 - p * 6, 336 + p * 16), c.add(0, 24 - p * 22, 0), 68f));
+            }
+            // and into the crater it left
+            for (int i = 1; i <= 10; i++) {
+                double p = i / 10.0;
+                keys.add(shot(level, 260 + i * 20, orbit(c, 53 - p * 34, 15 - p * 6, 352 + p * 70), c.add(0, 1, 0), 66f + (float) p * 6f));
+            }
+            roll(r, keys, 25, 25);
+        });
+        // three away in the distance, staggered - spread across the view, which runs out from the
+        // camera at 315 degrees through the middle, so roughly 135 degrees and either side of it
+        for (int i = 0; i < 3; i++) {
+            final int k = i;
+            run.add(t0 + 40 + i * 34, r -> {
+                Vec3 c = r.anchor;
+                if (c == null) return;
+                double a = Math.toRadians(135 + (k - 1) * 34);
+                double d = 150 + k * 40;
+                BlockPos g = me.lovkar.wakingworld.cataclysm.Cataclysms.surface(level, c.x + Math.cos(a) * d, c.z + Math.sin(a) * d);
+                me.lovkar.wakingworld.cataclysm.Cataclysms.fall(level, Vec3.atBottomCenterOf(g), 1 + (k & 1), false);
+            });
+        }
+        run.add(t0 + 168, r -> {
+            if (r.anchor != null) me.lovkar.wakingworld.cataclysm.Cataclysms.fall(level, r.anchor, 3, true);
+        });
+        return t0 + 485;
+    }
+
+    /**
+     * The Blood Moon: the sky turns over open ground, the siege lands around the camera and the shot
+     * circles low through what came with it. ~32 s. The sky takes about 125 ticks to go over, so the
+     * first section is cut to match rather than to the four seconds it looks like.
+     */
+    private static int bloodmoon(Run run, int t0, BlockPos site) {
+        ServerLevel level = run.player.serverLevel();
+        BlockPos where = site != null ? site : cataclysmSite(run);
+        if (where == null) return -1;
+        run.stage(level, where);
+        run.add(t0, r -> {
+            BlockPos g = settle(level, where);
+            Vec3 c = new Vec3(g.getX() + 0.5, g.getY(), g.getZ() + 0.5);
+            level.setDayTime(18000);
+            level.setWeatherParameters(24000, 0, false, false);
+            r.anchor = c;
+            teleport(r.player, level, orbit(c, 30, 9, 90));
+            List<Key> keys = new ArrayList<>();
+            // the sky going over, held wide on the horizon
+            for (int i = 0; i <= 7; i++) keys.add(shot(level, i * 20, orbit(c, 30 + i * 1.4, 9 + i * 1.1, 90 + i * 5), c.add(0, 20, 0), 70f));
+            // then down among them
+            for (int i = 1; i <= 16; i++) {
+                double p = i / 16.0;
+                keys.add(shot(level, 140 + i * 20, orbit(c, 34 - p * 16, 8 - p * 4, 125 + p * 220), c.add(0, 2, 0), 66f));
+            }
+            roll(r, keys, 30, 25);
+        });
+        // lit after the fade, so the four seconds of sky are on camera and not behind black. A moon
+        // the world had already raised is left alone - and not put out afterwards either.
+        run.add(t0 + 20, r -> {
+            boolean already = me.lovkar.wakingworld.cataclysm.BloodMoon.running(level);
+            me.lovkar.wakingworld.cataclysm.BloodMoon.force(level, true);
+            r.litTheMoon = !already;
+        });
+        // the siege comes in once the sky has finished turning
+        run.add(t0 + 155, r -> {
+            if (r.anchor == null) return;
+            int n = me.lovkar.wakingworld.cataclysm.BloodMoon.siege(level, r.anchor, r.player, 24, level.random);
+            WakingWorld.LOGGER.info("cine: the blood moon put {} of them on the ground", n);
+            if (n == 0) r.player.displayClientMessage(Component.literal(
+                    "Nothing would spawn - too many already about, or nowhere dark enough. Move and shoot it again."), false);
+        });
+        run.add(t0 + 470, r -> {
+            if (r.litTheMoon) {
+                me.lovkar.wakingworld.cataclysm.BloodMoon.force(level, false);
+                r.litTheMoon = false;
+            }
+        });
+        return t0 + 490;
+    }
+
+    /**
+     * The 0.2 reel: the Named Lands, then all five cataclysms, in the order a trailer wants them -
+     * the country first, then wind, ground, fire, sky, and the blood moon last, so the light runs
+     * from first light to midnight across the cut. About three and a half minutes.
+     *
+     * <p>Six sites would be six stages to load, so these share four: the tornado and the earthquake
+     * take the same field a moment apart, and the blood moon rises over the crater the meteor has
+     * just made, which is the better shot anyway. The four are pushed well apart - a mountain with a
+     * 260-block ash plume must not come up inside another scene - and a site the search cannot find
+     * falls back to a fixed offset rather than to the middle, so a failure spreads the shots out
+     * instead of piling them on one spot.</p>
+     */
+    private static int cataclysms(Run run, int t0) {
+        ServerLevel level = run.player.serverLevel();
+        BlockPos centre = cataclysmSite(run);
+        if (centre == null) return -1;
+        BlockPos country = sub(level, centre, -430, -180);
+        BlockPos field = sub(level, centre, 380, -300);
+        BlockPos mountain = sub(level, centre, 90, 430);
+        BlockPos crater = sub(level, centre, -330, 360);
+        int t = lands(run, t0, country);
+        t = tornado(run, t + 20, field);
+        t = earthquake(run, t + 20, field);
+        t = volcano(run, t + 20, mountain);
+        t = meteor(run, t + 20, crater);
+        t = bloodmoon(run, t + 20, crater);
+        return t;
+    }
+
+    /** One of the reel's sites: open ground near the offset, or the offset itself if there is none. */
+    private static BlockPos sub(ServerLevel level, BlockPos centre, int dx, int dz) {
+        BlockPos want = centre.offset(dx, 0, dz);
+        BlockPos found = openGround(level, want, 0, 90, 10);
+        return found != null ? found : want;
     }
 }

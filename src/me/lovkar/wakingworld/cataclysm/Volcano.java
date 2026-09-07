@@ -51,6 +51,12 @@ public final class Volcano extends SavedData {
     private int courses;             // how many there will be
     private int baseR;               // the radius of the foot
     private int nextPulse;
+    /**
+     * How long the whole rise should take, in seconds; 0 = whatever the config says. The camera sets
+     * it: a mountain that takes the configured minutes to grow is right in a world and far too slow
+     * inside a shot.
+     */
+    private int riseSeconds;
 
     private Volcano() {
     }
@@ -68,8 +74,12 @@ public final class Volcano extends SavedData {
 
     public static void onLevelTick(ServerLevel level) {
         if (level.dimension() != Level.OVERWORLD) return;
-        if (!WakingConfig.volcanoes()) return;
-        get(level).tick(level);
+        // The switch stops the world from opening new vents; it does not freeze one that is already
+        // going up, or the config's own promise that "the command still works" would be false - a
+        // forced cone would stand half-built for ever.
+        Volcano v = get(level);
+        if (!WakingConfig.volcanoes() && v.phase == Phase.IDLE) return;
+        v.tick(level);
     }
 
     private void tick(ServerLevel level) {
@@ -80,6 +90,10 @@ public final class Volcano extends SavedData {
             case IDLE -> {
                 if (players.isEmpty()) return;                   // nobody to open one near
                 if (Cataclysms.busy(level)) return;              // one cataclysm at a time
+        // nothing new starts while the camera is rolling: a world-driven cataclysm on top of a
+        // scene is a ruined take, and there is no way to tell from the footage what happened
+        if (me.lovkar.wakingworld.story.Cinematics.running()) return;
+
                 int day = (int) (level.getDayTime() / 24000L);
                 if (day < cooldownUntilDay) return;
                 long t = level.getDayTime() % 24000L;
@@ -109,7 +123,11 @@ public final class Volcano extends SavedData {
                 smoke(level);
                 if (nextPulse <= 0) {
                     pulse(level, rnd);
-                    nextPulse = Math.max(40, WakingConfig.volcanoMinutes() * 60 * 20 / Math.max(1, courses));
+                    // this runs once every 20 ticks and takes 20 off, so anything that is not a whole
+                    // number of seconds silently rounds up to one: ask for the seconds outright
+                    int rise = riseSeconds > 0 ? riseSeconds : WakingConfig.volcanoMinutes() * 60;
+                    int perCourse = Math.max(1, Math.round(rise / (float) Math.max(1, courses)));
+                    nextPulse = perCourse * 20;
                     setDirty();
                 }
                 if (course >= courses) {
@@ -144,6 +162,7 @@ public final class Volcano extends SavedData {
         baseR = WakingConfig.volcanoRadius();
         courses = Math.max(6, WakingConfig.volcanoHeight());
         course = 0;
+        riseSeconds = 0;                // a volcano the world raised keeps the world's pace
         phase = Phase.WARNING;
         phaseTicks = 40 * 20;
         cooldownUntilDay = (int) (level.getDayTime() / 24000L) + WakingConfig.daysBetweenVolcanoes();
@@ -351,6 +370,7 @@ public final class Volcano extends SavedData {
         v.courses = tag.getInt("Courses");
         v.baseR = tag.getInt("Foot");
         v.nextPulse = tag.getInt("Next");
+        v.riseSeconds = tag.getInt("RiseSeconds");
         return v;
     }
 
@@ -366,12 +386,22 @@ public final class Volcano extends SavedData {
         tag.putInt("Courses", courses);
         tag.putInt("Foot", baseR);
         tag.putInt("Next", nextPulse);
+        tag.putInt("RiseSeconds", riseSeconds);
         return tag;
     }
 
     /** For the debug command: open one here, now. */
     public static void force(ServerLevel level, BlockPos at, int height, int foot) {
+        force(level, at, height, foot, 0);
+    }
+
+    /**
+     * The same, at a pace of the caller's choosing: {@code riseSeconds} is how long the whole cone
+     * should take to come up (0 = the config's minutes). The camera uses it.
+     */
+    public static void force(ServerLevel level, BlockPos at, int height, int foot, int riseSeconds) {
         Volcano v = get(level);
+        v.riseSeconds = riseSeconds;
         v.cx = at.getX();
         v.cz = at.getZ();
         v.baseY = at.getY();
