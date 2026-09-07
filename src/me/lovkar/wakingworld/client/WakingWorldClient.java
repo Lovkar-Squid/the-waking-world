@@ -43,6 +43,16 @@ public final class WakingWorldClient {
             }
 
             @Override
+            public void omen(int tint, int ticks) {
+                OmenSky.begin(tint, ticks);
+            }
+
+            @Override
+            public void atlas(String lands) {
+                LandAtlas.set(lands);
+            }
+
+            @Override
             public void landCard(String name, String lore, String kind, net.minecraft.core.BlockPos at) {
                 LandCard.show(name, lore, kind);
                 if (me.lovkar.wakingworld.WakingConfig.landWaypoints()) {
@@ -52,6 +62,8 @@ public final class WakingWorldClient {
 
             @Override
             public void openAlmanac() {
+                // ask for the atlas first: it arrives while the reader is still on the first page
+                me.lovkar.wakingworld.network.WakingNet.requestAtlas();
                 net.minecraft.client.Minecraft.getInstance().setScreen(new me.lovkar.wakingworld.client.gui.AlmanacScreen());
             }
 
@@ -127,6 +139,9 @@ public final class WakingWorldClient {
         NeoForge.EVENT_BUS.addListener(LandCard::render);
         NeoForge.EVENT_BUS.addListener(RedSky::clientTick);          // the blood moon, not a perk
         NeoForge.EVENT_BUS.addListener(RedSky::onFogColour);
+        NeoForge.EVENT_BUS.addListener(RedSky::render);
+        NeoForge.EVENT_BUS.addListener(OmenSky::clientTick);
+        NeoForge.EVENT_BUS.addListener(OmenSky::render);
         // supporter perks (cosmetic): parked with SupporterList.ENABLED - nothing registered, nothing fetched
         if (me.lovkar.wakingworld.supporter.SupporterList.ENABLED) {
             NeoForge.EVENT_BUS.addListener(SupporterAura::clientTick);

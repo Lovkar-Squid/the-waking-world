@@ -98,11 +98,19 @@ public final class TornadoEntity extends Entity {
         if (s > 0.15F) {
             pull(level, s);
             if (this.tickCount % 4 == 0) lift(level, s);
+            // and the swathe it leaves: trees snapped, grass scoured off, laid on the ground it has
+            // just crossed so the damage follows the real path instead of ringing where it stopped
+            if (this.tickCount % 6 == 0 && me.lovkar.wakingworld.WakingConfig.terrainDamage()) {
+                Aftermath.swathe(level, getX(), getZ(), radius() * 1.25, this.random);
+            }
         }
-        if (this.tickCount % 10 == 0) {
-            level.playSound(null, getX(), getY(), getZ(), SoundEvents.WITHER_AMBIENT, SoundSource.WEATHER, 4.0F * s, 0.5F);
-            WakingWorld.hooks.shakeAt(position(), 1.4F * s, 60);
+        // the roar is 4.5 s long: started every 4 it runs unbroken, started every half second it
+        // would be nine copies of itself playing at once
+        if (this.tickCount % 80 == 0) {
+            level.playSound(null, getX(), getY(), getZ(), me.lovkar.wakingworld.WakingSounds.TORNADO_ROAR.get(),
+                    SoundSource.WEATHER, 7.0F * Math.max(0.4F, s), 0.86F + this.random.nextFloat() * 0.1F);
         }
+        if (this.tickCount % 10 == 0) WakingWorld.hooks.shakeAt(position(), 1.4F * s, 60);
         spray(level, s);
     }
 
@@ -207,19 +215,19 @@ public final class TornadoEntity extends Entity {
             double a = turn + up * 7.0 + (i % 2 == 0 ? 0 : Math.PI) + (this.random.nextDouble() - 0.5) * 0.5;
             double px = getX() + Math.cos(a) * rr;
             double pz = getZ() + Math.sin(a) * rr;
-            level.sendParticles(ParticleTypes.CLOUD, px, getY() + h, pz, 1, 0, 0, 0, 0.02 + up * 0.05);
+            Cataclysms.puff(level, ParticleTypes.CLOUD, px, getY() + h, pz, 1, 0, 0, 0, 0.02 + up * 0.05);
         }
         BlockPos under = BlockPos.containing(getX(), getY() - 1, getZ());
         BlockState ground = level.getBlockState(under);
         if (!ground.isAir()) {
             BlockParticleOption dust = new BlockParticleOption(ParticleTypes.BLOCK, ground);
             // the skirt where it meets the ground - the widest, dirtiest part of it
-            level.sendParticles(dust, getX(), getY() + 0.4, getZ(), 60, r * 1.15, 0.8, r * 1.15, 0.55);
+            Cataclysms.puff(level, dust, getX(), getY() + 0.4, getZ(), 60, r * 1.15, 0.8, r * 1.15, 0.55);
             // and what it is carrying, up the first third of the column
             for (int i = 0; i < 10; i++) {
                 double a = turn * 1.4 + this.random.nextDouble() * Math.PI * 2;
                 double rr = r * (0.5 + this.random.nextDouble() * 0.9);
-                level.sendParticles(dust, getX() + Math.cos(a) * rr, getY() + this.random.nextDouble() * 11 * s,
+                Cataclysms.puff(level, dust, getX() + Math.cos(a) * rr, getY() + this.random.nextDouble() * 11 * s,
                         getZ() + Math.sin(a) * rr, 3, 0.4, 0.6, 0.4, 0.35);
             }
         }
@@ -244,7 +252,7 @@ public final class TornadoEntity extends Entity {
     }
 
     public double radius() {
-        return 3.0 + 5.0 * strength();
+        return 3.5 + 6.5 * strength();
     }
 
     @Override

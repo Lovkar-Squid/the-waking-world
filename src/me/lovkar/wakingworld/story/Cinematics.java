@@ -73,9 +73,9 @@ public final class Cinematics {
     /** How long the server waits for the client's "ready" before rolling anyway (ticks). */
     private static final int MAX_CLIENT_WAIT = 400;
     /** How long a stage may take to load before the scene starts on what there is (ticks). */
-    private static final int MAX_PREPARE = 20 * 60 * 5;
+    private static final int MAX_PREPARE = 20 * 60 * 8;
     /** Loaded chunks the stage must have, as a share of all of them, before the scene starts. */
-    private static final double PREPARED = 0.98;
+    private static final double PREPARED = 0.999;
 
     private static final TicketType<ChunkPos> STAGE_TICKET = TicketType.create("wakingworld_cine", Comparator.comparingLong(ChunkPos::toLong));
 
@@ -465,7 +465,8 @@ public final class Cinematics {
      */
     private static Vec3 clear(ServerLevel level, Vec3 cam, Vec3 look) {
         double y = Math.max(cam.y, roof(level, cam.x, cam.z) + CLEARANCE);
-        for (int lift = 0; lift < 60; lift++) {
+        double ceiling = y + 26;      // a shot framed from ten blocks up is not saved by moving to ninety
+        for (int lift = 0; lift < 60 && y < ceiling; lift++) {
             Vec3 at = new Vec3(cam.x, y, cam.z);
             Vec3 d = look.subtract(at);
             double len = d.length();
@@ -514,7 +515,47 @@ public final class Cinematics {
     private static void roll(Run run, List<Key> keys, int fadeIn, int fadeOut, boolean bossBar) {
         run.waiting = true;
         run.waitTicks = 0;
-        WakingNet.cineStart(run.player, keys, fadeIn, fadeOut, bossBar);
+        WakingNet.cineStart(run.player, level(keys), fadeIn, fadeOut, bossBar);
+    }
+
+    /**
+     * How far the camera may climb or fall between two keys - a second apart - without the move
+     * reading as a hop rather than as flight.
+     */
+    private static final double CLIMB = 2.6;
+
+    /**
+     * Take the staircase out of a path's height.
+     *
+     * <p>Every key is lifted clear of the ground under it on its own ({@link #clear}), which is what
+     * stops the camera flying through a hill. But two keys a second apart over broken country get
+     * very different lifts, and the curve through them is then a flight of steps: the camera hops up
+     * a ridge and drops off the far side. That is exactly what the second take looked like.</p>
+     *
+     * <p>The fix is not to smooth the heights - smoothing would pull some of them back down into the
+     * hillside they were lifted out of. It is to bound the SLOPE, in both directions: a pass forward
+     * says a key may not sit more than {@code CLIMB} below the one before it, a pass back says the
+     * same of the one after. Every key can only ever be raised, so nothing that was clear stops being
+     * clear, and no step in the result is steeper than one camera can fly.</p>
+     */
+    private static List<Key> level(List<Key> keys) {
+        int n = keys.size();
+        if (n < 3) return keys;
+        double[] y = new double[n];
+        boolean[] free = new boolean[n];
+        for (int i = 0; i < n; i++) {
+            y[i] = keys.get(i).y();
+            free[i] = !keys.get(i).anchored();   // a riding key's y is an offset, not a height
+        }
+        for (int i = 1; i < n; i++) if (free[i] && free[i - 1]) y[i] = Math.max(y[i], y[i - 1] - CLIMB);
+        for (int i = n - 2; i >= 0; i--) if (free[i] && free[i + 1]) y[i] = Math.max(y[i], y[i + 1] - CLIMB);
+        List<Key> out = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            Key k = keys.get(i);
+            out.add(y[i] == k.y() ? k
+                    : new Key(k.tick(), k.x(), y[i], k.z(), k.lx(), k.ly(), k.lz(), k.entity(), k.fov(), k.anchored()));
+        }
+        return out;
     }
 
     // ------------------------------------------------------------------ the scenes
@@ -1062,17 +1103,20 @@ public final class Cinematics {
             teleport(r.player, level, orbit(c, 70, 22, 200));
             List<Key> keys = new ArrayList<>();
             // the warning: smoke and shaking over ground that is still flat (Volcano.force gives it 5 s)
-            for (int i = 0; i <= 6; i++) keys.add(shot(level, i * 20, orbit(c, 70 - i * 1.5, 22, 205 - i * 3), c.add(0, 6, 0), 64f));
-            // the rise: back and up, the crater kept about a third up the frame, and the whole sweep
-            // held inside 130-190 degrees - west of the mountain, looking east, sun over the shoulder
+            for (int i = 0; i <= 6; i++) keys.add(shot(level, i * 20, orbit(c, 54 - i, 13, 200 - i * 2), c.add(0, 4, 0), 64f));
+            // The rise. The last take pulled out to a hundred and twenty blocks at a height of
+            // fifty-eight and looked DOWN at the thing: a thirty-six block cone came out as a bump
+            // at the bottom of the frame and then left it altogether. A mountain has to be looked UP
+            // at, and framed - the camera stays low and inside eighty blocks, and the look point
+            // tracks the middle of the cone rather than its summit, so the whole of it is in shot.
             for (int i = 1; i <= 36; i++) {
                 double p = i / 36.0;
-                keys.add(shot(level, 120 + i * 20, orbit(c, 66 + p * 52, 24 + p * 34, 187 - p * 54),
-                        c.add(0, 6 + p * CONE * 0.72, 0), 64f));
+                keys.add(shot(level, 120 + i * 20, orbit(c, 48 + p * 30, 10 + p * 17, 186 - p * 50),
+                        c.add(0, 3 + p * CONE * 0.42, 0), 66f));
             }
-            // and a last hold on the finished mountain, framed on the cone rather than the sky over it
+            // and a last hold, three quarters of the frame filled by the mountain
             for (int i = 1; i <= 6; i++) {
-                keys.add(shot(level, 840 + i * 20, orbit(c, 120 + i * 2, 44, 133 - i * 2), c.add(0, CONE * 0.55, 0), 62f));
+                keys.add(shot(level, 840 + i * 20, orbit(c, 80 + i, 27, 136 - i * 2), c.add(0, CONE * 0.44, 0), 64f));
             }
             roll(r, keys, 25, 30);
         });

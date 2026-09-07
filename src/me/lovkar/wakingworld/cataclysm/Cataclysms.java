@@ -69,6 +69,27 @@ public final class Cataclysms extends SavedData {
         Weather.onLevelTick(level);
     }
 
+    /**
+     * Particles anybody can actually see.
+     *
+     * <p>{@code ServerLevel.sendParticles(type, x, y, z, ...)} only reaches players within
+     * <b>32 blocks</b>. Everything a cataclysm draws - the volcano's plume, the tornado's column,
+     * the dust off an earthquake, the ring a star throws out - is meant to be seen from much
+     * further away than that, and a camera filming from sixty or a hundred blocks got none of it.
+     * That is the whole reason the first two takes came back with no smoke and a dull tornado.</p>
+     *
+     * <p>The per-player overload with {@code force} set carries to 512 blocks. Everything in this
+     * package goes through here.</p>
+     */
+    public static <T extends net.minecraft.core.particles.ParticleOptions> void puff(
+            ServerLevel level, T type, double x, double y, double z,
+            int count, double dx, double dy, double dz, double speed) {
+        for (ServerPlayer p : level.players()) {
+            if (p.distanceToSqr(x, y, z) > 400 * 400) continue;
+            level.sendParticles(p, type, true, x, y, z, count, dx, dy, dz, speed);
+        }
+    }
+
     /** True while the sky is falling - the other cataclysms wait their turn. */
     public static boolean busy(ServerLevel level) {
         return get(level).phase != Phase.IDLE;

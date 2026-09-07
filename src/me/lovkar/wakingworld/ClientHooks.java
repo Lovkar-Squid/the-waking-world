@@ -27,6 +27,12 @@ public interface ClientHooks {
     default void landCard(String name, String lore, String kind, net.minecraft.core.BlockPos at) {
     }
 
+    default void omen(int tint, int ticks) {
+    }
+
+    default void atlas(String lands) {
+    }
+
     default void bloodMoon(boolean on) {
     }
 

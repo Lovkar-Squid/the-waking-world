@@ -51,6 +51,7 @@ public final class Volcano extends SavedData {
     private int courses;             // how many there will be
     private int baseR;               // the radius of the foot
     private int nextPulse;
+    private transient int voice;      // ticks until the rumble is started again
     /** The bearing the lava runs down, in radians. Chosen once so the flow does not wander. */
     private float spill;
     /**
@@ -110,6 +111,7 @@ public final class Volcano extends SavedData {
             case WARNING -> {
                 phaseTicks -= 20;
                 smoke(level);
+                Omen.tick(level, new Vec3(cx, baseY, cz), Omen.Kind.VOLCANO, phaseTicks / 20);
                 // the skirt is thousands of columns; laid in one go it is a two-second freeze in the
                 // middle of the shot, so it goes down in strips, one a second, under the smoke
                 int slice = FOOT_SLICES - 1 - Math.max(0, Math.min(FOOT_SLICES - 1, phaseTicks / 20));
@@ -178,6 +180,7 @@ public final class Volcano extends SavedData {
         phaseTicks = 40 * 20;
         cooldownUntilDay = (int) (level.getDayTime() / 24000L) + WakingConfig.daysBetweenVolcanoes();
         setDirty();
+        Omen.begin(level, new Vec3(cx, baseY, cz), Omen.Kind.VOLCANO, phaseTicks / 20);
         for (ServerPlayer p : level.players()) {
             p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.volcano.warning").withStyle(ChatFormatting.GOLD));
         }
@@ -212,9 +215,9 @@ public final class Volcano extends SavedData {
         // and from a third of the way up, the flank is open and running
         if (climbed > 0.30) channel(level, rnd);
 
-        level.playSound(null, cx, y, cz, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, 4.0F, 0.4F + rnd.nextFloat() * 0.2F);
-        level.sendParticles(ParticleTypes.LARGE_SMOKE, cx + 0.5, y + 1.5, cz + 0.5, 60, outer * 0.4, 2.0, outer * 0.4, 0.05);
-        level.sendParticles(ParticleTypes.LAVA, cx + 0.5, y + 1.0, cz + 0.5, 24, vent, 0.5, vent, 0.0);
+        level.playSound(null, cx, y, cz, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, 4.0F, 0.28F + rnd.nextFloat() * 0.12F);
+        Cataclysms.puff(level, ParticleTypes.LARGE_SMOKE, cx + 0.5, y + 1.5, cz + 0.5, 60, outer * 0.4, 2.0, outer * 0.4, 0.05);
+        Cataclysms.puff(level, ParticleTypes.LAVA, cx + 0.5, y + 1.0, cz + 0.5, 24, vent, 0.5, vent, 0.0);
         WakingWorld.hooks.shakeAt(new Vec3(cx, y, cz), 2.2F, 200);
 
         // lava bombs: the same falling mass as a star, but small, and it carries nothing
@@ -344,6 +347,10 @@ public final class Volcano extends SavedData {
             }
         }
         level.playSound(null, cx, rimY, cz, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, 6.0F, 0.3F);
+        // and the ash, carried away on the opposite bearing to the flow so the two are not the same
+        // side of the mountain. This is what somebody finds a week later and follows back to here.
+        Aftermath.ashfall(level, new BlockPos(cx, baseY, cz), spill + Math.PI,
+                Math.max(48, baseR * 2.6), rnd);
     }
 
     private void end(ServerLevel level) {
@@ -371,20 +378,30 @@ public final class Volcano extends SavedData {
         for (int i = 0; i < 8; i++) {
             double up = 4 + i * 7.5;
             double spread = vent * (0.7 + i * 0.55);
-            level.sendParticles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, cx + 0.5, top + up, cz + 0.5,
+            Cataclysms.puff(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, cx + 0.5, top + up, cz + 0.5,
                     6 + i, spread, 1.6, spread, 0.012 + i * 0.004);
             if (i < 3) {
-                level.sendParticles(ParticleTypes.LARGE_SMOKE, cx + 0.5, top + up, cz + 0.5,
+                Cataclysms.puff(level, ParticleTypes.LARGE_SMOKE, cx + 0.5, top + up, cz + 0.5,
                         8, spread * 0.7, 1.2, spread * 0.7, 0.03);
             }
         }
         // what is still burning, right at the throat
-        level.sendParticles(ParticleTypes.LAVA, cx + 0.5, top + 1.5, cz + 0.5, 6, vent * 0.6, 0.6, vent * 0.6, 0.0);
-        level.sendParticles(ParticleTypes.FLAME, cx + 0.5, top + 2.5, cz + 0.5, 10, vent * 0.5, 1.2, vent * 0.5, 0.06);
+        Cataclysms.puff(level, ParticleTypes.LAVA, cx + 0.5, top + 1.5, cz + 0.5, 6, vent * 0.6, 0.6, vent * 0.6, 0.0);
+        // its own voice, under everything, restarted just before the loop runs out
+        if (voice-- <= 0) {
+            voice = 100;                       // the loop is 5.4 s; 5 s keeps it seamless
+            for (ServerPlayer p : level.players()) {
+                if (p.distanceToSqr(cx, top, cz) > 320 * 320) continue;
+                level.playSound(null, cx, top, cz, me.lovkar.wakingworld.WakingSounds.VOLCANO_RUMBLE.get(),
+                        SoundSource.WEATHER, 8.0F, 0.9F + level.random.nextFloat() * 0.15F);
+                break;                          // it is one sound in the world, not one per listener
+            }
+        }
+        Cataclysms.puff(level, ParticleTypes.FLAME, cx + 0.5, top + 2.5, cz + 0.5, 10, vent * 0.5, 1.2, vent * 0.5, 0.06);
         for (ServerPlayer p : level.players()) {
             double away = p.distanceToSqr(cx, top, cz);
             if (away > 300 * 300) continue;
-            level.sendParticles(p, ParticleTypes.WHITE_ASH, false, p.getX(), p.getY() + 12, p.getZ(),
+            level.sendParticles(p, ParticleTypes.WHITE_ASH, true, p.getX(), p.getY() + 12, p.getZ(),
                     away < 140 * 140 ? 60 : 24, 18, 8, 18, 0.0);
         }
     }

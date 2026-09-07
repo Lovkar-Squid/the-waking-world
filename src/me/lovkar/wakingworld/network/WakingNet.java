@@ -159,6 +159,47 @@ public final class WakingNet {
         }
     }
 
+    /** Client -> server: I opened the Almanac; what lands have I walked? */
+    public record RequestAtlas() implements CustomPacketPayload {
+        public static final Type<RequestAtlas> TYPE = new Type<>(WakingNet.id("request_atlas"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, RequestAtlas> CODEC = StreamCodec.unit(new RequestAtlas());
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Server -> client: the lands, one per line as {@code name\tlore\tkind\tcellX\tcellZ}.
+     *
+     * <p>One string rather than a list of records on purpose: the atlas is read once when a book is
+     * opened, never in a hot path, and a line-separated payload needs no codec of its own and no
+     * versioning when a field is added to it.</p>
+     */
+    public record AtlasData(String lands) implements CustomPacketPayload {
+        public static final Type<AtlasData> TYPE = new Type<>(WakingNet.id("atlas"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, AtlasData> CODEC = StreamCodec.composite(
+                ByteBufCodecs.STRING_UTF8, AtlasData::lands, AtlasData::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /** Server -> client: something is coming - put the warning light on for this long. */
+    public record OmenState(int tint, int ticks) implements CustomPacketPayload {
+        public static final Type<OmenState> TYPE = new Type<>(WakingNet.id("omen"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, OmenState> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, OmenState::tint, ByteBufCodecs.VAR_INT, OmenState::ticks, OmenState::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
     /** Server -> client: a supporter changed their look; fetch the list again. */
     public record RefreshCosmetics() implements CustomPacketPayload {
         public static final Type<RefreshCosmetics> TYPE = new Type<>(WakingNet.id("refresh_cosmetics"));
@@ -241,6 +282,11 @@ public final class WakingNet {
         registrar.playToClient(RefreshCosmetics.TYPE, RefreshCosmetics.CODEC, (p, ctx) -> me.lovkar.wakingworld.supporter.SupporterList.refreshAsync());
         registrar.playToClient(BloodMoonState.TYPE, BloodMoonState.CODEC, (p, ctx) -> WakingWorld.hooks.bloodMoon(p.on()));
         registrar.playToClient(LandCard.TYPE, LandCard.CODEC, (p, ctx) -> WakingWorld.hooks.landCard(p.name(), p.lore(), p.kind(), p.at()));
+        registrar.playToClient(OmenState.TYPE, OmenState.CODEC, (p, ctx) -> WakingWorld.hooks.omen(p.tint(), p.ticks()));
+        registrar.playToClient(AtlasData.TYPE, AtlasData.CODEC, (p, ctx) -> WakingWorld.hooks.atlas(p.lands()));
+        registrar.playToServer(RequestAtlas.TYPE, RequestAtlas.CODEC, (p, ctx) -> {
+            if (ctx.player() instanceof ServerPlayer sp) me.lovkar.wakingworld.land.Lands.sendAtlas(sp);
+        });
     }
 
     /** Client: my cosmetics changed on the service. */
@@ -252,6 +298,21 @@ public final class WakingNet {
     /** Put a land's card up on one player's screen, and a waypoint at its middle on their map. */
     public static void landCard(ServerPlayer player, String name, String lore, String kind, BlockPos at) {
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player, new LandCard(name, lore, kind, at));
+    }
+
+    /** The lands one player has walked, for their Almanac. */
+    public static void atlas(ServerPlayer player, String lands) {
+        PacketDistributor.sendToPlayer(player, new AtlasData(lands));
+    }
+
+    /** Ask the server for them (client side). */
+    public static void requestAtlas() {
+        PacketDistributor.sendToServer(new RequestAtlas());
+    }
+
+    /** Put the warning light on for one player. */
+    public static void omen(ServerPlayer player, int tint, int ticks) {
+        PacketDistributor.sendToPlayer(player, new OmenState(tint, ticks));
     }
 
     public static void bloodMoon(boolean on) {

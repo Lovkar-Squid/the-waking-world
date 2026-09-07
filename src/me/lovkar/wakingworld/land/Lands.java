@@ -242,6 +242,26 @@ public final class Lands extends SavedData {
         return named.size();
     }
 
+    /**
+     * Send one player the lands THEY have walked - not every land in the world. The atlas is a record
+     * of where somebody has been, and a book that filled itself in with places its owner had never
+     * seen would be a map, which is a different thing and a much less interesting one.
+     */
+    public static void sendAtlas(ServerPlayer p) {
+        Lands lands = get(p.serverLevel());
+        StringBuilder sb = new StringBuilder();
+        java.util.Set<Long> mine = lands.seen.getOrDefault(p.getUUID(), java.util.Set.of());
+        for (Land l : lands.named.values()) {
+            if (!mine.contains(l.cell())) continue;
+            if (sb.length() > 30000) break;                    // the payload is a single string
+            sb.append(l.name().replace('\t', ' ')).append('\t')
+              .append(l.lore().replace('\t', ' ')).append('\t')
+              .append(l.kind()).append('\t')
+              .append(l.cellX()).append('\t').append(l.cellZ()).append('\n');
+        }
+        me.lovkar.wakingworld.network.WakingNet.atlas(p, sb.toString());
+    }
+
     // ---- saved with the world --------------------------------------------------------------
 
     private static Lands load(CompoundTag tag, HolderLookup.Provider registries) {

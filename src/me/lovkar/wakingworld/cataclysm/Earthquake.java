@@ -28,6 +28,9 @@ import net.minecraft.world.phys.Vec3;
  * a field is a story, a crack through a bedroom is a bug report.</p>
  */
 public final class Earthquake {
+    /** Which second of the shaking this is, so the loop is restarted and not stacked. */
+    private static int beat;
+
     private Earthquake() {
     }
 
@@ -71,7 +74,7 @@ public final class Earthquake {
                             : Blocks.AIR.defaultBlockState(), 2);
                     opened++;
                 }
-                level.sendParticles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, top.getY() + 1.0, pz, 2, 0.3, 0.2, 0.3, 0.01);
+                Cataclysms.puff(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, top.getY() + 1.0, pz, 2, 0.3, 0.2, 0.3, 0.01);
             }
         }
         return opened;
@@ -113,20 +116,23 @@ public final class Earthquake {
             if (top <= level.getMinBuildHeight() + 1) continue;
             BlockState ground = level.getBlockState(BlockPos.containing(px, top - 1, pz));
             if (ground.isAir()) continue;
-            level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(
+            Cataclysms.puff(level, new net.minecraft.core.particles.BlockParticleOption(
                             net.minecraft.core.particles.ParticleTypes.BLOCK, ground),
                     px, top + 0.3, pz, 4, 0.6, 0.35, 0.6, 0.22 * strength);
             if (rnd.nextInt(5) == 0) {
-                level.sendParticles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, top + 1.2, pz,
+                Cataclysms.puff(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, top + 1.2, pz,
                         3, 0.5, 0.4, 0.5, 0.02);
             }
         }
-        // and the deep note under it, from wherever the listener is standing
-        for (net.minecraft.server.level.ServerPlayer p : level.players()) {
-            if (p.distanceToSqr(at.x, at.y, at.z) > 200 * 200) continue;
-            level.playSound(null, p.getX(), p.getY(), p.getZ(),
-                    net.minecraft.sounds.SoundEvents.GENERIC_EXPLODE.value(),
-                    net.minecraft.sounds.SoundSource.WEATHER, 0.9F * strength, 0.22F + rnd.nextFloat() * 0.06F);
+        // and the ground's own note under it. The loop is 4.5 s and this runs once a second, so it
+        // is started every fourth pass - often enough to be unbroken, rarely enough not to stack.
+        if (++beat % 4 == 0) {
+            for (net.minecraft.server.level.ServerPlayer p : level.players()) {
+                if (p.distanceToSqr(at.x, at.y, at.z) > 260 * 260) continue;
+                level.playSound(null, at.x, at.y, at.z, me.lovkar.wakingworld.WakingSounds.QUAKE_RUMBLE.get(),
+                        net.minecraft.sounds.SoundSource.WEATHER, 6.5F * strength, 0.92F + rnd.nextFloat() * 0.1F);
+                break;
+            }
         }
         AABB box = new AABB(at, at).inflate(90);
         for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, box)) {

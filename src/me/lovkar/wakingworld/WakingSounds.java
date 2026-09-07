@@ -20,6 +20,13 @@ public final class WakingSounds {
 
     public static final DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(Registries.SOUND_EVENT, WakingWorld.MODID);
 
+    /** The cataclysms' own voices. The four that run under an event are seamless loops. */
+    public static final DeferredHolder<SoundEvent, SoundEvent> VOLCANO_RUMBLE = sound("cataclysm.volcano.rumble");
+    public static final DeferredHolder<SoundEvent, SoundEvent> TORNADO_ROAR = sound("cataclysm.tornado.roar");
+    public static final DeferredHolder<SoundEvent, SoundEvent> QUAKE_RUMBLE = sound("cataclysm.quake.rumble");
+    public static final DeferredHolder<SoundEvent, SoundEvent> METEOR_SCREAM = sound("cataclysm.meteor.scream");
+    public static final DeferredHolder<SoundEvent, SoundEvent> OMEN = sound("cataclysm.omen");
+
     public static final DeferredHolder<SoundEvent, SoundEvent> MUSIC_STONE = music("stone");
     public static final DeferredHolder<SoundEvent, SoundEvent> MUSIC_EARTH = music("earth");
     public static final DeferredHolder<SoundEvent, SoundEvent> MUSIC_SANDSTONE = music("sandstone");

@@ -102,6 +102,11 @@ public final class BloodMoon extends SavedData {
                 setDirty();
                 return;
             }
+            // the sky is wrong for a while before it turns
+            if (WakingConfig.omens() && !level.players().isEmpty()) {
+                Omen.begin(level, level.players().get(0).position(), Omen.Kind.BLOOD_MOON,
+                        Math.min(30, WakingConfig.omenSeconds()));
+            }
             begin(level);
             return;
         }

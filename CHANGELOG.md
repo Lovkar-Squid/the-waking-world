@@ -52,6 +52,18 @@ the supporter perks switched off.
 - The camera lifts the brightness for night scenes and puts it back at the cut, keeps the boss bar for
   fights only, and clears what the player is looking at on the tick rather than on the frame - too late
   for tooltip mods, which drew over the take.
+- **The cataclysms have their own voices** instead of borrowing the explosion sound: a volcanic
+  rumble, a tornado that roars like a freight train, the ground's own note under an earthquake, and
+  the falling whistle of a star. All synthesized (`tools/sfx/cataclysms.py`); the four that run under
+  an event are seamless loops.
+- **They leave a mark.** Ash comes down downwind of a vent and dresses the ground it lands on, the
+  country round a strike is scorched and its sand fused to glass, and a tornado leaves a swathe of
+  snapped trees and scoured ground you can still find days later.
+- **Omens.** Every cataclysm now opens with a warning: a low note out of the ground, the light going
+  wrong at the edges of vision, the animals bolting, and a line that says what is wrong without
+  saying what is coming. `omens` and `omenSeconds` in the config.
+- **The Atlas**, a chapter at the back of the Almanac: every named land you have walked, drawn where
+  it actually lies rather than as a list, with the square you are standing in edged in gold.
 
 ### Changed
 - **The supporter perks are switched off.** Every class is still here and nothing about them changed,
@@ -69,6 +81,19 @@ the supporter perks switched off.
   command still works.
 - A forced volcano's rise took longer than it was told to: the pulse clock only wakes every twenty
   ticks and any pace that was not a whole number of seconds quietly rounded up.
+- **Nothing a cataclysm drew was visible from more than 32 blocks away.** `sendParticles` without a
+  force flag only reaches players inside that radius, and everything here - the volcano's plume, the
+  tornado's column, the dust off an earthquake, the ring a star throws out - is meant to be seen from
+  much further. That is why two takes came back with no smoke and a dull tornado. It all goes through
+  one forced send now.
+- The blood moon never turned the sky red for anybody running shaders. A shader pack draws its own
+  sky and its own fog and never asks the game what colour they should be, so the fog tint did
+  nothing; there is a red wash over the finished frame as well now, which nothing can override.
+- The volcano was framed from a hundred and twenty blocks out at a height of fifty-eight, looking
+  down: the cone came out as a bump at the bottom of the frame and then left it. A mountain has to be
+  looked up at.
+- The camera hopped over ridges instead of flying: every key was lifted clear of the ground under it
+  on its own, so the curve through them was a flight of steps. The climb between keys is bounded now.
 - The camera picked its sites with a fallback that had no ground under it at all, which put the
   tornado, the meteor and the blood moon over open water; and it shot the volcano into the setting
   sun, which came back as a silhouette in a white frame.

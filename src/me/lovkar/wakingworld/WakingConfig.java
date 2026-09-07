@@ -56,6 +56,8 @@ public final class WakingConfig {
     private static final ModConfigSpec.DoubleValue EARTHQUAKE_CHANCE;
     private static final ModConfigSpec.IntValue DAYS_BETWEEN_EARTHQUAKES;
     private static final ModConfigSpec.IntValue EARTHQUAKE_SECONDS;
+    private static final ModConfigSpec.BooleanValue OMENS;
+    private static final ModConfigSpec.IntValue OMEN_SECONDS;
     private static final ModConfigSpec.BooleanValue NAMED_LANDS;
     private static final ModConfigSpec.IntValue LAND_SIZE;
     private static final ModConfigSpec.BooleanValue GEMINI_LANDS;
@@ -157,6 +159,10 @@ public final class WakingConfig {
                 .defineInRange("daysBetweenEarthquakes", 11, 0, 1000);
         EARTHQUAKE_SECONDS = b.comment("How long the shaking lasts, in seconds.")
                 .defineInRange("earthquakeSeconds", 26, 5, 300);
+        OMENS = b.comment("Warn the world before a cataclysm: a low note out of the ground, the light going wrong,",
+                "the animals leaving, and a line in the chat. Off: they simply begin.").define("omens", true);
+        OMEN_SECONDS = b.comment("How long the warning runs before the cataclysm itself, in seconds.")
+                .defineInRange("omenSeconds", 40, 5, 600);
         b.pop();
         b.push("lands");
         NAMED_LANDS = b.comment("The Named Lands: the world is divided into squares, and each one is named the first time somebody walks into it.",
@@ -240,6 +246,14 @@ public final class WakingConfig {
 
     public static int daysBetweenEarthquakes() {
         return loaded() ? DAYS_BETWEEN_EARTHQUAKES.get() : 11;
+    }
+
+    public static boolean omens() {
+        return loaded() && OMENS.get();
+    }
+
+    public static int omenSeconds() {
+        return loaded() ? OMEN_SECONDS.get() : 40;
     }
 
     public static int earthquakeSeconds() {

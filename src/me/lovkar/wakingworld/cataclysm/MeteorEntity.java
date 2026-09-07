@@ -35,6 +35,9 @@ import net.minecraft.world.phys.Vec3;
  * server so everyone within sight sees the same streak, and the roar grows as it comes down.</p>
  */
 public class MeteorEntity extends Entity {
+    /** A star screams once, not every tick of its fall. */
+    private boolean screamed;
+
     private static final EntityDataAccessor<Byte> DATA_SIZE =
             SynchedEntityData.defineId(MeteorEntity.class, EntityDataSerializers.BYTE);
 
@@ -106,14 +109,21 @@ public class MeteorEntity extends Entity {
         for (int i = 0; i < 3 + s * 2; i++) {
             double d = i * 0.8;
             double x = this.getX() + back.x * d, y = this.getY() + back.y * d, z = this.getZ() + back.z * d;
-            server.sendParticles(ParticleTypes.LARGE_SMOKE, x, y, z, 2, 0.4 * s, 0.4 * s, 0.4 * s, 0.01);
-            server.sendParticles(ParticleTypes.FLAME, x, y, z, 2, 0.3 * s, 0.3 * s, 0.3 * s, 0.02);
+            Cataclysms.puff(server, ParticleTypes.LARGE_SMOKE, x, y, z, 2, 0.4 * s, 0.4 * s, 0.4 * s, 0.01);
+            Cataclysms.puff(server, ParticleTypes.FLAME, x, y, z, 2, 0.3 * s, 0.3 * s, 0.3 * s, 0.02);
         }
-        server.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.MAGMA_BLOCK.defaultBlockState()),
+        Cataclysms.puff(server, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.MAGMA_BLOCK.defaultBlockState()),
                 this.getX(), this.getY(), this.getZ(), 3, 0.5, 0.5, 0.5, 0.15);
         if (this.tickCount % 6 == 0) {
             float volume = 3.0F + s;
             server.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.FIRECHARGE_USE, SoundSource.WEATHER, volume, 0.4F);
+            // and the falling whistle, once, as it comes into the last of its dive
+            if (!screamed) {
+                screamed = true;
+                server.playSound(null, this.getX(), this.getY(), this.getZ(),
+                        me.lovkar.wakingworld.WakingSounds.METEOR_SCREAM.get(), SoundSource.WEATHER,
+                        5.0F + size() * 2.0F, 0.85F + this.random.nextFloat() * 0.2F);
+            }
         }
     }
 
@@ -126,23 +136,23 @@ public class MeteorEntity extends Entity {
 
         server.playSound(null, at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, 8.0F, 0.35F);
         server.playSound(null, at.x, at.y, at.z, SoundEvents.STONE_BREAK, SoundSource.WEATHER, 6.0F, 0.4F);
-        server.sendParticles(ParticleTypes.EXPLOSION_EMITTER, at.x, at.y + 1, at.z, 2 + s, craterRadius * 0.3, 0.5, craterRadius * 0.3, 0);
-        server.sendParticles(ParticleTypes.LARGE_SMOKE, at.x, at.y + 1, at.z, 60 + 40 * s, craterRadius, 2.0, craterRadius, 0.08);
+        Cataclysms.puff(server, ParticleTypes.EXPLOSION_EMITTER, at.x, at.y + 1, at.z, 2 + s, craterRadius * 0.3, 0.5, craterRadius * 0.3, 0);
+        Cataclysms.puff(server, ParticleTypes.LARGE_SMOKE, at.x, at.y + 1, at.z, 60 + 40 * s, craterRadius, 2.0, craterRadius, 0.08);
         // the flash, and the ring going out from it. A star landing at night was three grey puffs on
         // camera: what a strike needs is something bright at the moment of it and something moving
         // outwards afterwards, or there is nothing to cut to.
-        server.sendParticles(ParticleTypes.FLASH, at.x, at.y + 1.5, at.z, 3 + s, 0.4, 0.4, 0.4, 0);
-        server.sendParticles(ParticleTypes.END_ROD, at.x, at.y + 1.0, at.z, 40 + 30 * s, 0.6, 0.4, 0.6, 0.55);
+        Cataclysms.puff(server, ParticleTypes.FLASH, at.x, at.y + 1.5, at.z, 3 + s, 0.4, 0.4, 0.4, 0);
+        Cataclysms.puff(server, ParticleTypes.END_ROD, at.x, at.y + 1.0, at.z, 40 + 30 * s, 0.6, 0.4, 0.6, 0.55);
         double ring = craterRadius * 1.25;
         for (int i = 0; i < 60 + 20 * s; i++) {
             double a = i / (double) (60 + 20 * s) * Math.PI * 2;
             double px = at.x + Math.cos(a) * ring, pz = at.z + Math.sin(a) * ring;
-            server.sendParticles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, at.y + 0.6, pz, 2, 0.3, 0.2, 0.3, 0.06);
-            server.sendParticles(ParticleTypes.LAVA, px, at.y + 0.4, pz, 1, 0.2, 0.1, 0.2, 0.0);
+            Cataclysms.puff(server, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, at.y + 0.6, pz, 2, 0.3, 0.2, 0.3, 0.06);
+            Cataclysms.puff(server, ParticleTypes.LAVA, px, at.y + 0.4, pz, 1, 0.2, 0.1, 0.2, 0.0);
         }
         // a column of smoke standing over the crater, so the strike is still findable a minute later
         for (int i = 0; i < 6; i++) {
-            server.sendParticles(ParticleTypes.LARGE_SMOKE, at.x, at.y + 3 + i * 5.0, at.z,
+            Cataclysms.puff(server, ParticleTypes.LARGE_SMOKE, at.x, at.y + 3 + i * 5.0, at.z,
                     14, craterRadius * (0.4 + i * 0.22), 1.5, craterRadius * (0.4 + i * 0.22), 0.04);
         }
 
@@ -157,6 +167,7 @@ public class MeteorEntity extends Entity {
 
         Crater.blast(server, at, craterRadius, 40 + 20 * s, 0.75, this.random);
         Starfall.dress(server, BlockPos.containing(at), craterRadius, s, carriesStar, this.random);
+        Aftermath.scorch(server, BlockPos.containing(at), craterRadius, craterRadius * 3.2 + 8, this.random);
         this.level().broadcastEntityEvent(this, (byte) 70);
         this.discard();
     }

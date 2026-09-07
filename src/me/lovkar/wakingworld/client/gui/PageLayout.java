@@ -134,6 +134,53 @@ public final class PageLayout {
         }
     }
 
+    /**
+     * The atlas: the lands somebody has walked, drawn where they actually lie.
+     *
+     * <p>Not a list. The squares are laid out on the page in the arrangement they have in the world,
+     * so a player can see that the frost cairn country is north of the marsh they crossed - which is
+     * the only thing an atlas is for. Squares that have never been walked are left blank, and the
+     * whole thing is scaled to whatever fits the page.</p>
+     */
+    public record Atlas(List<Cell> cells, int rows, int box, FormattedCharSequence caption, int captionColour) implements Element {
+        /** One square: where it sits in the grid, its name, and the colour of what it is made of. */
+        public record Cell(int col, int row, String name, int rgb, boolean here) {
+        }
+
+        @Override
+        public int height() {
+            return rows * box + LINE + 6;
+        }
+
+        @Override
+        public void render(GuiGraphics g, Font font, int x, int y, int width, int mouseX, int mouseY, Hover hover) {
+            int cols = Math.max(1, width / box);
+            int gridW = cols * box;
+            int ox = x + (width - gridW) / 2;
+            for (Cell c : cells) {
+                int cx = ox + c.col() * box, cy = y + c.row() * box;
+                g.fill(cx, cy, cx + box - 1, cy + box - 1, 0x66000000 | c.rgb());
+                g.renderOutline(cx, cy, box - 1, box - 1, c.here() ? 0xFFE2B24A : 0x55402C18);
+                // the first letters of the name, which is all that fits and all that is needed to
+                // recognise a land you have been to
+                String tag = initials(c.name());
+                g.drawString(font, tag, cx + (box - 1 - font.width(tag)) / 2, cy + (box - 1 - LINE) / 2 + 1,
+                        c.here() ? 0xFF3A2A12 : 0xFF4A4038, false);
+            }
+            if (caption != null) {
+                g.drawString(font, caption, x + (width - font.width(caption)) / 2, y + rows * box + 4, captionColour, false);
+            }
+        }
+
+        private static String initials(String name) {
+            StringBuilder sb = new StringBuilder();
+            for (String w : name.split("\\s+")) {
+                if (!w.isEmpty() && sb.length() < 3) sb.append(Character.toUpperCase(w.charAt(0)));
+            }
+            return sb.isEmpty() ? "?" : sb.toString();
+        }
+    }
+
     /** Builds a flow: text is split to the width here, so the caller only hands over components. */
     public static final class Flow {
         private final Font font;

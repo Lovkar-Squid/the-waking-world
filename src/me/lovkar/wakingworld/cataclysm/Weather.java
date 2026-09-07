@@ -29,6 +29,14 @@ public final class Weather extends SavedData {
     private int tornadoCooldownDay;
     private int quakeCooldownDay;
     private int quakeTicks;              // how much shaking is left
+    /**
+     * The warning. Both of these are rolled the moment the world decides on them and then held for
+     * {@code omenSeconds} while the light goes wrong and the animals leave, so a player has time to
+     * be somewhere else - and time to be frightened, which is the whole point.
+     */
+    private int omenTicks;
+    private double ox, oy, oz;
+    private boolean omenIsTornado;
     private double qx, qy, qz;           // where it is centred
 
     private Weather() {
@@ -48,6 +56,26 @@ public final class Weather extends SavedData {
     }
 
     private void tick(ServerLevel level) {
+        // a warning that is running comes before anything else is rolled
+        if (omenTicks > 0) {
+            omenTicks -= 20;
+            Vec3 where = new Vec3(ox, oy, oz);
+            Omen.tick(level, where, omenIsTornado ? Omen.Kind.TORNADO : Omen.Kind.EARTHQUAKE, omenTicks / 20);
+            if (omenTicks <= 0) {
+                if (omenIsTornado) {
+                    TornadoEntity.spawn(level, where, WakingConfig.tornadoSeconds());
+                    for (ServerPlayer p : level.players()) {
+                        p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.tornado.warning").withStyle(ChatFormatting.GRAY));
+                    }
+                    WakingWorld.LOGGER.info("cataclysm: a tornado forms at {} {} {}", (int) ox, (int) oy, (int) oz);
+                } else {
+                    startQuake(level, where, level.random);
+                }
+            }
+            setDirty();
+            return;
+        }
+
         // the quake first: it is already running, and it does not care what else is going on
         if (quakeTicks > 0) {
             quakeTicks -= 20;
@@ -79,12 +107,8 @@ public final class Weather extends SavedData {
             if (rnd.nextDouble() <= WakingConfig.tornadoChance()) {
                 ServerPlayer near = players.get(rnd.nextInt(players.size()));
                 Vec3 at = Earthquake.site(level, near, rnd);
-                TornadoEntity.spawn(level, at, WakingConfig.tornadoSeconds());
                 tornadoCooldownDay = day + WakingConfig.daysBetweenTornadoes();
-                for (ServerPlayer p : level.players()) {
-                    p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.tornado.warning").withStyle(ChatFormatting.GRAY));
-                }
-                WakingWorld.LOGGER.info("cataclysm: a tornado forms at {} {} {}", (int) at.x, (int) at.y, (int) at.z);
+                warn(level, at, true);
             } else {
                 tornadoCooldownDay = day + 1;
             }
@@ -96,13 +120,27 @@ public final class Weather extends SavedData {
         if (WakingConfig.earthquakes() && day >= quakeCooldownDay && t >= 2000 && t <= 2600) {
             if (rnd.nextDouble() <= WakingConfig.earthquakeChance()) {
                 ServerPlayer near = players.get(rnd.nextInt(players.size()));
-                startQuake(level, Earthquake.site(level, near, rnd), rnd);
                 quakeCooldownDay = day + WakingConfig.daysBetweenEarthquakes();
+                warn(level, Earthquake.site(level, near, rnd), false);
             } else {
                 quakeCooldownDay = day + 1;
             }
             setDirty();
         }
+    }
+
+    /** Hold the thing back and sound the warning; the tick above lets it go when the time is up. */
+    private void warn(ServerLevel level, Vec3 at, boolean tornado) {
+        ox = at.x;
+        oy = at.y;
+        oz = at.z;
+        omenIsTornado = tornado;
+        if (!WakingConfig.omens()) {
+            omenTicks = 20;                       // straight through, next tick
+            return;
+        }
+        omenTicks = WakingConfig.omenSeconds() * 20;
+        Omen.begin(level, at, tornado ? Omen.Kind.TORNADO : Omen.Kind.EARTHQUAKE, WakingConfig.omenSeconds());
     }
 
     private void startQuake(ServerLevel level, Vec3 at, RandomSource rnd) {
@@ -131,6 +169,11 @@ public final class Weather extends SavedData {
         w.tornadoCooldownDay = tag.getInt("TornadoCooldown");
         w.quakeCooldownDay = tag.getInt("QuakeCooldown");
         w.quakeTicks = tag.getInt("QuakeTicks");
+        w.omenTicks = tag.getInt("OmenTicks");
+        w.ox = tag.getDouble("OmenX");
+        w.oy = tag.getDouble("OmenY");
+        w.oz = tag.getDouble("OmenZ");
+        w.omenIsTornado = tag.getBoolean("OmenTornado");
         w.qx = tag.getDouble("QX");
         w.qy = tag.getDouble("QY");
         w.qz = tag.getDouble("QZ");
@@ -142,6 +185,11 @@ public final class Weather extends SavedData {
         tag.putInt("TornadoCooldown", tornadoCooldownDay);
         tag.putInt("QuakeCooldown", quakeCooldownDay);
         tag.putInt("QuakeTicks", quakeTicks);
+        tag.putInt("OmenTicks", omenTicks);
+        tag.putDouble("OmenX", ox);
+        tag.putDouble("OmenY", oy);
+        tag.putDouble("OmenZ", oz);
+        tag.putBoolean("OmenTornado", omenIsTornado);
         tag.putDouble("QX", qx);
         tag.putDouble("QY", qy);
         tag.putDouble("QZ", qz);

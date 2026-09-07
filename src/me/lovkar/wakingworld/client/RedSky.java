@@ -1,16 +1,24 @@
 package me.lovkar.wakingworld.client;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.Mth;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.ViewportEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 
 /**
  * What a blood moon looks like from inside it.
  *
- * <p>No shader and no resource pack: the fog colour is pulled towards a deep red, which carries the
- * horizon, the water and the distance with it, and the sky colour follows. It fades in over a few
- * seconds when the night turns and back out at dawn, so it never snaps.</p>
+ * <p>Two things, because one of them is not enough. The fog colour is pulled towards a deep red,
+ * which carries the horizon, the water and the distance with it - that is the good-looking half, and
+ * it is what a player with no shader pack sees.</p>
+ *
+ * <p>The other half is a red wash over the finished frame, heavier at the edges than in the middle.
+ * A shader pack draws its own sky and its own fog and never asks the game what colour they should
+ * be, so under Complementary - which is what this mod is shot and played with - the fog tint alone
+ * did precisely nothing, and two takes of a blood moon came back with an ordinary blue night in
+ * them. The wash is drawn after everything and cannot be overridden by anybody.</p>
  */
 public final class RedSky {
     private static boolean on;
@@ -40,5 +48,42 @@ public final class RedSky {
         event.setRed(Mth.lerp(k, event.getRed(), 0.42F));
         event.setGreen(Mth.lerp(k, event.getGreen(), 0.045F));
         event.setBlue(Mth.lerp(k, event.getBlue(), 0.055F));
+    }
+
+    private static final int RED = 0x8E0E14;
+
+    /** The wash: light over the middle of the frame, heavy round the edges. */
+    public static void render(RenderGuiEvent.Post event) {
+        if (blend <= 0.01F) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.options.hideGui && !me.lovkar.wakingworld.client.Cinematic.active()) {
+            // the HUD being off is the player's business; a cinematic still wants the moon
+            if (!Cinematic.active()) return;
+        }
+        GuiGraphics g = event.getGuiGraphics();
+        int w = g.guiWidth(), h = g.guiHeight();
+        int centre = alpha(0.11F);
+        g.fill(0, 0, w, h, centre);
+        // the vignette, a fifth of the frame in from each edge
+        int band = Math.max(24, Math.min(w, h) / 5);
+        int edge = alpha(0.30F);
+        g.fillGradient(0, 0, w, band, edge, centre);
+        g.fillGradient(0, h - band, w, h, centre, edge);
+        // the sides have to be drawn column-wise: fillGradient only runs top to bottom
+        for (int i = 0; i < band; i += 2) {
+            int a = alphaAt(i / (float) band);
+            g.fill(i, 0, i + 2, h, a);
+            g.fill(w - i - 2, 0, w - i, h, a);
+        }
+    }
+
+    private static int alpha(float a) {
+        return ((int) (Mth.clamp(a * blend, 0f, 1f) * 255) << 24) | RED;
+    }
+
+    /** Edge to middle: strongest at the very edge, gone by the end of the band. */
+    private static int alphaAt(float t) {
+        float a = (0.30F - 0.11F) * (1f - t) * (1f - t);
+        return ((int) (Mth.clamp(a * blend, 0f, 1f) * 255) << 24) | RED;
     }
 }
