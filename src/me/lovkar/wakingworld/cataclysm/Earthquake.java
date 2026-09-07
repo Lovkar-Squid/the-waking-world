@@ -233,18 +233,19 @@ public final class Earthquake {
             if (top <= level.getMinBuildHeight() + 1) continue;
             BlockState ground = level.getBlockState(BlockPos.containing(px, top - 1, pz));
             if (ground.isAir()) continue;
+            Cataclysms.puff(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, top + 0.8, pz,
+                    3, 0.6, 0.5, 0.6, 0.02);
             Cataclysms.puff(level, new net.minecraft.core.particles.BlockParticleOption(
                             net.minecraft.core.particles.ParticleTypes.BLOCK, ground),
                     px, top + 0.3, pz, 4, 0.6, 0.35, 0.6, 0.22 * strength);
-            if (rnd.nextInt(5) == 0) {
-                Cataclysms.puff(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, top + 1.2, pz,
-                        3, 0.5, 0.4, 0.5, 0.02);
-            }
         }
         // the wave: a ring going out, one step further every second, restarting every seventh
         if (strength > 0.45F) {
             ripple(level, at, 7 + (beat % 7) * 13, strength, rnd);
-            if (beat % 3 == 0) jets(level, headX, headZ, strength, rnd);
+            // The vents go near the middle rather than at the fault's head. The head walks a few
+            // blocks a second and is a long way outside the frame by the time anybody looks;
+            // the middle is where the camera is pointed and where somebody standing in it is.
+            if (beat % 2 == 0) jets(level, at.x, at.z, strength, rnd);
         }
         // and the ground's own note under it. The loop is 4.5 s and this runs once a second, so it
         // is started every fourth pass - often enough to be unbroken, rarely enough not to stack.
@@ -311,13 +312,21 @@ public final class Earthquake {
             BlockPos on = new BlockPos((int) Math.floor(px), top - 1, (int) Math.floor(pz));
             BlockState ground = level.getBlockState(on);
             if (ground.isAir()) continue;
+            // Smoke first and block dust second, which is the other way round from how this
+            // started. Block dust off white sand, over white sand, under a white sky, is
+            // invisible - the whole quake came back from a take looking like a still photograph.
+            // Grey smoke reads against anything, so the wave is smoke with dust thrown through it.
+            for (int k = 0; k < 3; k++) {
+                Cataclysms.puff(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE,
+                        px, top + 0.4 + k * 1.5, pz, 2, 0.5, 0.4, 0.5, 0.02 + 0.012 * k);
+            }
             Cataclysms.puff(level, new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, ground),
-                    px, top + 0.25, pz, 3, 0.45, 0.25, 0.45, 0.16);
+                    px, top + 0.35, pz, 3, 0.45, 0.3, 0.45, 0.18);
             if (!natural(level, on) || rnd.nextDouble() > 0.55 * strength) continue;
             if (!level.getBlockState(on.above()).isAir()) continue;
             net.minecraft.world.entity.item.FallingBlockEntity fb =
                     net.minecraft.world.entity.item.FallingBlockEntity.fall(level, on, ground);
-            fb.setDeltaMovement(0, 0.18 + rnd.nextDouble() * 0.16 * strength, 0);
+            fb.setDeltaMovement(0, 0.26 + rnd.nextDouble() * 0.22 * strength, 0);
             fb.time = 1;
             spawned++;
         }
@@ -328,16 +337,16 @@ public final class Earthquake {
      * off. Cheap, and they are what tells a distant camera where the quake actually is.
      */
     private static void jets(ServerLevel level, double x, double z, float strength, RandomSource rnd) {
-        for (int j = 0; j < 3; j++) {
-            double px = x + (rnd.nextDouble() - 0.5) * 26, pz = z + (rnd.nextDouble() - 0.5) * 26;
+        for (int j = 0; j < 4; j++) {
+            double px = x + (rnd.nextDouble() - 0.5) * 30, pz = z + (rnd.nextDouble() - 0.5) * 30;
             int top = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                     (int) px, (int) pz);
             if (top <= level.getMinBuildHeight() + 1) continue;
             BlockState ground = level.getBlockState(BlockPos.containing(px, top - 1, pz));
             if (ground.isAir()) continue;
-            for (int k = 0; k < 7; k++) {
-                double y = top + 0.4 + k * 1.5;
-                double spread = 0.35 + k * 0.34;
+            for (int k = 0; k < 10; k++) {
+                double y = top + 0.4 + k * 1.6;
+                double spread = 0.35 + k * 0.40;
                 Cataclysms.puff(level, new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, ground),
                         px, y, pz, 4, spread, 0.5, spread, 0.10 + 0.05 * k);
                 Cataclysms.puff(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, y + 0.6, pz,
