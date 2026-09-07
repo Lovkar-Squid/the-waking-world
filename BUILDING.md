@@ -31,3 +31,26 @@ sheets) with Pillow and numpy - edit the script, not the PNG. `tools/sfx/*.py` s
 (ffmpeg encodes the OGGs). `tools/music/` processes the battle themes. `tools/java/GridDump.java` writes a
 body's voxel grid as JSON for the Blender preview (`tools/colossus_blender.py`); `isodump.py`,
 `structcut.py`, `wallcheck.py` render and check structures dumped with `/wakingworld dump`.
+
+## Getting a jar onto the dev machine when it is over 20 MB
+
+The file bridge Claude uses to write into the connected folders caps a single file at 20 MiB, and
+the jar is close to that - almost entirely because of the music (17 MB of the 19 MB compressed, for
+19.6 minutes of it at 128 kbps, which is a fair price rather than bloat). The cap belongs to the
+transfer, not to the mod: players get the jar from CurseForge, where 20 MB is nothing.
+
+So do not shrink the mod to fit the pipe. Split the jar instead, and put it back together on the
+other side:
+
+    split -b 9000000 -d -a 1 wakingworld-x.y.z.jar parts/ww.part
+
+then, on Windows, join them in order and check the hash matches the one from `sha256sum`:
+
+    $fs = [System.IO.File]::Create($out)
+    Get-ChildItem $p -Filter "ww.part*" | Sort-Object Name | ForEach-Object {
+      $in = [System.IO.File]::OpenRead($_.FullName); $in.CopyTo($fs); $in.Close() }
+    $fs.Close()
+    (Get-FileHash $out -Algorithm SHA256).Hash
+
+Streaming the parts through `CopyTo` matters: piping them through PowerShell as text mangles the
+bytes. Verified byte-identical on 0.2.0-alpha.2 (20,008,912 bytes, SHA256 C4082F52...DDCF9D5).
