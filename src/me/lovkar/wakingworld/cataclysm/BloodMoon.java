@@ -115,6 +115,16 @@ public final class BloodMoon extends SavedData {
             end(level);
             return;
         }
+        // motes in the air the whole night through, so the moon is a thing in the world and not a
+        // filter over the lens
+        if (level.getGameTime() % 10 == 0) {
+            for (ServerPlayer p : players) {
+                Cataclysms.puff(level, net.minecraft.core.particles.ParticleTypes.FALLING_LAVA,
+                        p.getX(), p.getY() + 9, p.getZ(), 14, 22, 6, 22, 0.0);
+                Cataclysms.puff(level, net.minecraft.core.particles.ParticleTypes.SMALL_FLAME,
+                        p.getX(), p.getY() + 5, p.getZ(), 8, 20, 5, 20, 0.005);
+            }
+        }
         if (players.isEmpty()) return;
 
         nextWave -= 20;

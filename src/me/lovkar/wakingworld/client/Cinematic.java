@@ -108,6 +108,7 @@ public final class Cinematic {
         waiting = true;
         holding = false;
         waitTicks = 0;
+        floorY = Double.NEGATIVE_INFINITY;      // a new path starts on its own floor
         arrivedAt = -1;
         lastBuilt = -1;
         stillTicks = 0;
@@ -225,6 +226,42 @@ public final class Cinematic {
         return i * i + j * j < (long) radius * radius;
     }
 
+    /** The floor the camera is riding, carried between frames so it can fall slowly. */
+    private static double floorY = Double.NEGATIVE_INFINITY;
+
+    /**
+     * Keep the camera above the ground without letting the ground throw it about.
+     *
+     * <p>This used to be one line: if the camera was below the terrain under it, put it back on top.
+     * Correct, and the reason the camera hopped. The check runs EVERY FRAME against whatever column
+     * happens to be under it, so flying across broken country the camera was lifted onto each ridge
+     * and dropped off the far side of it, sixty times a second - a path that had been smoothed on
+     * the server arrived on screen as a car on a rutted track.</p>
+     *
+     * <p>It is an envelope now. The floor rises at once, because a camera inside a hill is the one
+     * thing that must never happen, and falls back slowly - about six blocks a second - so crossing
+     * a ridge lifts the shot and lets it settle rather than snapping it down again. The floor is
+     * also taken as the highest of a few points around the camera rather than the single column
+     * under it, so a one-block spike does not jog the whole shot.</p>
+     */
+    private static double overGround(Minecraft mc, Vec3 pos, float partial) {
+        if (mc.level == null) return pos.y;
+        int high = Integer.MIN_VALUE;
+        for (int dx = -2; dx <= 2; dx += 2) {
+            for (int dz = -2; dz <= 2; dz += 2) {
+                high = Math.max(high, mc.level.getHeight(Heightmap.Types.MOTION_BLOCKING,
+                        (int) Math.floor(pos.x) + dx, (int) Math.floor(pos.z) + dz));
+            }
+        }
+        double want = high + 2.5;
+        if (floorY == Double.NEGATIVE_INFINITY || want > floorY) {
+            floorY = want;                                  // up at once
+        } else {
+            floorY = Math.max(want, floorY - 0.30 * Math.max(0.001, partial + 0.7));   // down slowly
+        }
+        return Math.max(pos.y, floorY);
+    }
+
     /** Where on the path we are: still at the start while waiting, at the end while holding. */
     private static float when(float partial) {
         if (waiting) return 0f;
@@ -243,9 +280,7 @@ public final class Cinematic {
         float t = when(partial);
         Vec3 pos = position(t);
         Vec3 look = lookAt(t);
-        // never under the ground, whatever moved under the camera since the keys were laid
-        int ground = mc.level.getHeight(Heightmap.Types.MOTION_BLOCKING, (int) Math.floor(pos.x), (int) Math.floor(pos.z));
-        if (pos.y < ground + 2.5) pos = new Vec3(pos.x, ground + 2.5, pos.z);
+        pos = new Vec3(pos.x, overGround(mc, pos, partial), pos.z);
         Vec3 eye = pos; // the camera is the eye: the feet go where the eye would be if there were feet
         double ex = eye.x, ey = eye.y - player.getEyeHeight(), ez = eye.z;
         player.setPos(ex, ey, ez);

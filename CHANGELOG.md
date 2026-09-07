@@ -64,6 +64,20 @@ the supporter perks switched off.
   saying what is coming. `omens` and `omenSeconds` in the config.
 - **The Atlas**, a chapter at the back of the Almanac: every named land you have walked, drawn where
   it actually lies rather than as a list, with the square you are standing in edged in gold.
+- **Starstone and Star Iron are worth crossing a crater for.** Three star iron and two amethyst hold a
+  Sleeper's Ember, which is the rite's own fuel - so a meteor is now a way to wake another colossus.
+  A blast furnace gets two star iron out of a Starstone block, so a silk-touched one is worth carrying
+  home.
+- **The volcano throws its own rock.** Bombs are fired out of the throat and arc over the rim to land
+  forty to ninety blocks out, instead of being spawned in the sky beside the mountain like meteors -
+  which is what they were, and it showed.
+- **The earthquake opens while you watch it.** The fault used to be cut in a single tick, so a camera
+  on the ground saw a field that had already finished cracking and then twenty-six seconds of nothing.
+  It walks now, a few blocks a second, throwing the surface up as it goes.
+- The volcano's plume is much heavier, its warning is 22 s instead of 40, and a world-driven one takes
+  a minute rather than two.
+- The blood moon breathes: the wash is stronger and has a slow pulse in it, and there are embers in the
+  air all night, so it is a thing happening in the world and not a colour on the glass.
 
 ### Changed
 - **The supporter perks are switched off.** Every class is still here and nothing about them changed,
@@ -81,6 +95,12 @@ the supporter perks switched off.
   command still works.
 - A forced volcano's rise took longer than it was told to: the pulse clock only wakes every twenty
   ticks and any pace that was not a whole number of seconds quietly rounded up.
+- **The camera hopped over every ridge it crossed**, and the server-side smoothing could not help,
+  because the cause was on the client: each frame it checked the one column under the camera and, if
+  the camera was below it, snapped it on top - sixty times a second, across broken country. It rides
+  an envelope now, up at once and down slowly, taken over a few points rather than one.
+- The Almanac's Atlas chapter showed its own translation keys: they were written without the modid
+  segment the screen looks them up under.
 - **Nothing a cataclysm drew was visible from more than 32 blocks away.** `sendParticles` without a
   force flag only reaches players inside that radius, and everything here - the volcano's plume, the
   tornado's column, the dust off an earthquake, the ring a star throws out - is meant to be seen from

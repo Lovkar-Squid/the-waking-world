@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "wakingworld_ember",
+  "ingredients": [
+    { "item": "wakingworld:star_iron" },
+    { "item": "wakingworld:star_iron" },
+    { "item": "wakingworld:star_iron" },
+    { "item": "minecraft:amethyst_shard" },
+    { "item": "minecraft:amethyst_shard" }
+  ],
+  "result": { "id": "wakingworld:sleepers_ember", "count": 1 }
+}

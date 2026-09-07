@@ -62,16 +62,15 @@ public final class RedSky {
         }
         GuiGraphics g = event.getGuiGraphics();
         int w = g.guiWidth(), h = g.guiHeight();
-        int centre = alpha(0.11F);
+        // a slow heartbeat in it, so the night is doing something rather than sitting behind a filter
+        float beat = 1f + 0.16f * (float) Math.sin((mc.level.getGameTime() % 24000L) * 0.035);
+        int centre = alpha(0.19F * beat);
         g.fill(0, 0, w, h, centre);
-        // the vignette, a fifth of the frame in from each edge
-        int band = Math.max(24, Math.min(w, h) / 5);
-        int edge = alpha(0.30F);
-        g.fillGradient(0, 0, w, band, edge, centre);
-        g.fillGradient(0, h - band, w, h, centre, edge);
-        // the sides have to be drawn column-wise: fillGradient only runs top to bottom
+        int band = Math.max(24, Math.min(w, h) / 4);
         for (int i = 0; i < band; i += 2) {
-            int a = alphaAt(i / (float) band);
+            int a = alphaAt(i / (float) band, beat);
+            g.fill(0, i, w, i + 2, a);
+            g.fill(0, h - i - 2, w, h - i, a);
             g.fill(i, 0, i + 2, h, a);
             g.fill(w - i - 2, 0, w - i, h, a);
         }
@@ -82,8 +81,8 @@ public final class RedSky {
     }
 
     /** Edge to middle: strongest at the very edge, gone by the end of the band. */
-    private static int alphaAt(float t) {
-        float a = (0.30F - 0.11F) * (1f - t) * (1f - t);
+    private static int alphaAt(float t, float beat) {
+        float a = (0.46F - 0.19F) * (1f - t) * (1f - t) * beat;
         return ((int) (Mth.clamp(a * blend, 0f, 1f) * 255) << 24) | RED;
     }
 }

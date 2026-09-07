@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:blasting",
+  "category": "blocks",
+  "ingredient": { "item": "wakingworld:starstone" },
+  "result": { "id": "wakingworld:star_iron", "count": 2 },
+  "experience": 1.5,
+  "cookingtime": 200
+}

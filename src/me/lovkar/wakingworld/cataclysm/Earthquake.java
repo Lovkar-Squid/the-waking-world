@@ -34,11 +34,20 @@ public final class Earthquake {
     private Earthquake() {
     }
 
-    /** One quake, centred here. Returns the number of blocks the fault opened. */
+    /**
+     * One quake, centred here. Returns the number of blocks the fault opened.
+     *
+     * <p>The whole fault used to be cut in this one call, which meant it was already open before
+     * anybody could look at it: a camera on the ground during a quake saw a still field with a
+     * crack in it and nothing moving for the next twenty-six seconds. The fault is a live thing
+     * now - {@link #crack} walks a length of it every second while the shaking lasts - and this
+     * only opens the first stretch and starts the wave.</p>
+     */
     public static int shake(ServerLevel level, Vec3 at, int seconds, RandomSource rnd) {
-        double angle = rnd.nextDouble() * Math.PI * 2;
-        int length = 40 + rnd.nextInt(60);
-        int opened = fault(level, at, angle, length, rnd);
+        heading = rnd.nextDouble() * Math.PI * 2;
+        headX = at.x;
+        headZ = at.z;
+        int opened = fault(level, at, heading, 8, rnd);
 
         for (ServerPlayer p : level.players()) {
             if (p.distanceToSqr(at) > 220 * 220) continue;
@@ -46,6 +55,57 @@ public final class Earthquake {
         }
         WakingWorld.hooks.wave(at, 24.0, 220.0, 5.0F);
         return opened;
+    }
+
+    /** Where the fault has got to, so each second carries on from the last. */
+    private static double heading, headX, headZ;
+
+    /**
+     * The next length of fault, opened while somebody is watching, and the ground thrown up along
+     * it. Called once a second for as long as the quake lasts.
+     */
+    public static void crack(ServerLevel level, Vec3 at, float strength, RandomSource rnd) {
+        int length = 3 + (int) (5 * strength);
+        double x = headX, z = headZ;
+        for (int step = 0; step < length; step++) {
+            heading += (rnd.nextDouble() - 0.5) * 0.24;
+            x += Math.cos(heading);
+            z += Math.sin(heading);
+            int half = rnd.nextInt(2);
+            int depth = 2 + rnd.nextInt(4);
+            for (int w = -half; w <= half; w++) {
+                double px = x + Math.sin(heading) * w;
+                double pz = z - Math.cos(heading) * w;
+                BlockPos top = new BlockPos((int) Math.floor(px),
+                        level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                                (int) Math.floor(px), (int) Math.floor(pz)) - 1, (int) Math.floor(pz));
+                if (!natural(level, top)) continue;
+                // the top of it is thrown into the air rather than deleted: that is the whole
+                // difference between ground that cracked and ground that was always cracked
+                BlockState surface = level.getBlockState(top);
+                level.removeBlock(top, false);
+                if (rnd.nextDouble() < 0.5) {
+                    net.minecraft.world.entity.item.FallingBlockEntity fb =
+                            net.minecraft.world.entity.item.FallingBlockEntity.fall(level, top, surface);
+                    fb.setHurtsEntities(1.0F, 6);
+                    fb.setDeltaMovement((rnd.nextDouble() - 0.5) * 0.28, 0.42 + rnd.nextDouble() * 0.35,
+                            (rnd.nextDouble() - 0.5) * 0.28);
+                }
+                for (int d = 1; d < depth; d++) {
+                    BlockPos p = top.below(d);
+                    if (!natural(level, p)) break;
+                    level.setBlock(p, d == depth - 1 ? Blocks.DEEPSLATE.defaultBlockState()
+                            : Blocks.AIR.defaultBlockState(), 2);
+                }
+                Cataclysms.puff(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, top.getY() + 1.0, pz,
+                        6, 0.4, 0.5, 0.4, 0.03);
+                Cataclysms.puff(level, new net.minecraft.core.particles.BlockParticleOption(
+                                ParticleTypes.BLOCK, surface), px, top.getY() + 0.6, pz,
+                        10, 0.5, 0.4, 0.5, 0.3);
+            }
+        }
+        headX = x;
+        headZ = z;
     }
 
     /**
@@ -107,6 +167,7 @@ public final class Earthquake {
     public static void second(ServerLevel level, Vec3 at, float strength) {
         WakingWorld.hooks.shakeAt(at, 3.5F * strength, 200);
         RandomSource rnd = level.random;
+        crack(level, at, strength, rnd);          // the fault keeps opening while it shakes
         // dust off the ground in a wide ring - thicker near the middle, thinner at the edges
         for (int i = 0; i < 40; i++) {
             double a = rnd.nextDouble() * Math.PI * 2;

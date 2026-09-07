@@ -131,7 +131,7 @@ public final class WakingConfig {
         VOLCANO_RADIUS = b.comment("The radius of the foot of the cone, in blocks. The cone tapers as it climbs.")
                 .defineInRange("volcanoRadius", 16, 6, 48);
         VOLCANO_MINUTES = b.comment("How long the mountain takes to rise, in minutes. Longer is calmer on the server and better to watch.")
-                .defineInRange("volcanoMinutes", 2, 1, 60);
+                .defineInRange("volcanoMinutes", 1, 1, 60);
         BLOOD_MOONS = b.comment("The Blood Moon: a night that keeps sending monsters at you until the sun comes up.",
                 "Off: no blood moons (the /wakingworld bloodmoon command still works).").define("bloodMoons", true);
         BLOOD_MOON_CHANCE = b.comment("The chance, rolled once at nightfall on any night that is allowed one, that the moon turns.")

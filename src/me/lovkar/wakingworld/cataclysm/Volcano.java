@@ -177,7 +177,7 @@ public final class Volcano extends SavedData {
         spill = rnd.nextFloat() * (float) (Math.PI * 2);
         riseSeconds = 0;                // a volcano the world raised keeps the world's pace
         phase = Phase.WARNING;
-        phaseTicks = 40 * 20;
+        phaseTicks = 22 * 20;
         cooldownUntilDay = (int) (level.getDayTime() / 24000L) + WakingConfig.daysBetweenVolcanoes();
         setDirty();
         Omen.begin(level, new Vec3(cx, baseY, cz), Omen.Kind.VOLCANO, phaseTicks / 20);
@@ -220,19 +220,49 @@ public final class Volcano extends SavedData {
         Cataclysms.puff(level, ParticleTypes.LAVA, cx + 0.5, y + 1.0, cz + 0.5, 24, vent, 0.5, vent, 0.0);
         WakingWorld.hooks.shakeAt(new Vec3(cx, y, cz), 2.2F, 200);
 
-        // lava bombs: the same falling mass as a star, but small, and it carries nothing
-        int bombs = rnd.nextInt(3) == 0 ? 2 : 1;
-        for (int i = 0; i < bombs; i++) {
-            double angle = rnd.nextDouble() * Math.PI * 2;
-            double dist = 30 + rnd.nextDouble() * 70;
-            double bx = cx + Math.cos(angle) * dist;
-            double bz = cz + Math.sin(angle) * dist;
-            BlockPos ground = Cataclysms.surface(level, bx, bz);
-            if (!Cataclysms.away(level, ground)) continue;
-            Cataclysms.fall(level, new Vec3(bx, ground.getY(), bz), 1, false);
-        }
+        bombs(level, rnd, y, vent);
 
         course++;
+    }
+
+    /**
+     * What the vent throws.
+     *
+     * <p>These used to be stars: spawned a hundred and thirty blocks up and forty to one side of
+     * wherever they were going to land, exactly like a meteor. On camera they came down out of an
+     * empty sky beside the mountain with no connection to it at all - which is precisely what he
+     * said when he watched it back.</p>
+     *
+     * <p>They are fired out of the throat now. A block of the mountain's own rock is launched from
+     * the crater with enough of an arc to clear the flanks and land forty to seventy blocks out, so
+     * the eye follows it the whole way: out of the vent, over the rim, down the sky, into the
+     * ground. It lands as a block, which is also one more mark the thing leaves behind.</p>
+     */
+    private void bombs(ServerLevel level, RandomSource rnd, int y, double vent) {
+        int count = rnd.nextInt(3) == 0 ? 3 : 2;
+        for (int i = 0; i < count; i++) {
+            double angle = rnd.nextDouble() * Math.PI * 2;
+            double out = rnd.nextDouble() * Math.max(0.5, vent * 0.5);
+            double bx = cx + 0.5 + Math.cos(angle) * out;
+            double bz = cz + 0.5 + Math.sin(angle) * out;
+            BlockPos from = BlockPos.containing(bx, y + 2.0, bz);
+            if (!level.getBlockState(from).isAir()) continue;
+            BlockState thrown = rnd.nextDouble() < 0.45 ? Blocks.MAGMA_BLOCK.defaultBlockState()
+                    : (rnd.nextBoolean() ? Blocks.BASALT.defaultBlockState() : Blocks.BLACKSTONE.defaultBlockState());
+            net.minecraft.world.entity.item.FallingBlockEntity fb =
+                    net.minecraft.world.entity.item.FallingBlockEntity.fall(level, from, thrown);
+            fb.setHurtsEntities(2.0F, 14);
+            // A falling block loses two per cent of its speed a tick, so most of the horizontal is
+            // gone long before it lands: thrown at what looked like the right speed, nearly all of
+            // them came down on the cone they were fired from. This is what it takes to clear a
+            // thirty-block foot and land in the country beyond it.
+            double speed = 1.15 + rnd.nextDouble() * 0.95;
+            fb.setDeltaMovement(Math.cos(angle) * speed, 1.35 + rnd.nextDouble() * 0.55, Math.sin(angle) * speed);
+            // and the muzzle flash, so the launch itself is seen and not only the arrival
+            Cataclysms.puff(level, ParticleTypes.LAVA, bx, y + 1.5, bz, 12, 0.6, 0.4, 0.6, 0.0);
+            Cataclysms.puff(level, ParticleTypes.FLAME, bx, y + 2.0, bz, 14, 0.5, 0.5, 0.5, 0.22);
+            Cataclysms.puff(level, ParticleTypes.LARGE_SMOKE, bx, y + 2.5, bz, 10, 0.8, 0.6, 0.8, 0.10);
+        }
     }
 
     /**
@@ -375,15 +405,13 @@ public final class Volcano extends SavedData {
         int top = baseY + Math.max(1, course);
         double vent = Math.max(2.0, ventAt(courses == 0 ? 0 : (double) course / courses));
         // the column: eight stations up the sky, each wider and slower than the one below it
-        for (int i = 0; i < 8; i++) {
-            double up = 4 + i * 7.5;
-            double spread = vent * (0.7 + i * 0.55);
+        for (int i = 0; i < 11; i++) {
+            double up = 3 + i * 6.5;
+            double spread = vent * (0.8 + i * 0.62);
             Cataclysms.puff(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, cx + 0.5, top + up, cz + 0.5,
-                    6 + i, spread, 1.6, spread, 0.012 + i * 0.004);
-            if (i < 3) {
-                Cataclysms.puff(level, ParticleTypes.LARGE_SMOKE, cx + 0.5, top + up, cz + 0.5,
-                        8, spread * 0.7, 1.2, spread * 0.7, 0.03);
-            }
+                    14 + i * 3, spread, 2.0, spread, 0.010 + i * 0.004);
+            Cataclysms.puff(level, ParticleTypes.LARGE_SMOKE, cx + 0.5, top + up, cz + 0.5,
+                    i < 5 ? 16 : 8, spread * 0.8, 1.6, spread * 0.8, 0.03);
         }
         // what is still burning, right at the throat
         Cataclysms.puff(level, ParticleTypes.LAVA, cx + 0.5, top + 1.5, cz + 0.5, 6, vent * 0.6, 0.6, vent * 0.6, 0.0);
