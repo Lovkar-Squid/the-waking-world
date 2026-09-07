@@ -36,6 +36,10 @@ the supporter perks switched off.
 ### Fixed
 - A land could be given a name a neighbour already had; clashes are re-rolled now.
 - A meteor could fall into a chunk that was not ticking and never land.
+- A battle theme the sound engine declined to start left the whole fight silent. The director
+  measured the track's age in ticks of the track itself, which stand still in exactly that case, so
+  it went on believing the music was still starting and never retried. It reads the clock now, and a
+  fight that loses its theme picks it back up within a second.
 
 ## [0.1.0-beta.5] - 2026-09-06
 

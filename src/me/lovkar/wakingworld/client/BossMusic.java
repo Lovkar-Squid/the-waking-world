@@ -175,6 +175,7 @@ public final class BossMusic {
         boss = null;
         state = State.AFTER;
         afterTicks = 20 * 20;
+        themeRetry = 0;      // the next fight retries at once, not after the old countdown
     }
 
     private static void stopSting() {
@@ -187,6 +188,7 @@ public final class BossMusic {
         boss = null;
         state = State.NONE;
         themeKind = "";
+        themeRetry = 0;
     }
 
     private static Track start(SoundEvent event, boolean loop, float volume) {
@@ -200,7 +202,12 @@ public final class BossMusic {
         private float target;
         private float step;
         private boolean stopping;
-        private int age;
+        /**
+         * When this track was handed to the sound engine. Wall clock on purpose: {@link #tick()}
+         * only runs for sounds the engine actually started, so a tick counter stands still in
+         * exactly the case it is meant to detect.
+         */
+        private final long born = System.currentTimeMillis();
 
         Track(SoundEvent event, boolean loop, float volume) {
             super(event, SoundSource.MUSIC, SoundInstance.createUnseededRandom());
@@ -213,9 +220,18 @@ public final class BossMusic {
             this.x = 0; this.y = 0; this.z = 0;
         }
 
-        /** The sound engine reports a just-started stream as inactive for a tick or two. */
+        /**
+         * The sound engine reports a just-started stream as inactive for a moment, so a track is
+         * given a second before it is believed to be gone.
+         *
+         * <p>This has to be measured against the clock rather than against ticks of this instance.
+         * A sound the engine declined to start - the engine not loaded yet, no free streaming
+         * channel - is never added to the ticking set, so its own tick counter never moves; asking
+         * it how old it is would get "just born" forever, the director would never notice the
+         * silence, and the fight would play out with no music and no retry.</p>
+         */
         boolean starting() {
-            return age < 20;
+            return System.currentTimeMillis() - born < 1000L;
         }
 
         /** Themes fade in from nothing; the engine would otherwise skip a sound that starts at zero volume. */
@@ -236,7 +252,6 @@ public final class BossMusic {
 
         @Override
         public void tick() {
-            age++;
             if (volume < target) volume = Math.min(target, volume + step);
             else if (volume > target) volume = Math.max(target, volume - step);
             volume = Mth.clamp(volume, 0f, 1f);
