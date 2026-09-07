@@ -79,9 +79,11 @@ public final class Weather extends SavedData {
         // the quake first: it is already running, and it does not care what else is going on
         if (quakeTicks > 0) {
             quakeTicks -= 20;
-            float left = Math.min(1.0F, quakeTicks / (float) (WakingConfig.earthquakeSeconds() * 20 * 0.5F));
-            Earthquake.second(level, new Vec3(qx, qy, qz), Math.max(0.25F, left));
+            int total = Math.max(1, WakingConfig.earthquakeSeconds() * 20);
+            float progress = Math.min(1.0F, 1.0F - quakeTicks / (float) total);
+            Earthquake.second(level, new Vec3(qx, qy, qz), Earthquake.envelope(progress));
             if (quakeTicks <= 0) {
+                Earthquake.climax(level, new Vec3(qx, qy, qz), level.random);
                 for (ServerPlayer p : level.players()) {
                     p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.earthquake.over").withStyle(ChatFormatting.GRAY));
                 }

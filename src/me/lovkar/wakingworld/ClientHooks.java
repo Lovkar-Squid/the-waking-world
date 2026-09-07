@@ -40,6 +40,11 @@ public interface ClientHooks {
     default void openAlmanac() {
     }
 
+
+    /** Open the Wayfarer's Chart on this client. */
+    default void openAtlas() {
+    }
+
     /** Unfolds a Dead Letter. */
     default void openLetter(net.minecraft.world.item.ItemStack stack) {
     }

@@ -61,6 +61,13 @@ public final class WakingWorldClient {
             }
 
             @Override
+            public void openAtlas() {
+                // ask for the lands first: they land while the chart is still unrolling
+                me.lovkar.wakingworld.network.WakingNet.requestAtlas();
+                net.minecraft.client.Minecraft.getInstance().setScreen(new me.lovkar.wakingworld.client.gui.AtlasScreen());
+            }
+
+            @Override
             public void openAlmanac() {
                 // ask for the atlas first: it arrives while the reader is still on the first page
                 me.lovkar.wakingworld.network.WakingNet.requestAtlas();

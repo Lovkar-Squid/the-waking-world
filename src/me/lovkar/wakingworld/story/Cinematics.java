@@ -1004,10 +1004,10 @@ public final class Cinematics {
             List<Key> keys = new ArrayList<>();
             for (int i = 0; i <= 17; i++) {
                 double p = i / 17.0;
-                Vec3 offset = orbit(Vec3.ZERO, 62 - p * 16, 26 + p * 10, 40 + p * 150);
-                keys.add(ride(level, i * 20, t, offset, new Vec3(0, 26, 0), 68f));
+                Vec3 offset = orbit(Vec3.ZERO, 44 - p * 10, 13 + p * 7, 40 + p * 150);
+                keys.add(ride(level, i * 20, t, offset, new Vec3(0, 15, 0), 70f));
             }
-            teleport(r.player, level, c.add(orbit(Vec3.ZERO, 62, 26, 40)));
+            teleport(r.player, level, c.add(orbit(Vec3.ZERO, 44, 13, 40)));
             roll(r, keys, 20, 15);
         });
         // then a camera standing still on the ground while it works nearby

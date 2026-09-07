@@ -38,6 +38,15 @@ import net.minecraft.world.phys.Vec3;
  * be survived and then talked about, not to sit on a base until it is gone.</p>
  */
 public final class TornadoEntity extends Entity {
+    /**
+     * A self-expiring ticket the column drags along with it, so the ground it is walking over stays
+     * ticking. Six hundred ticks is long enough to outlive any single step and short enough that a
+     * dead tornado leaves nothing loaded behind it.
+     */
+    private static final net.minecraft.server.level.TicketType<net.minecraft.world.level.ChunkPos> HOLD =
+            net.minecraft.server.level.TicketType.create("wakingworld_tornado",
+                    java.util.Comparator.comparingLong(net.minecraft.world.level.ChunkPos::toLong), 600);
+
     private static final EntityDataAccessor<Float> DATA_AGE_FRACTION =
             SynchedEntityData.defineId(TornadoEntity.class, EntityDataSerializers.FLOAT);
 
@@ -126,6 +135,17 @@ public final class TornadoEntity extends Entity {
         double speed = 0.22;
         double x = getX() + headingX * speed;
         double z = getZ() + headingZ * speed;
+        // Keep the ground under it ticking. A column walks about four blocks a second, so in half a
+        // minute it is a hundred and thirty from where it started - and the moment it steps outside
+        // whatever happens to be loaded it stops being ticked at all: it freezes on the spot, stops
+        // walking, and stops drawing itself. On camera that is a shot of an empty field, which is
+        // exactly what the ride shot came back as. The ticket expires on its own, so nothing is
+        // held open behind it.
+        if (this.tickCount % 20 == 0) {
+            net.minecraft.world.level.ChunkPos cp = new net.minecraft.world.level.ChunkPos(
+                    net.minecraft.core.BlockPos.containing(x, getY(), z));
+            level.getChunkSource().addRegionTicket(HOLD, cp, 4, cp);
+        }
         // follow the ground, but only where the ground is already there. Asking for the surface every
         // tick would generate chunks in front of the column as it walks, which is a lot of world to
         // make for weather nobody may ever see.

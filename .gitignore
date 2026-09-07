@@ -21,3 +21,4 @@ devpack/
 docs/PLAN.md
 docs/CURSEFORGE.md
 docs/MODRINTH.md
+__pycache__/

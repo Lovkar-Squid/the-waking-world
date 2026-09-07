@@ -61,6 +61,60 @@ public final class Earthquake {
     private static double heading, headX, headZ;
 
     /**
+     * A ridge thrown up along one side of the fault.
+     *
+     * <p>A crack in the ground is a hole, and a hole is a thing you look down into rather than a
+     * thing that happens to you. Ground that has been PUSHED is what an earthquake actually leaves:
+     * one side of the line a metre or two higher than the other, a scarp you can walk along. Every
+     * few steps the fault heaves one bank up, taking whatever was standing on it with it.</p>
+     */
+    private static void heave(ServerLevel level, double px, double pz, double along, RandomSource rnd) {
+        double nx = Math.sin(along), nz = -Math.cos(along);
+        for (int side = 2; side <= 4; side++) {
+            int ix = (int) Math.floor(px + nx * side), iz = (int) Math.floor(pz + nz * side);
+            int top = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, ix, iz);
+            if (top <= level.getMinBuildHeight() + 1) continue;
+            BlockPos on = new BlockPos(ix, top - 1, iz);
+            if (!natural(level, on)) continue;
+            BlockState state = level.getBlockState(on);
+            int lift = 1 + rnd.nextInt(2);
+            for (int k = 1; k <= lift; k++) {
+                BlockPos up = on.above(k);
+                if (!level.getBlockState(up).isAir() && level.getFluidState(up).isEmpty()) break;
+                level.setBlock(up, state, 2);
+            }
+        }
+    }
+
+    /**
+     * The moment it stops: one hard shock, a ring of dust going out, and a last stretch of fault torn
+     * open all at once. An event that simply fades out has no end - this gives it one.
+     */
+    public static void climax(ServerLevel level, Vec3 at, RandomSource rnd) {
+        WakingWorld.hooks.shakeAt(at, 9.0F, 260);
+        WakingWorld.hooks.wave(at, 30.0, 260.0, 7.0F);
+        for (int i = 0; i < 3; i++) crack(level, at, 1.4F, rnd);
+        for (int ring = 0; ring < 3; ring++) {
+            double r = 10 + ring * 16;
+            for (int i = 0; i < 44; i++) {
+                double a = i / 44.0 * Math.PI * 2;
+                double px = at.x + Math.cos(a) * r, pz = at.z + Math.sin(a) * r;
+                int top = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                        (int) px, (int) pz);
+                if (top <= level.getMinBuildHeight() + 1) continue;
+                Cataclysms.puff(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, top + 0.5, pz, 5, 0.6, 0.5, 0.6, 0.05);
+                BlockState g = level.getBlockState(new BlockPos((int) px, top - 1, (int) pz));
+                if (!g.isAir()) {
+                    Cataclysms.puff(level, new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, g),
+                            px, top + 0.4, pz, 6, 0.5, 0.4, 0.5, 0.45);
+                }
+            }
+        }
+        level.playSound(null, at.x, at.y, at.z, me.lovkar.wakingworld.WakingSounds.QUAKE_RUMBLE.get(),
+                SoundSource.WEATHER, 10.0F, 0.62F);
+    }
+
+    /**
      * The next length of fault, opened while somebody is watching, and the ground thrown up along
      * it. Called once a second for as long as the quake lasts.
      */
@@ -103,6 +157,8 @@ public final class Earthquake {
                                 ParticleTypes.BLOCK, surface), px, top.getY() + 0.6, pz,
                         10, 0.5, 0.4, 0.5, 0.3);
             }
+            // and one bank of it pushed up, every few paces
+            if (step % 3 == 0) heave(level, x, z, heading, rnd);
         }
         headX = x;
         headZ = z;
@@ -167,7 +223,7 @@ public final class Earthquake {
     public static void second(ServerLevel level, Vec3 at, float strength) {
         WakingWorld.hooks.shakeAt(at, 3.5F * strength, 200);
         RandomSource rnd = level.random;
-        crack(level, at, strength, rnd);          // the fault keeps opening while it shakes
+        if (strength > 0.2F) crack(level, at, strength, rnd);   // the fault opens while it shakes, not while it holds its breath
         // dust off the ground in a wide ring - thicker near the middle, thinner at the edges
         for (int i = 0; i < 40; i++) {
             double a = rnd.nextDouble() * Math.PI * 2;
@@ -184,6 +240,11 @@ public final class Earthquake {
                 Cataclysms.puff(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, top + 1.2, pz,
                         3, 0.5, 0.4, 0.5, 0.02);
             }
+        }
+        // the wave: a ring going out, one step further every second, restarting every seventh
+        if (strength > 0.45F) {
+            ripple(level, at, 7 + (beat % 7) * 13, strength, rnd);
+            if (beat % 3 == 0) jets(level, headX, headZ, strength, rnd);
         }
         // and the ground's own note under it. The loop is 4.5 s and this runs once a second, so it
         // is started every fourth pass - often enough to be unbroken, rarely enough not to stack.
@@ -206,6 +267,94 @@ public final class Earthquake {
                     (level.random.nextDouble() - 0.5) * 0.35 * push));
             e.hurtMarked = true;
         }
+    }
+
+    /**
+     * The shape of a quake in time.
+     *
+     * <p>A tremor that is equally strong for twenty-six seconds is not frightening, it is weather.
+     * Every real quake has a shape: a foreshock that makes you look up, a few seconds of nothing at
+     * all - which is the part people remember - then the main shock, then aftershocks that fall
+     * away with a couple of kicks left in them. Weather passes the progress and this decides how
+     * hard the ground is working.</p>
+     */
+    public static float envelope(float progress) {
+        if (progress < 0.12F) return 0.32F + progress / 0.12F * 0.28F;      // the foreshock, building
+        if (progress < 0.21F) return 0.06F;                                  // the held breath
+        if (progress < 0.55F) return 1.0F;                                   // the main shock
+        float t = (progress - 0.55F) / 0.45F;
+        float kick = (float) Math.max(0.0, Math.sin(t * Math.PI * 3.0)) * 0.42F;
+        return Math.max(0.16F, (1.0F - t) * 0.72F + kick);
+    }
+
+    /**
+     * The ground wave: a ring travelling outwards in which the surface itself lifts and drops back.
+     *
+     * <p>This is the one thing that makes a quake look like a quake from outside it. The blocks on
+     * the arc are thrown up a few tenths of a block as falling blocks and land back where they came
+     * from, so a hillside visibly rolls and is still a hillside afterwards. Only ground the world
+     * made itself is moved, only near somebody who can see it, and only a few dozen blocks a second
+     * - it is a ripple, not a demolition.</p>
+     */
+    private static void ripple(ServerLevel level, Vec3 at, double radius, float strength, RandomSource rnd) {
+        int spawned = 0;
+        int samples = (int) Math.min(120, Math.max(36, radius * 2.2));
+        double start = rnd.nextDouble() * Math.PI * 2;
+        for (int i = 0; i < samples && spawned < 34; i++) {
+            double a = start + i / (double) samples * Math.PI * 2;
+            double px = at.x + Math.cos(a) * (radius + rnd.nextDouble() * 1.6 - 0.8);
+            double pz = at.z + Math.sin(a) * (radius + rnd.nextDouble() * 1.6 - 0.8);
+            if (!watched(level, px, pz, 96)) continue;
+            int top = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                    (int) Math.floor(px), (int) Math.floor(pz));
+            if (top <= level.getMinBuildHeight() + 1) continue;
+            BlockPos on = new BlockPos((int) Math.floor(px), top - 1, (int) Math.floor(pz));
+            BlockState ground = level.getBlockState(on);
+            if (ground.isAir()) continue;
+            Cataclysms.puff(level, new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, ground),
+                    px, top + 0.25, pz, 3, 0.45, 0.25, 0.45, 0.16);
+            if (!natural(level, on) || rnd.nextDouble() > 0.55 * strength) continue;
+            if (!level.getBlockState(on.above()).isAir()) continue;
+            net.minecraft.world.entity.item.FallingBlockEntity fb =
+                    net.minecraft.world.entity.item.FallingBlockEntity.fall(level, on, ground);
+            fb.setDeltaMovement(0, 0.18 + rnd.nextDouble() * 0.16 * strength, 0);
+            fb.time = 1;
+            spawned++;
+        }
+    }
+
+    /**
+     * Sand blows: the ground venting where the fault runs, in columns you can see from a long way
+     * off. Cheap, and they are what tells a distant camera where the quake actually is.
+     */
+    private static void jets(ServerLevel level, double x, double z, float strength, RandomSource rnd) {
+        for (int j = 0; j < 3; j++) {
+            double px = x + (rnd.nextDouble() - 0.5) * 26, pz = z + (rnd.nextDouble() - 0.5) * 26;
+            int top = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                    (int) px, (int) pz);
+            if (top <= level.getMinBuildHeight() + 1) continue;
+            BlockState ground = level.getBlockState(BlockPos.containing(px, top - 1, pz));
+            if (ground.isAir()) continue;
+            for (int k = 0; k < 7; k++) {
+                double y = top + 0.4 + k * 1.5;
+                double spread = 0.35 + k * 0.34;
+                Cataclysms.puff(level, new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, ground),
+                        px, y, pz, 4, spread, 0.5, spread, 0.10 + 0.05 * k);
+                Cataclysms.puff(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, y + 0.6, pz,
+                        3, spread, 0.4, spread, 0.02 + 0.012 * k);
+            }
+            level.playSound(null, px, top, pz, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER,
+                    1.4F * strength, 0.42F + rnd.nextFloat() * 0.12F);
+        }
+    }
+
+    /** Is anybody near enough to this spot for it to be worth moving blocks there? */
+    private static boolean watched(ServerLevel level, double x, double z, double reach) {
+        for (ServerPlayer p : level.players()) {
+            double dx = p.getX() - x, dz = p.getZ() - z;
+            if (dx * dx + dz * dz < reach * reach) return true;
+        }
+        return false;
     }
 
     /** How long one lasts, in seconds. */

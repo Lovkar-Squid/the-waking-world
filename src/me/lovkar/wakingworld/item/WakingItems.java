@@ -54,6 +54,46 @@ public final class WakingItems {
     public static final DeferredItem<Item> STAR_IRON = ITEMS.registerItem("star_iron",
             p -> new LoreItem(p, "item.wakingworld.star_iron.tooltip", true), new Item.Properties().rarity(Rarity.RARE).fireResistant());
 
+    /**
+     * What star iron becomes at an anvil. A little tougher than diamond and no faster - the reason
+     * to make it is the suit: four pieces halve everything the sky and the ground throw at you.
+     */
+    public static final DeferredItem<net.minecraft.world.item.SwordItem> STAR_IRON_SWORD = ITEMS.registerItem("star_iron_sword",
+            p -> new net.minecraft.world.item.SwordItem(StarIron.TIER, p), toolProps()
+                    .attributes(net.minecraft.world.item.SwordItem.createAttributes(StarIron.TIER, 3, -2.4F)));
+    public static final DeferredItem<net.minecraft.world.item.PickaxeItem> STAR_IRON_PICKAXE = ITEMS.registerItem("star_iron_pickaxe",
+            p -> new net.minecraft.world.item.PickaxeItem(StarIron.TIER, p), toolProps()
+                    .attributes(net.minecraft.world.item.PickaxeItem.createAttributes(StarIron.TIER, 1.0F, -2.8F)));
+    public static final DeferredItem<net.minecraft.world.item.AxeItem> STAR_IRON_AXE = ITEMS.registerItem("star_iron_axe",
+            p -> new net.minecraft.world.item.AxeItem(StarIron.TIER, p), toolProps()
+                    .attributes(net.minecraft.world.item.AxeItem.createAttributes(StarIron.TIER, 5.0F, -3.0F)));
+    public static final DeferredItem<net.minecraft.world.item.ShovelItem> STAR_IRON_SHOVEL = ITEMS.registerItem("star_iron_shovel",
+            p -> new net.minecraft.world.item.ShovelItem(StarIron.TIER, p), toolProps()
+                    .attributes(net.minecraft.world.item.ShovelItem.createAttributes(StarIron.TIER, 1.5F, -3.0F)));
+    public static final DeferredItem<net.minecraft.world.item.HoeItem> STAR_IRON_HOE = ITEMS.registerItem("star_iron_hoe",
+            p -> new net.minecraft.world.item.HoeItem(StarIron.TIER, p), toolProps()
+                    .attributes(net.minecraft.world.item.HoeItem.createAttributes(StarIron.TIER, -3.0F, 0.0F)));
+
+    public static final DeferredItem<net.minecraft.world.item.ArmorItem> STAR_IRON_HELMET = armour("helmet", net.minecraft.world.item.ArmorItem.Type.HELMET);
+    public static final DeferredItem<net.minecraft.world.item.ArmorItem> STAR_IRON_CHESTPLATE = armour("chestplate", net.minecraft.world.item.ArmorItem.Type.CHESTPLATE);
+    public static final DeferredItem<net.minecraft.world.item.ArmorItem> STAR_IRON_LEGGINGS = armour("leggings", net.minecraft.world.item.ArmorItem.Type.LEGGINGS);
+    public static final DeferredItem<net.minecraft.world.item.ArmorItem> STAR_IRON_BOOTS = armour("boots", net.minecraft.world.item.ArmorItem.Type.BOOTS);
+
+    /** Star iron came through the atmosphere to get here, so none of it burns. */
+    private static Item.Properties toolProps() {
+        return new Item.Properties().rarity(Rarity.RARE).fireResistant().durability(StarIron.TIER.getUses());
+    }
+
+    private static DeferredItem<net.minecraft.world.item.ArmorItem> armour(String piece, net.minecraft.world.item.ArmorItem.Type type) {
+        return ITEMS.registerItem("star_iron_" + piece,
+                p -> new net.minecraft.world.item.ArmorItem(StarIron.armour(), type, p),
+                new Item.Properties().rarity(Rarity.RARE).fireResistant().durability(type.getDurability(40)));
+    }
+
+    public static List<DeferredItem<net.minecraft.world.item.ArmorItem>> starIronArmour() {
+        return List.of(STAR_IRON_HELMET, STAR_IRON_CHESTPLATE, STAR_IRON_LEGGINGS, STAR_IRON_BOOTS);
+    }
+
     /** The rite's fuel - only the vaults have them. */
     public static final DeferredItem<Item> SLEEPERS_EMBER = ITEMS.registerItem("sleepers_ember",
             p -> new LoreItem(p, "item.wakingworld.sleepers_ember.tooltip", true), new Item.Properties().rarity(Rarity.RARE).fireResistant());
@@ -102,6 +142,9 @@ public final class WakingItems {
             new Item.Properties().stacksTo(16).rarity(Rarity.UNCOMMON));
     public static final DeferredItem<me.lovkar.wakingworld.story.AlmanacItem> ALMANAC = ITEMS.registerItem("almanac", me.lovkar.wakingworld.story.AlmanacItem::new,
             new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON));
+    /** The Wayfarer's Chart: the lands you have walked, drawn where they lie. Its own item, not a page. */
+    public static final DeferredItem<me.lovkar.wakingworld.land.LandAtlasItem> LAND_ATLAS = ITEMS.registerItem("land_atlas",
+            me.lovkar.wakingworld.land.LandAtlasItem::new, new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON));
 
     public static final DeferredItem<Item> STONE_THRALL_EGG = ITEMS.registerItem("stone_thrall_spawn_egg",
             p -> new net.neoforged.neoforge.common.DeferredSpawnEggItem(WakingWorld.STONE_THRALL, 0x6E6A70, 0xFF8A2A, p), new Item.Properties());
@@ -124,6 +167,7 @@ public final class WakingItems {
                     .icon(() -> new net.minecraft.world.item.ItemStack(COLOSSUS_HEART.get()))
                     .displayItems((params, out) -> {
                         out.accept(ALMANAC.get());
+                        out.accept(LAND_ATLAS.get());
                         out.accept(DEAD_LETTER.get());
                         out.accept(COLOSSUS_HEART.get());
                         for (DeferredItem<Item> sg : sigils()) out.accept(sg.get());
@@ -136,6 +180,12 @@ public final class WakingItems {
                         out.accept(SLEEPERS_EMBER.get());
                         out.accept(STAR_IRON.get());
                         out.accept(me.lovkar.wakingworld.cataclysm.CataclysmBlocks.STARSTONE_ITEM.get());
+                        out.accept(STAR_IRON_SWORD.get());
+                        out.accept(STAR_IRON_PICKAXE.get());
+                        out.accept(STAR_IRON_AXE.get());
+                        out.accept(STAR_IRON_SHOVEL.get());
+                        out.accept(STAR_IRON_HOE.get());
+                        for (DeferredItem<net.minecraft.world.item.ArmorItem> a : starIronArmour()) out.accept(a.get());
                         for (DeferredItem<Item> r : runes()) out.accept(r.get());
                         for (DeferredItem<Item> d : discs()) out.accept(d.get());
                         out.accept(me.lovkar.wakingworld.ritual.WakingRitual.ALTAR_ITEM.get());
@@ -169,6 +219,7 @@ public final class WakingItems {
     public static void register(IEventBus modBus) {
         ITEMS.register(modBus);
         TABS.register(modBus);
+        StarIron.register(modBus);
         modBus.addListener(WakingItems::creativeTabs);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ColossusHammerItem::onFall);
     }
@@ -180,6 +231,9 @@ public final class WakingItems {
     private static void creativeTabs(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == tab("combat")) {
             event.accept(COLOSSUS_HAMMER);
+            event.accept(STAR_IRON_SWORD);
+            event.accept(STAR_IRON_AXE);
+            for (DeferredItem<net.minecraft.world.item.ArmorItem> a : starIronArmour()) event.accept(a);
         } else if (event.getTabKey() == tab("ingredients")) {
             event.accept(COLOSSUS_HEART);
             for (DeferredItem<Item> s : sigils()) event.accept(s);
@@ -192,6 +246,11 @@ public final class WakingItems {
             event.accept(HOURGLASS);
             event.accept(HEART_OF_THE_END);
             event.accept(ALMANAC);
+            event.accept(LAND_ATLAS);
+            event.accept(STAR_IRON_PICKAXE);
+            event.accept(STAR_IRON_AXE);
+            event.accept(STAR_IRON_SHOVEL);
+            event.accept(STAR_IRON_HOE);
         }
     }
 }

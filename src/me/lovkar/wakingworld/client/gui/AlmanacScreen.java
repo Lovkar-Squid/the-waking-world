@@ -177,44 +177,16 @@ public class AlmanacScreen extends Screen {
     }
 
     /**
-     * The atlas. Every named land the reader has actually walked into, laid out where it lies rather
-     * than as a list: the squares keep their arrangement, so the country reads as a country.
+     * The chapter on the lands. It used to hold the atlas itself; the atlas is the Wayfarer's Chart
+     * now, which is a thing you hold in your hand and can look at while you are deciding where to
+     * walk. What is left here is what a book is actually good for: telling you the chart exists.
      */
     private void atlas() {
-        java.util.List<me.lovkar.wakingworld.client.LandAtlas.Entry> lands = me.lovkar.wakingworld.client.LandAtlas.lands();
-        PageLayout.Flow f = flow().paragraph(t("atlas.1"), INK);
-        if (lands.isEmpty()) {
-            f.paragraph(t("atlas.empty"), FADED);
-            add("atlas", of(WakingItems.ALMANAC.get()), f);
-            return;
-        }
-        int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE, minZ = Integer.MAX_VALUE, maxZ = Integer.MIN_VALUE;
-        for (var e : lands) {
-            minX = Math.min(minX, e.cellX());
-            maxX = Math.max(maxX, e.cellX());
-            minZ = Math.min(minZ, e.cellZ());
-            maxZ = Math.max(maxZ, e.cellZ());
-        }
-        int cols = maxX - minX + 1, rows = maxZ - minZ + 1;
-        // the box is whatever makes the whole of it fit the page, within reason
-        int box = Math.max(11, Math.min(24, Math.min(PAGE_W / Math.max(1, cols), (PAGE_H - 40) / Math.max(1, rows))));
-        int hereX = 0, hereZ = 0;
-        if (minecraft != null && minecraft.player != null) {
-            hereX = me.lovkar.wakingworld.land.Lands.cellOf(minecraft.player.getBlockX());
-            hereZ = me.lovkar.wakingworld.land.Lands.cellOf(minecraft.player.getBlockZ());
-        }
-        java.util.List<PageLayout.Atlas.Cell> cells = new ArrayList<>();
-        for (var e : lands) {
-            cells.add(new PageLayout.Atlas.Cell(e.cellX() - minX, e.cellZ() - minZ, e.name(),
-                    Rites.color(e.kind()), e.cellX() == hereX && e.cellZ() == hereZ));
-        }
-        f.gap(4).raw(new PageLayout.Atlas(cells, rows, box,
-                t("atlas.north").getVisualOrderText(), FADED));
-        f.gap(6).heading(t("atlas.walked"), HEAD);
-        for (var e : lands) {
-            f.swatch(Rites.color(e.kind()), net.minecraft.network.chat.Component.literal(e.name()), INK);
-        }
-        add("atlas", of(WakingItems.ALMANAC.get()), f);
+        add("atlas", of(WakingItems.LAND_ATLAS.get()), flow()
+                .paragraph(t("atlas.1"), INK)
+                .items(t("atlas.chart"), CAPTION, of(WakingItems.LAND_ATLAS.get()))
+                .paragraph(t("atlas.2"), INK)
+                .paragraph(t("atlas.3"), FADED));
     }
 
     /**

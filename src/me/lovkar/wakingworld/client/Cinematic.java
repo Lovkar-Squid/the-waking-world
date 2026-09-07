@@ -69,6 +69,8 @@ public final class Cinematic {
     private static int renderBefore = -1;
     /** Where the entity the anchored keys ride with is (interpolated), this frame; the last known place when it is gone. */
     private static Vec3 anchor = Vec3.ZERO, lastAnchor;
+    /** The eased anchor a riding shot actually hangs from. */
+    private static Vec3 smoothAnchor;
 
     public static boolean active() {
         return keys != null;
@@ -109,6 +111,7 @@ public final class Cinematic {
         holding = false;
         waitTicks = 0;
         floorY = Double.NEGATIVE_INFINITY;      // a new path starts on its own floor
+        smoothAnchor = null;
         arrivedAt = -1;
         lastBuilt = -1;
         stillTicks = 0;
@@ -118,6 +121,19 @@ public final class Cinematic {
     }
 
     /** Updates {@link #anchor}: the ridden entity's position at this partial tick, or where it last was. */
+    /**
+     * Where a riding camera is hung from.
+     *
+     * <p>This used to be the subject's raw position, and for the tornado - the one scene that rides
+     * anything - that is a camera bolted to the thing it is filming. A tornado walks the country and
+     * its own y follows every rise and dip of the ground under it, so the shot inherited all of it:
+     * the second take, the third take, and every complaint about that shot in particular.</p>
+     *
+     * <p>The anchor is eased instead, and not evenly. Sideways it follows closely, because keeping
+     * the subject in frame is the whole job of a riding shot; vertically it follows slowly, because
+     * the ground profile is not something the audience should be made to feel. A camera operator
+     * running alongside does exactly this without thinking about it.</p>
+     */
     private static void anchor(float partial) {
         Minecraft mc = Minecraft.getInstance();
         anchor = Vec3.ZERO;
@@ -126,7 +142,16 @@ public final class Cinematic {
             if (!k.anchored()) continue;
             Entity e = k.entity() < 0 ? null : mc.level.getEntity(k.entity());
             if (e != null) lastAnchor = e.getPosition(partial);
-            anchor = lastAnchor != null ? lastAnchor : Vec3.ZERO;
+            Vec3 want = lastAnchor != null ? lastAnchor : Vec3.ZERO;
+            if (smoothAnchor == null) {
+                smoothAnchor = want;
+            } else {
+                smoothAnchor = new Vec3(
+                        Mth.lerp(0.35, smoothAnchor.x, want.x),
+                        Mth.lerp(0.045, smoothAnchor.y, want.y),      // the ground is not the story
+                        Mth.lerp(0.35, smoothAnchor.z, want.z));
+            }
+            anchor = smoothAnchor;
             return;
         }
     }

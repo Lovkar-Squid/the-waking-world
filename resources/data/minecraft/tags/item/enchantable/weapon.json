@@ -1,6 +1,8 @@
 {
   "replace": false,
   "values": [
-    "wakingworld:colossus_hammer"
+    "wakingworld:colossus_hammer",
+    "wakingworld:star_iron_sword",
+    "wakingworld:star_iron_axe"
   ]
 }

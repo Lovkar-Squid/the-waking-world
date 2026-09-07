@@ -601,5 +601,119 @@ def bossbar():
             im.putpixel((x, y), (120, 50, 190, a)); im.putpixel((x, y + 1), (60, 20, 100, a))
     im.save(os.path.join(OUT, "colossus_bar.png"))
 
-almanac(); letter(); king(); trade(); bossbar()
+
+def atlas():
+    """The Wayfarer's Chart: a vellum sheet on two turned battens, for the land-atlas item's screen.
+
+    The screen (client/gui/AtlasScreen.java) blits the sheet from (0,0) and draws the lands into
+    the window inside it, so the margins here are the margins the map gets."""
+    W, H = 512, 256
+    im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    dr = ImageDraw.Draw(im)
+    rnd = random.Random(714)
+    CW, CH = 372, 226                       # the chart, top-left of the sheet
+    vellum = (226, 212, 176, 255); vell_d = (196, 178, 136, 255); vell_l = (242, 232, 204, 255)
+    stain = (198, 172, 118, 255); rim = (118, 96, 62, 255)
+    wood = (104, 72, 40, 255); wood_l = (146, 106, 62, 255); wood_d = (62, 42, 24, 255)
+    brass = (198, 162, 82, 255); brass_l = (244, 216, 140, 255)
+
+    def jag(n, amp, seed):
+        r = random.Random(seed); out = []; v = 0.0
+        for _ in range(n):
+            v = max(-2.2, min(2.2, (v + r.uniform(-1, 1) * amp) * 0.72))
+            out.append(v)
+        return out
+
+    top, bot = jag(CW, 1.1, 3), jag(CW, 1.1, 4)
+    BAT = 13                                # the battens, left and right
+    for y in range(CH):
+        for x in range(CW):
+            if y < 4 + top[x] or y > CH - 5 + bot[x]:
+                continue
+            c = vellum
+            if rnd.random() < 0.07:
+                c = shade(vellum, 0.96 if rnd.random() < 0.5 else 1.03)
+            for (sx, sy, sr) in ((66, 46, 30), (300, 172, 34), (196, 96, 22), (348, 40, 18)):
+                d = math.hypot(x - sx, y - sy)
+                if d < sr:
+                    c = mix(c, stain, 0.30 * (1 - d / sr) + 0.08)
+            e = min(y - top[x] - 4, CH - 5 + bot[x] - y, x - BAT, CW - BAT - x)
+            if e < 12:
+                c = mix(c, vell_d, max(0.0, (12 - e) / 12) * 0.5)
+            im.putpixel((x, y), c)
+    # a very faint square grid, so the lands have something to sit on
+    for x in range(BAT + 6, CW - BAT - 6, 12):
+        for y in range(CH):
+            if im.getpixel((x, y))[3]:
+                im.putpixel((x, y), mix(im.getpixel((x, y)), vell_d, 0.30))
+    for y in range(12, CH - 8, 12):
+        for x in range(CW):
+            if im.getpixel((x, y))[3]:
+                im.putpixel((x, y), mix(im.getpixel((x, y)), vell_d, 0.30))
+    # the torn rim along the top and bottom
+    for x in range(CW):
+        for y in range(CH):
+            if im.getpixel((x, y))[3] == 0:
+                for dx, dy in ((0, 1), (0, -1)):
+                    if 0 <= y + dy < CH and im.getpixel((x, y + dy))[3] > 0:
+                        im.putpixel((x, y), rim)
+                        break
+    # the battens: a turned rod down each side, with brass caps
+    for side, bx in ((0, 0), (1, CW - BAT)):
+        for y in range(-2, CH + 2):
+            for x in range(bx, bx + BAT):
+                t = (x - bx) / (BAT - 1.0)
+                c = mix(wood_l, wood, min(1.0, abs(t - 0.34) * 2.4))
+                if t > 0.72:
+                    c = mix(c, wood_d, (t - 0.72) / 0.28)
+                if rnd.random() < 0.16:
+                    c = shade(c, 0.93 if rnd.random() < 0.5 else 1.06)
+                if 0 <= y < CH:
+                    im.putpixel((x, y), c)
+        for y0 in (0, CH - 9):
+            for y in range(y0, y0 + 9):
+                for x in range(bx - 1, bx + BAT + 1):
+                    if 0 <= x < W and 0 <= y < H:
+                        t = (x - bx + 1) / (BAT + 1.0)
+                        im.putpixel((x, y), mix(brass_l, brass, min(1.0, abs(t - 0.32) * 2.2)))
+    # the title cartouche, centred on the top edge: 132 x 20 at (0, 232) on the sheet
+    dr.rounded_rectangle((2, 232, 133, 251), radius=4, fill=vellum, outline=rim)
+    for x in range(4, 132):
+        for y in range(234, 250):
+            if rnd.random() < 0.10:
+                im.putpixel((x, y), shade(vellum, 0.96))
+    dr.line((8, 236, 127, 236), fill=mix(vellum, vell_d, 0.6))
+    dr.line((8, 247, 127, 247), fill=mix(vellum, vell_d, 0.6))
+    # a compass rose, 34 x 34 at (380, 0) - clear of the sheet, which is 372 wide
+    cx, cy, R = 397, 17, 15
+    dr.ellipse((cx - R, cy - R, cx + R, cy + R), outline=rim)
+    dr.ellipse((cx - R + 4, cy - R + 4, cx + R - 4, cy + R - 4), outline=mix(vell_d, rim, 0.4))
+    for i in range(4):
+        a = i * math.pi / 2
+        for k in range(R - 1):
+            w = max(0, (R - 1 - k) // 4)
+            px_, py_ = cx + math.sin(a) * k, cy - math.cos(a) * k
+            for o in range(-w, w + 1):
+                ox, oy = px_ + math.cos(a) * o, py_ + math.sin(a) * o
+                if 0 <= int(ox) < W and 0 <= int(oy) < H:
+                    im.putpixel((int(ox), int(oy)), INK if i == 0 else mix(INK, vell_d, 0.45))
+    for i in range(4):
+        a = i * math.pi / 2 + math.pi / 4
+        for k in range(R - 5):
+            w = max(0, (R - 5 - k) // 5)
+            px_, py_ = cx + math.sin(a) * k, cy - math.cos(a) * k
+            for o in range(-w, w + 1):
+                ox, oy = px_ + math.cos(a) * o, py_ + math.sin(a) * o
+                if 0 <= int(ox) < W and 0 <= int(oy) < H:
+                    im.putpixel((int(ox), int(oy)), mix(INK, vell_d, 0.6))
+    # the marker for where the reader is standing: 12 x 12 at (380, 40), a ringed star
+    mx, my = 386, 46
+    for k in range(6, 0, -1):
+        col = (214, 96, 26, clamp(255 - (6 - k) * 26))
+        dr.ellipse((mx - k, my - k, mx + k, my + k), outline=col)
+    dr.ellipse((mx - 2, my - 2, mx + 2, my + 2), fill=(255, 220, 150, 255))
+    im.save(os.path.join(OUT, "atlas.png"))
+
+
+almanac(); letter(); king(); trade(); bossbar(); atlas()
 print("gui textures written to", OUT)

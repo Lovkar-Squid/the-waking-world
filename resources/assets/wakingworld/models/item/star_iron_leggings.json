@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "wakingworld:item/star_iron_leggings"
+  }
+}

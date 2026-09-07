@@ -1,6 +1,15 @@
 {
   "replace": false,
   "values": [
-    "wakingworld:colossus_hammer"
+    "wakingworld:colossus_hammer",
+    "wakingworld:star_iron_sword",
+    "wakingworld:star_iron_pickaxe",
+    "wakingworld:star_iron_axe",
+    "wakingworld:star_iron_shovel",
+    "wakingworld:star_iron_hoe",
+    "wakingworld:star_iron_helmet",
+    "wakingworld:star_iron_chestplate",
+    "wakingworld:star_iron_leggings",
+    "wakingworld:star_iron_boots"
   ]
 }

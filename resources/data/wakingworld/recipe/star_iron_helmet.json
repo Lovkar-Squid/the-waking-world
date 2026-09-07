@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "III",
+    "I I"
+  ],
+  "key": {
+    "I": {
+      "item": "wakingworld:star_iron"
+    }
+  },
+  "result": {
+    "id": "wakingworld:star_iron_helmet",
+    "count": 1
+  }
+}
