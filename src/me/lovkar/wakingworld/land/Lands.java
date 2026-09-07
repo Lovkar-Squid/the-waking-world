@@ -124,7 +124,8 @@ public final class Lands extends SavedData {
 
         GeminiLands.Result written = GeminiLands.poll(k);
         if (written != null && written.ok()) {
-            Land land = new Land(written.name(), written.lore(), kind.name(), k);
+            Land land = new Land(unused(written.name(), () -> LandNames.template(kind, RandomSource.create(k * 31L + named.size()))),
+                    written.lore(), kind.name(), k);
             named.put(k, land);
             setDirty();
             WakingWorld.LOGGER.info("lands: {} named {} ({})", cellName(cx, cz), land.name(), "gemini");
@@ -134,11 +135,36 @@ public final class Lands extends SavedData {
             return null;                                         // asked: come back in half a second
         }
         RandomSource rnd = RandomSource.create(k * 0x9E3779B97F4A7C15L ^ level.getSeed());
-        Land land = new Land(LandNames.template(kind, rnd), LandNames.templateLore(kind, rnd), kind.name(), k);
+        Land land = new Land(unused(LandNames.template(kind, rnd), () -> LandNames.template(kind, rnd)),
+                LandNames.templateLore(kind, rnd), kind.name(), k);
         named.put(k, land);
         setDirty();
         WakingWorld.LOGGER.info("lands: {} named {} ({})", cellName(cx, cz), land.name(), "templates");
         return land;
+    }
+
+    /**
+     * A name no other land in this world is already using. Two neighbours called the same thing reads
+     * as a bug even when the dice were fair, so a clash is re-rolled a few times; if the word lists are
+     * genuinely exhausted the name is kept and numbered rather than left blank.
+     */
+    private String unused(String first, java.util.function.Supplier<String> again) {
+        java.util.Set<String> taken = new java.util.HashSet<>();
+        for (Land l : named.values()) taken.add(l.name());
+        String name = first;
+        for (int i = 0; i < 12 && taken.contains(name); i++) name = again.get();
+        if (!taken.contains(name)) return name;
+        for (int n = 2; n < 100; n++) {
+            String tried = first + " " + roman(n);
+            if (!taken.contains(tried)) return tried;
+        }
+        return first;
+    }
+
+    private static String roman(int n) {
+        String[] tens = {"", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"};
+        String[] ones = {"", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"};
+        return tens[(n / 10) % 10] + ones[n % 10];
     }
 
     private static String cellName(int cx, int cz) {

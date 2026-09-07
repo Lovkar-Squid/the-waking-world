@@ -4,7 +4,7 @@
 
 [![The Waking World - trailer](docs/art/hero-leap.jpg)](https://youtu.be/K47KIgOEuzc)
 
-**[Watch the trailer](https://youtu.be/K47KIgOEuzc)** (1:51) - **[Download on CurseForge](https://www.curseforge.com/minecraft/mc-mods/the-waking-world)** - **[Releases](https://github.com/Lovkar-Squid/the-waking-world/releases)** - **[Discord](https://discord.gg/BVztrTtXFu)** - **[Patreon](https://www.patreon.com/Lovkar)**
+**[Watch the trailer](https://youtu.be/K47KIgOEuzc)** (1:51) - **[Download on CurseForge](https://www.curseforge.com/minecraft/mc-mods/the-waking-world)** - **[Releases](https://github.com/Lovkar-Squid/the-waking-world/releases)** - **[Discord](https://discord.gg/BVztrTtXFu)**
 
 A standalone mod for **NeoForge 1.21.1**. Somewhere under the hills, six kinds of sleeping giants wait
 for a horn. Find the letters the dead left behind, follow them to the shrines and the vaults, gather
@@ -165,26 +165,12 @@ nearest finished fight's land back, as the Hourglass does), `target <entity>`, `
 render distance - 16 unless told otherwise - and brings you back), and a few worldgen
 debugging tools (`snapshot`, `diff`, `dump`, `terrain`, `kingdomscan`).
 
-`/wwpatreon` (everyone, client side): link a Patreon, `aura <name>`, `colossus <name>`, `credits on|off`, `status`,
-`refresh` - see [Supporters](#supporters).
-
 ## Supporters
 
-The mod is free and stays free. Its [Patreon](https://www.patreon.com/Lovkar) supporters (Waker, Colossus and
-Titan tiers) get **cosmetic** perks in the game - nothing that changes how it plays:
-
-- **Auras** in the mod's own rune language - the Waker's Runes, the Colossus Sigil in the colours of the
-  six lands, the Titan's Void and the Waking Crown.
-- **Colossus styles** - the giants *your* rites wake rise as the Sentinel, the Eldest or the Seraph:
-  the same silhouette and the same hit boxes, other stone and other light. The Titan keeps its own look.
-- **The Hall of Wakers** in the Almanac, for those who choose to be named.
-- A word from the king, the traders and the guards; a Horn of Waking in your colour.
-
-Link your account with `/wwpatreon` in the game (the page that opens asks Patreon, not the mod), then
-change your look any time with `/wwpatreon aura <name>`, `/wwpatreon colossus <name>` and
-`/wwpatreon credits on|off`; `/wwpatreon status` shows what is on file. The supporter service publishes
-no names: a salted hash of each account and its chosen look, nothing else. Its source is public too:
-[lovkar-supporters](https://github.com/Lovkar-Squid/lovkar-supporters).
+The mod is free and always has been. The supporter perks are **switched off** at the moment and the mod
+asks no outside service for anything: no account is looked up, no list is fetched, and there is no
+supporter command. If they come back, they will be cosmetic only - never anything that changes how the
+game plays.
 
 ## Compatibility
 

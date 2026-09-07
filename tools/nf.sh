@@ -35,7 +35,9 @@ case "$1" in
   start) start; ready ;;
   fresh) stop
          rm -f mods/*.jar
-         cp "$JAR_SRC"/wakingworld-*.jar mods/ 2>/dev/null
+         # only the newest jar - copying the whole history left 24 versions of the same mod in mods/
+         newest=$(ls -1t "$JAR_SRC"/wakingworld-*.jar 2>/dev/null | head -1)
+         [ -n "$newest" ] && cp "$newest" mods/
          ls mods/
          [ "$2" = "keep" ] || rm -rf world
          start; ready ;;

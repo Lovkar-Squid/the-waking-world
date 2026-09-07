@@ -103,7 +103,7 @@ public class AlmanacScreen extends Screen {
                 .paragraph(t("advice.2"), INK)
                 .paragraph(t("advice.3"), INK)
                 .centered(t("advice.sign"), FADED);
-        hall(w);
+        if (me.lovkar.wakingworld.supporter.SupporterList.ENABLED) hall(w);
         add("welcome", of(WakingItems.ALMANAC.get()), w);
         // II. the sleepers
         PageLayout.Flow s = flow().paragraph(t("sleepers.1"), INK).paragraph(t("sleepers.2"), INK);

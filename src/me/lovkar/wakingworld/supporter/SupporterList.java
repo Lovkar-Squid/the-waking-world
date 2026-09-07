@@ -43,6 +43,17 @@ public final class SupporterList {
     private SupporterList() {
     }
 
+    /**
+     * Whether the supporter perks exist at all. Parked while the Patreon is down: nothing is
+     * fetched, nobody is a supporter, and {@code /wwpatreon} is not registered. Every class below
+     * this stays exactly as it was - flip this one line and the whole thing comes back.
+     *
+     * <p>It is a constant rather than a config option on purpose, for the same reason the URL is:
+     * a switch in the config file would advertise a feature that is meant to be invisible while it
+     * is off.</p>
+     */
+    public static final boolean ENABLED = false;
+
     /** Where the supporter service lives. Deliberately a constant. */
     public static final String BASE_URL = "https://supporters.lovkarsquid.com";
 
@@ -87,7 +98,7 @@ public final class SupporterList {
 
     /** The supporter entry for a player, or null if they are not one. Cheap after the first look at each player. */
     public static Entry entry(UUID id) {
-        if (id == null) return null;
+        if (!ENABLED || id == null) return null;
         Listing l = listing;
         Entry e = l.seen.get(id);
         if (e == null) {
@@ -100,7 +111,7 @@ public final class SupporterList {
 
     /** The client changed its own cosmetics on the service: show them at once, ahead of the next fetch. */
     public static void updateOwn(UUID id, Entry e) {
-        if (id == null || e == null) return;
+        if (!ENABLED || id == null || e == null) return;
         Listing l = listing;
         if (l == Listing.EMPTY) listing = l = new Listing("", Map.of());
         l.seen.put(id, e);
@@ -112,6 +123,7 @@ public final class SupporterList {
 
     /** Blocking POST of a JSON body to the service (call from the pool, never from a game thread). */
     public static Response post(String path, String json) throws Exception {
+        if (!ENABLED) return new Response(503, "");
         HttpRequest req = HttpRequest.newBuilder(URI.create(BASE_URL + path))
                 .timeout(Duration.ofSeconds(12)).header("content-type", "application/json").header("accept", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8)).build();
@@ -121,6 +133,7 @@ public final class SupporterList {
 
     /** Names of the supporters who opted into the credits, for one tier ("titan", "colossus", "waker"); never null. */
     public static java.util.List<String> credits(String tier) {
+        if (!ENABLED) return java.util.List.of();
         return credits.getOrDefault(tier, java.util.List.of());
     }
 
@@ -150,6 +163,7 @@ public final class SupporterList {
 
     /** Refresh if enough time has passed since the last try (called from the client tick, and from the server tick). */
     public static void maybeRefresh() {
+        if (!ENABLED) return;
         long wait = everLoaded ? INTERVAL_MS : RETRY_MS;
         if (fetching || System.currentTimeMillis() - lastFetch < wait) return;
         refreshAsync();
@@ -165,7 +179,7 @@ public final class SupporterList {
     }
 
     public static void refreshAsync() {
-        if (fetching) return;
+        if (!ENABLED || fetching) return;
         fetching = true;
         lastFetch = System.currentTimeMillis();
         POOL.execute(() -> {

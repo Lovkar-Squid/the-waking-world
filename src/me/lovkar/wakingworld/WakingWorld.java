@@ -149,8 +149,10 @@ public class WakingWorld {
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.kingdom.KingdomEvents::onRightClickBlock);
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.kingdom.KingdomEvents::onBreak);
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.kingdom.KingdomEvents::onLevelTick);
-        NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.supporter.SupporterList::onServerStarted);
-        NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.supporter.SupporterList::onServerTick);
+        if (me.lovkar.wakingworld.supporter.SupporterList.ENABLED) {     // parked while the Patreon is down
+            NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.supporter.SupporterList::onServerStarted);
+            NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.supporter.SupporterList::onServerTick);
+        }
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.cataclysm.Cataclysms::onLevelTick);
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.cataclysm.BloodMoon::onEntityJoin);
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.land.Lands::onLevelTick);
@@ -158,7 +160,7 @@ public class WakingWorld {
             container.registerConfig(ModConfig.Type.CLIENT, WakingConfig.CLIENT_SPEC);
             WakingWorldClient.init(modBus, container);
         }
-        LOGGER.info("The Waking World 0.2.0-alpha.1 - the world is waking. /wakingworld for the tools.");
+        LOGGER.info("The Waking World 0.2.0-alpha.2 - the world is waking. /wakingworld for the tools.");
     }
 
     /** Nobody sneaks out of a colossus' fist: a dismount is refused while it holds you (it lets go when it throws). */

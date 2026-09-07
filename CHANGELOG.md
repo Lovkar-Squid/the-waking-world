@@ -3,6 +3,40 @@
 All notable changes to The Waking World. The format follows [Keep a Changelog](https://keepachangelog.com/);
 versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-releases.
 
+## [Unreleased] - 0.2.0 "Falling Sky"
+
+The Cataclysms: five things that can happen to a world that is waking up. Also the Named Lands, and
+the supporter perks switched off.
+
+### Added
+- **The Falling Sky** - a meteor shower. Starstone in the crater, star iron out of it under a pickaxe.
+- **The Rising Mountain** - a volcano grows out of the ground in stages, basalt and tuff over a plugged
+  throat so the crater holds its lava instead of pouring it down the slope.
+- **The Blood Moon** - a red sky the client fades into over four seconds, and a siege that places
+  monsters on ground that is genuinely dark, 20 to 46 blocks out. Dawn clears them, including the ones
+  that were sitting in a chunk nobody had loaded.
+- **The Wandering Column** - a tornado that walks the country and lifts what is loose and under open
+  sky. There is no funnel model: what you see is the debris, ninety blocks on a helix.
+- **The Turning Ground** - an earthquake: the camera shakes, faults open along the heightmap, and
+  nothing with a block entity or a light in it is touched.
+- **The Named Lands** - the world is divided into 384-block squares and each one is named the first
+  time somebody walks into it, from the ground itself. Written by Gemini when the server has a key and
+  from the templates when it does not; a name is written once and then kept.
+- `/wakingworld volcano | bloodmoon | tornado | earthquake | lands`, and a config section for each
+  cataclysm's odds.
+
+### Changed
+- **The supporter perks are switched off.** Every class is still here and nothing about them changed,
+  but `SupporterList.ENABLED` is false: `/wwpatreon` is not registered, no list is fetched, no account
+  is looked up, and the Hall of Wakers page does not render. The mod now talks to no outside service.
+- `/wwpatreon status` shows the date a membership runs to (while the perks are on).
+- Shrines also read the conventional biome tags (`#c:is_*`, marked optional), so they generate in other
+  mods' biomes as well.
+
+### Fixed
+- A land could be given a name a neighbour already had; clashes are re-rolled now.
+- A meteor could fall into a chunk that was not ticking and never land.
+
 ## [0.1.0-beta.5] - 2026-09-06
 
 The supporter update: cosmetic perks for the mod's Patreon supporters, a music disc from every giant, and
