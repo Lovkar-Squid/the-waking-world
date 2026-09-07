@@ -9,9 +9,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
-import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
-import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
@@ -106,13 +103,25 @@ public final class Lands extends SavedData {
         if (land != null) announce(p, land);
     }
 
-    /** The title card, and a line in the chat log so it can be read again. */
+    /**
+     * The card, and a line in the chat log so it can be read again.
+     *
+     * <p>The card is drawn by the mod ({@code client/LandCard}) rather than sent as a vanilla title
+     * and subtitle. A subtitle is laid out as a single line and is never wrapped, so a sentence of
+     * lore ran off both edges of the screen and only its middle was ever legible.</p>
+     */
     private static void announce(ServerPlayer p, Land land) {
-        p.connection.send(new ClientboundSetTitlesAnimationPacket(10, 60, 20));
-        p.connection.send(new ClientboundSetTitleTextPacket(
-                Component.literal(land.name()).withStyle(ChatFormatting.GOLD)));
-        p.connection.send(new ClientboundSetSubtitleTextPacket(
-                Component.literal(land.lore()).withStyle(ChatFormatting.GRAY)));
+        // the middle of the land, for the waypoint. The height is only asked for when that chunk is
+        // really loaded: a heightmap read on a chunk that is not there answers the bottom of the
+        // world, and a waypoint at bedrock renders as a beam through the floor.
+        int size = WakingConfig.landSize();
+        int mx = land.cellX() * size + size / 2, mz = land.cellZ() * size + size / 2;
+        ServerLevel level = p.serverLevel();
+        int my = level.getChunkSource().getChunkNow(mx >> 4, mz >> 4) != null
+                ? level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, mx, mz)
+                : p.getBlockY();
+        BlockPos middle = new BlockPos(mx, my, mz);
+        me.lovkar.wakingworld.network.WakingNet.landCard(p, land.name(), land.lore(), land.kind(), middle);
         p.sendSystemMessage(Component.literal("You have come into ").withStyle(ChatFormatting.DARK_GRAY)
                 .append(Component.literal(land.name()).withStyle(ChatFormatting.GOLD))
                 .append(Component.literal(". " + land.lore()).withStyle(ChatFormatting.DARK_GRAY)));

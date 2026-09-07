@@ -43,6 +43,14 @@ public final class WakingWorldClient {
             }
 
             @Override
+            public void landCard(String name, String lore, String kind, net.minecraft.core.BlockPos at) {
+                LandCard.show(name, lore, kind);
+                if (me.lovkar.wakingworld.WakingConfig.landWaypoints()) {
+                    LandWaypoints.place(name, at.getX(), at.getY(), at.getZ());
+                }
+            }
+
+            @Override
             public void openAlmanac() {
                 net.minecraft.client.Minecraft.getInstance().setScreen(new me.lovkar.wakingworld.client.gui.AlmanacScreen());
             }
@@ -70,8 +78,8 @@ public final class WakingWorldClient {
             }
 
             @Override
-            public void cineStart(java.util.List<me.lovkar.wakingworld.story.Cinematics.Key> keys, int fadeIn, int fadeOut) {
-                Cinematic.start(keys, fadeIn, fadeOut);
+            public void cineStart(java.util.List<me.lovkar.wakingworld.story.Cinematics.Key> keys, int fadeIn, int fadeOut, boolean bossBar) {
+                Cinematic.start(keys, fadeIn, fadeOut, bossBar);
             }
 
             @Override
@@ -107,6 +115,7 @@ public final class WakingWorldClient {
         NeoForge.EVENT_BUS.addListener(ColossusBossBar::onBossBar);
         // the tick handler runs before other mods' (HIGHEST) so the crosshair target is gone before Jade & co
         // read it; the letterbox and fades draw after everyone else (LOWEST) so nothing sits on top of them
+        NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.HIGHEST, Cinematic::tickPre);
         NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.HIGHEST, Cinematic::clientTick);
         NeoForge.EVENT_BUS.addListener(Cinematic::renderFrame);
         NeoForge.EVENT_BUS.addListener(Cinematic::computeFov);
@@ -114,6 +123,8 @@ public final class WakingWorldClient {
         NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.HIGHEST, Cinematic::guiPre);
         NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOWEST, Cinematic::guiPost);
         NeoForge.EVENT_BUS.addListener(LetterVoicePlayer::clientTick);
+        NeoForge.EVENT_BUS.addListener(LandCard::clientTick);
+        NeoForge.EVENT_BUS.addListener(LandCard::render);
         NeoForge.EVENT_BUS.addListener(RedSky::clientTick);          // the blood moon, not a perk
         NeoForge.EVENT_BUS.addListener(RedSky::onFogColour);
         // supporter perks (cosmetic): parked with SupporterList.ENABLED - nothing registered, nothing fetched

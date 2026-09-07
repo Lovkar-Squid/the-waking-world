@@ -63,7 +63,13 @@ public final class Cinematics {
     }
 
     /** The render distance the scenes are drawn at unless the command says otherwise. */
-    public static final int DEFAULT_RENDER_DISTANCE = 16;
+    public static final int DEFAULT_RENDER_DISTANCE = 24;
+    /**
+     * What the reel draws at unless the caller says otherwise. Every scene holds its own stage open,
+     * and the six of them at 24 would be eighteen thousand chunks to generate before the first frame;
+     * at 18 it is half that and the horizon is still well past anything the camera looks at.
+     */
+    public static final int REEL_RENDER_DISTANCE = 18;
     /** How long the server waits for the client's "ready" before rolling anyway (ticks). */
     private static final int MAX_CLIENT_WAIT = 400;
     /** How long a stage may take to load before the scene starts on what there is (ticks). */
@@ -497,9 +503,18 @@ public final class Cinematics {
     }
 
     private static void roll(Run run, List<Key> keys, int fadeIn, int fadeOut) {
+        roll(run, keys, fadeIn, fadeOut, false);
+    }
+
+    /**
+     * Send a path. {@code bossBar} keeps the boss bar on screen - which a fight wants and a
+     * cataclysm does not: a colossus that happens to be alive somewhere near the shot used to put
+     * its health bar across the top of a shot about the weather.
+     */
+    private static void roll(Run run, List<Key> keys, int fadeIn, int fadeOut, boolean bossBar) {
         run.waiting = true;
         run.waitTicks = 0;
-        WakingNet.cineStart(run.player, keys, fadeIn, fadeOut);
+        WakingNet.cineStart(run.player, keys, fadeIn, fadeOut, bossBar);
     }
 
     // ------------------------------------------------------------------ the scenes
@@ -640,7 +655,7 @@ public final class Cinematics {
             }
             Key first = keys.get(0);
             teleport(r.player, level, c.add(first.x(), first.y(), first.z()));
-            roll(r, keys, fromRite ? 10 : 20, 20);
+            roll(r, keys, fromRite ? 10 : 20, 20, true);
         });
         return t0 + 620;
     }
@@ -718,7 +733,7 @@ public final class Cinematics {
                 double height = p < 0.4 ? 20 + p / 0.4 * 14 : 34 + (p - 0.4) / 0.6 * 26;
                 keys.add(shot(end, 420 + i * 20, orbit(c, radius, height, angle), spot.add(0, 6 + p * 44, 0), 62f + (float) p * 10f));
             }
-            roll(r, keys, 20, 10);
+            roll(r, keys, 20, 10, true);
         });
         run.add(t0 + 200, r -> {
             if (r.altar != null && r.altar.great()) r.altar.forceStart();
@@ -751,7 +766,7 @@ public final class Cinematics {
             }
             Key first = keys.get(0);
             teleport(r.player, end, c.add(first.x(), first.y(), first.z()));
-            roll(r, keys, 20, 10);
+            roll(r, keys, 20, 10, true);
         });
         // the Titan falls: the long death, then the gate rises at the southern rim
         int d = f + 500;
@@ -888,8 +903,8 @@ public final class Cinematics {
         BlockPos where = site != null ? site : cataclysmSite(run);
         if (where == null) return -1;
         run.stage(level, where);
-        run.stage(level, where.offset(-190, 0, -40));         // the camera starts here, seeing further back
-        run.stage(level, where.offset(190, 0, 40));           // and ends here, looking further on
+        run.stage(level, where.offset(190, 0, 40));           // the camera starts here, seeing further back
+        run.stage(level, where.offset(-190, 0, -40));         // and ends here, looking further on
         run.add(t0, r -> {
             BlockPos g = settle(level, where);                // never a raw heightmap read: see settle()
             Vec3 c = new Vec3(g.getX() + 0.5, g.getY(), g.getZ() + 0.5);
@@ -897,8 +912,10 @@ public final class Cinematics {
             level.setWeatherParameters(24000, 0, false, false);
             // ask for the name now so the model has the whole flight to answer; nameSoon never blocks
             me.lovkar.wakingworld.land.Lands.get(level).nameSoon(level, where);
-            Vec3 from = c.add(-190, 78, -40);
-            Vec3 to = c.add(190, 58, 40);
+            // east to west: at first light the sun is low in the east, so flying the other way put
+            // it straight down the lens for the whole crossing
+            Vec3 from = c.add(190, 78, 40);
+            Vec3 to = c.add(-190, 58, -40);
             teleport(r.player, level, from);
             List<Key> keys = new ArrayList<>();
             for (int i = 0; i <= 22; i++) {
@@ -1023,7 +1040,7 @@ public final class Cinematics {
      * actually keep, since it only wakes once every twenty ticks. The configured minutes are right
      * for a world and far too slow for a shot.</p>
      */
-    private static final int CONE = 36, CONE_FOOT = 22, CONE_SECONDS = 36;
+    private static final int CONE = 36, CONE_FOOT = 30, CONE_SECONDS = 36;
 
     private static int volcano(Run run, int t0, BlockPos site) {
         ServerLevel level = run.player.serverLevel();
@@ -1038,20 +1055,24 @@ public final class Cinematics {
             // late afternoon, not dusk: the shot runs 50 s and would otherwise walk the clock into
             // 13000-14000, which is exactly when the world rolls for a shower and a blood moon
             level.setDayTime(11400);
+            // and the sun is low in the west by then. The first take swung the camera round to 350
+            // degrees, which is standing in the east looking straight into it: the mountain came out
+            // as a silhouette in a white frame. Everything below keeps the camera on the sun's side.
             level.setWeatherParameters(24000, 0, false, false);
             teleport(r.player, level, orbit(c, 70, 22, 200));
             List<Key> keys = new ArrayList<>();
             // the warning: smoke and shaking over ground that is still flat (Volcano.force gives it 5 s)
-            for (int i = 0; i <= 6; i++) keys.add(shot(level, i * 20, orbit(c, 70 - i * 1.5, 22, 200 + i * 4), c.add(0, 6, 0), 64f));
-            // the rise: back and up, the crater kept about a third up the frame the whole way
+            for (int i = 0; i <= 6; i++) keys.add(shot(level, i * 20, orbit(c, 70 - i * 1.5, 22, 205 - i * 3), c.add(0, 6, 0), 64f));
+            // the rise: back and up, the crater kept about a third up the frame, and the whole sweep
+            // held inside 130-190 degrees - west of the mountain, looking east, sun over the shoulder
             for (int i = 1; i <= 36; i++) {
                 double p = i / 36.0;
-                keys.add(shot(level, 120 + i * 20, orbit(c, 66 + p * 52, 24 + p * 34, 220 + p * 130),
+                keys.add(shot(level, 120 + i * 20, orbit(c, 66 + p * 52, 24 + p * 34, 187 - p * 54),
                         c.add(0, 6 + p * CONE * 0.72, 0), 64f));
             }
             // and a last hold on the finished mountain, framed on the cone rather than the sky over it
             for (int i = 1; i <= 6; i++) {
-                keys.add(shot(level, 840 + i * 20, orbit(c, 120 + i * 2, 44, 350 + i * 3), c.add(0, CONE * 0.55, 0), 62f));
+                keys.add(shot(level, 840 + i * 20, orbit(c, 120 + i * 2, 44, 133 - i * 2), c.add(0, CONE * 0.55, 0), 62f));
             }
             roll(r, keys, 25, 30);
         });
@@ -1188,19 +1209,32 @@ public final class Cinematics {
         BlockPos field = sub(level, centre, 380, -300);
         BlockPos mountain = sub(level, centre, 90, 430);
         BlockPos crater = sub(level, centre, -330, 360);
+        if (country == null || field == null || mountain == null || crater == null) {
+            run.player.displayClientMessage(Component.literal(
+                    "Not enough dry ground round here for the whole reel - try again somewhere inland."), false);
+            return -1;
+        }
         int t = lands(run, t0, country);
-        t = tornado(run, t + 20, field);
-        t = earthquake(run, t + 20, field);
-        t = volcano(run, t + 20, mountain);
-        t = meteor(run, t + 20, crater);
-        t = bloodmoon(run, t + 20, crater);
+        t = tornado(run, t + 10, field);
+        t = earthquake(run, t + 10, field);
+        t = volcano(run, t + 10, mountain);
+        t = meteor(run, t + 10, crater);
+        t = bloodmoon(run, t + 10, crater);
         return t;
     }
 
-    /** One of the reel's sites: open ground near the offset, or the offset itself if there is none. */
+    /**
+     * One of the reel's sites. The fallback matters more than the search: the first version handed
+     * back the bare offset when it found nothing, which is a point with no ground under it at all -
+     * and on the first take that put the tornado, the meteor and the blood moon over open water.
+     * Now it widens the search twice and only then gives up, and what it gives up with is still a
+     * spot that was checked for being dry.
+     */
     private static BlockPos sub(ServerLevel level, BlockPos centre, int dx, int dz) {
         BlockPos want = centre.offset(dx, 0, dz);
-        BlockPos found = openGround(level, want, 0, 90, 10);
-        return found != null ? found : want;
+        BlockPos found = openGround(level, want, 0, 90, 12);
+        if (found == null) found = openGround(level, want, 60, 220, 20);
+        if (found == null) found = openGround(level, centre, 90, 400, 24);
+        return found;
     }
 }

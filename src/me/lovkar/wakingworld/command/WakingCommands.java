@@ -408,7 +408,14 @@ public final class WakingCommands {
             ctx.getSource().sendFailure(Component.literal("The camera needs a player."));
             return 0;
         }
-        String result = me.lovkar.wakingworld.story.Cinematics.start(player, scene, renderDistance);
+        // the reels hold six stages open at once; at the single-scene render distance that is
+        // eighteen thousand chunks to generate before the first frame, so they get their own default
+        int rd = renderDistance;
+        if (rd == me.lovkar.wakingworld.story.Cinematics.DEFAULT_RENDER_DISTANCE
+                && (scene.equals("cataclysms") || scene.equals("all"))) {
+            rd = me.lovkar.wakingworld.story.Cinematics.REEL_RENDER_DISTANCE;
+        }
+        String result = me.lovkar.wakingworld.story.Cinematics.start(player, scene, rd);
         if (result == null) {
             ctx.getSource().sendFailure(Component.literal(
                     "No such scene. 0.1: shrine, rite, fight, kingdom, titan, all. "

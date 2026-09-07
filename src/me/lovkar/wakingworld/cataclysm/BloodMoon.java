@@ -181,6 +181,11 @@ public final class BloodMoon extends SavedData {
             mob.moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, rnd.nextFloat() * 360F, 0F);
             mob.finalizeSpawn(level, level.getCurrentDifficultyAt(at), MobSpawnType.EVENT, null);
             mob.addTag(TAG);
+            // seen in the dark. A blood moon is a night event and the mobs it brings were, on camera,
+            // a black field with a few eyes in it - the outline is what makes the siege read at all,
+            // and it tells a player at a glance which of the things around them came with the moon.
+            mob.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                    net.minecraft.world.effect.MobEffects.GLOWING, 20 * 60 * 20, 0, false, false, false));
             dress(mob);
             if (target != null) mob.setTarget(target);
             level.addFreshEntity(mob);

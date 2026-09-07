@@ -95,9 +95,39 @@ public final class Earthquake {
                 || state.is(net.minecraft.tags.BlockTags.TERRACOTTA);
     }
 
-    /** Every second while it lasts: the shaking, and what the shaking does to whoever is standing in it. */
+    /**
+     * Every second while it lasts: the shaking, what it does to whoever is standing in it, and - the
+     * part that was missing - something to look at. A camera on the ground during the first version
+     * saw a still field that had already finished cracking; now the dust comes up off the faults for
+     * the whole of it, stones come down, and the ground is heard as well as felt.
+     */
     public static void second(ServerLevel level, Vec3 at, float strength) {
         WakingWorld.hooks.shakeAt(at, 3.5F * strength, 200);
+        RandomSource rnd = level.random;
+        // dust off the ground in a wide ring - thicker near the middle, thinner at the edges
+        for (int i = 0; i < 40; i++) {
+            double a = rnd.nextDouble() * Math.PI * 2;
+            double d = Math.sqrt(rnd.nextDouble()) * 70;
+            double px = at.x + Math.cos(a) * d, pz = at.z + Math.sin(a) * d;
+            int top = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) px, (int) pz);
+            if (top <= level.getMinBuildHeight() + 1) continue;
+            BlockState ground = level.getBlockState(BlockPos.containing(px, top - 1, pz));
+            if (ground.isAir()) continue;
+            level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(
+                            net.minecraft.core.particles.ParticleTypes.BLOCK, ground),
+                    px, top + 0.3, pz, 4, 0.6, 0.35, 0.6, 0.22 * strength);
+            if (rnd.nextInt(5) == 0) {
+                level.sendParticles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, top + 1.2, pz,
+                        3, 0.5, 0.4, 0.5, 0.02);
+            }
+        }
+        // and the deep note under it, from wherever the listener is standing
+        for (net.minecraft.server.level.ServerPlayer p : level.players()) {
+            if (p.distanceToSqr(at.x, at.y, at.z) > 200 * 200) continue;
+            level.playSound(null, p.getX(), p.getY(), p.getZ(),
+                    net.minecraft.sounds.SoundEvents.GENERIC_EXPLODE.value(),
+                    net.minecraft.sounds.SoundSource.WEATHER, 0.9F * strength, 0.22F + rnd.nextFloat() * 0.06F);
+        }
         AABB box = new AABB(at, at).inflate(90);
         for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, box)) {
             if (!e.onGround()) continue;

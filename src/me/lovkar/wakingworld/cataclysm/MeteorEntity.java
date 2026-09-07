@@ -128,6 +128,23 @@ public class MeteorEntity extends Entity {
         server.playSound(null, at.x, at.y, at.z, SoundEvents.STONE_BREAK, SoundSource.WEATHER, 6.0F, 0.4F);
         server.sendParticles(ParticleTypes.EXPLOSION_EMITTER, at.x, at.y + 1, at.z, 2 + s, craterRadius * 0.3, 0.5, craterRadius * 0.3, 0);
         server.sendParticles(ParticleTypes.LARGE_SMOKE, at.x, at.y + 1, at.z, 60 + 40 * s, craterRadius, 2.0, craterRadius, 0.08);
+        // the flash, and the ring going out from it. A star landing at night was three grey puffs on
+        // camera: what a strike needs is something bright at the moment of it and something moving
+        // outwards afterwards, or there is nothing to cut to.
+        server.sendParticles(ParticleTypes.FLASH, at.x, at.y + 1.5, at.z, 3 + s, 0.4, 0.4, 0.4, 0);
+        server.sendParticles(ParticleTypes.END_ROD, at.x, at.y + 1.0, at.z, 40 + 30 * s, 0.6, 0.4, 0.6, 0.55);
+        double ring = craterRadius * 1.25;
+        for (int i = 0; i < 60 + 20 * s; i++) {
+            double a = i / (double) (60 + 20 * s) * Math.PI * 2;
+            double px = at.x + Math.cos(a) * ring, pz = at.z + Math.sin(a) * ring;
+            server.sendParticles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, at.y + 0.6, pz, 2, 0.3, 0.2, 0.3, 0.06);
+            server.sendParticles(ParticleTypes.LAVA, px, at.y + 0.4, pz, 1, 0.2, 0.1, 0.2, 0.0);
+        }
+        // a column of smoke standing over the crater, so the strike is still findable a minute later
+        for (int i = 0; i < 6; i++) {
+            server.sendParticles(ParticleTypes.LARGE_SMOKE, at.x, at.y + 3 + i * 5.0, at.z,
+                    14, craterRadius * (0.4 + i * 0.22), 1.5, craterRadius * (0.4 + i * 0.22), 0.04);
+        }
 
         for (LivingEntity target : server.getEntitiesOfClass(LivingEntity.class, new AABB(at, at).inflate(craterRadius + 3), LivingEntity::isAlive)) {
             double d = target.position().distanceTo(at);

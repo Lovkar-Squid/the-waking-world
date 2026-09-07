@@ -186,21 +186,56 @@ public final class TornadoEntity extends Entity {
         return true;
     }
 
+    /**
+     * What anybody actually sees. There is no funnel model - a tornado is only the air and the dirt
+     * caught in it - so all of it is drawn here, and the first version drew fourteen particles up a
+     * column twenty-six blocks tall, which from any distance was nothing at all.
+     *
+     * <p>Three things now: the column itself, wound as a helix so it reads as turning rather than as
+     * a haze; a skirt of the ground it is standing on, which is what sells the size; and debris
+     * flung clear of it. The ground it is over is sampled once and used for every block particle -
+     * one lookup, not one per particle.</p>
+     */
     private void spray(ServerLevel level, float s) {
         double r = radius();
-        for (int i = 0; i < 14; i++) {
-            double a = this.random.nextDouble() * Math.PI * 2;
-            double h = this.random.nextDouble() * 26 * s;
-            double rr = r * (0.35 + h / 34.0);
+        double turn = this.tickCount * 0.35;
+        // the column: two twisted strands from the ground to the top of it
+        for (int i = 0; i < 46; i++) {
+            double up = this.random.nextDouble();
+            double h = up * 30 * s;
+            double rr = r * (0.30 + up * 0.95);
+            double a = turn + up * 7.0 + (i % 2 == 0 ? 0 : Math.PI) + (this.random.nextDouble() - 0.5) * 0.5;
             double px = getX() + Math.cos(a) * rr;
             double pz = getZ() + Math.sin(a) * rr;
-            level.sendParticles(ParticleTypes.CLOUD, px, getY() + h, pz, 1, 0, 0, 0, 0.02);
+            level.sendParticles(ParticleTypes.CLOUD, px, getY() + h, pz, 1, 0, 0, 0, 0.02 + up * 0.05);
         }
         BlockPos under = BlockPos.containing(getX(), getY() - 1, getZ());
         BlockState ground = level.getBlockState(under);
         if (!ground.isAir()) {
-            level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, ground),
-                    getX(), getY() + 0.5, getZ(), 24, r * 0.6, 1.5, r * 0.6, 0.4);
+            BlockParticleOption dust = new BlockParticleOption(ParticleTypes.BLOCK, ground);
+            // the skirt where it meets the ground - the widest, dirtiest part of it
+            level.sendParticles(dust, getX(), getY() + 0.4, getZ(), 60, r * 1.15, 0.8, r * 1.15, 0.55);
+            // and what it is carrying, up the first third of the column
+            for (int i = 0; i < 10; i++) {
+                double a = turn * 1.4 + this.random.nextDouble() * Math.PI * 2;
+                double rr = r * (0.5 + this.random.nextDouble() * 0.9);
+                level.sendParticles(dust, getX() + Math.cos(a) * rr, getY() + this.random.nextDouble() * 11 * s,
+                        getZ() + Math.sin(a) * rr, 3, 0.4, 0.6, 0.4, 0.35);
+            }
+        }
+        // it drags the storm with it: a bolt now and then, close by, that starts no fires
+        if (s > 0.45 && this.random.nextInt(90) == 0) {
+            double a = this.random.nextDouble() * Math.PI * 2;
+            double d = 14 + this.random.nextDouble() * 26;
+            BlockPos hit = BlockPos.containing(getX() + Math.cos(a) * d, getY(), getZ() + Math.sin(a) * d);
+            net.minecraft.world.entity.LightningBolt bolt =
+                    net.minecraft.world.entity.EntityType.LIGHTNING_BOLT.create(level);
+            if (bolt != null) {
+                bolt.moveTo(net.minecraft.world.phys.Vec3.atBottomCenterOf(
+                        level.getHeightmapPos(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, hit)));
+                bolt.setVisualOnly(true);       // a trailer, not a forest fire
+                level.addFreshEntity(bolt);
+            }
         }
     }
 

@@ -31,6 +31,27 @@ the supporter perks switched off.
   would pick, and `/wakingworld volcano <x y z> <height> <foot> <seconds>` forces the pace of a rise.
 - Nothing the world drives can start while the camera is rolling. A meteor shower or a blood moon
   landing on top of a scene is a ruined take that gives no sign in the footage of what went wrong.
+- **The Named Lands get a card of their own** instead of a vanilla title: the name over a rule that
+  opens out of the middle, the lore wrapped to a readable measure under it, and the land's kind above.
+  A vanilla subtitle is drawn as one line and never wrapped, so the lore used to run off both edges of
+  the screen and only its middle was ever legible.
+- **A waypoint on your map** when you walk into a named land, for JourneyMap and Xaero's. Neither is a
+  dependency - without a map mod nothing happens - and the client config can turn it off.
+- **The volcano runs.** Lava comes over a notch in the rim and down one flank in a walled channel from
+  the crater to the ground, where it spreads into a burnt fan; the rim is ridged rather than round, so
+  the thing is a mountain and not a stack of discs; the plume stands eight stations up the sky with
+  embers at the throat and ash falling on anyone under it; and the default rise is halved to two
+  minutes.
+- **The tornado has a body**: the column wound as a helix instead of a haze, a skirt of the ground it
+  is standing on, debris thrown clear, and lightning that starts no fires.
+- **The earthquake can be watched, not only felt**: dust off the faults for the whole of it, and a deep
+  note under it every second.
+- **A star landing is an event**: the flash, a ring of embers going out from the crater, and a column
+  of smoke standing over it afterwards so the strike is still findable.
+- **The blood moon's monsters are outlined**, so a night siege reads as more than a few pairs of eyes.
+- The camera lifts the brightness for night scenes and puts it back at the cut, keeps the boss bar for
+  fights only, and clears what the player is looking at on the tick rather than on the frame - too late
+  for tooltip mods, which drew over the take.
 
 ### Changed
 - **The supporter perks are switched off.** Every class is still here and nothing about them changed,
@@ -48,6 +69,11 @@ the supporter perks switched off.
   command still works.
 - A forced volcano's rise took longer than it was told to: the pulse clock only wakes every twenty
   ticks and any pace that was not a whole number of seconds quietly rounded up.
+- The camera picked its sites with a fallback that had no ground under it at all, which put the
+  tornado, the meteor and the blood moon over open water; and it shot the volcano into the setting
+  sun, which came back as a silhouette in a white frame.
+- Laying the volcano's foot was thousands of blocks inside one tick - a two-second freeze in the
+  middle of the shot. It goes down in strips under the warning smoke now.
 - A battle theme the sound engine declined to start left the whole fight silent. The director
   measured the track's age in ticks of the track itself, which stand still in exactly that case, so
   it went on believing the music was still starting and never retried. It reads the clock now, and a

@@ -51,6 +51,8 @@ public final class Volcano extends SavedData {
     private int courses;             // how many there will be
     private int baseR;               // the radius of the foot
     private int nextPulse;
+    /** The bearing the lava runs down, in radians. Chosen once so the flow does not wander. */
+    private float spill;
     /**
      * How long the whole rise should take, in seconds; 0 = whatever the config says. The camera sets
      * it: a mountain that takes the configured minutes to grow is right in a world and far too slow
@@ -108,6 +110,12 @@ public final class Volcano extends SavedData {
             case WARNING -> {
                 phaseTicks -= 20;
                 smoke(level);
+                // the skirt is thousands of columns; laid in one go it is a two-second freeze in the
+                // middle of the shot, so it goes down in strips, one a second, under the smoke
+                int slice = FOOT_SLICES - 1 - Math.max(0, Math.min(FOOT_SLICES - 1, phaseTicks / 20));
+                if (slice >= 0 && slice < FOOT_SLICES) {
+                    foot(level, rnd, (int) Math.ceil(outerAt(0.0)) + 1, slice, FOOT_SLICES);
+                }
                 if (phaseTicks % 60 == 0) {
                     level.playSound(null, cx, baseY, cz, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, 3.0F, 0.35F);
                     WakingWorld.hooks.shakeAt(new Vec3(cx, baseY, cz), 1.2F, 160);
@@ -115,6 +123,8 @@ public final class Volcano extends SavedData {
                 if (phaseTicks <= 0) {
                     phase = Phase.RISING;
                     nextPulse = 0;
+                    // whatever the strips did not reach - a short warning, or a reload part way through
+                    for (int i = 0; i < FOOT_SLICES; i++) foot(level, rnd, (int) Math.ceil(outerAt(0.0)) + 1, i, FOOT_SLICES);
                     setDirty();
                 }
             }
@@ -162,6 +172,7 @@ public final class Volcano extends SavedData {
         baseR = WakingConfig.volcanoRadius();
         courses = Math.max(6, WakingConfig.volcanoHeight());
         course = 0;
+        spill = rnd.nextFloat() * (float) (Math.PI * 2);
         riseSeconds = 0;                // a volcano the world raised keeps the world's pace
         phase = Phase.WARNING;
         phaseTicks = 40 * 20;
@@ -182,10 +193,10 @@ public final class Volcano extends SavedData {
         int y = baseY + h;
         int r = (int) Math.ceil(outer) + 1;
 
-        for (int dx = -r; dx <= r; dx++) {
-            for (int dz = -r; dz <= r; dz++) {
+        for (int dx = -r - 2; dx <= r + 2; dx++) {
+            for (int dz = -r - 2; dz <= r + 2; dz++) {
                 double d = Math.sqrt(dx * dx + dz * dz);
-                double edge = outer + (rnd.nextDouble() - 0.5) * 1.6;   // a rough, uneven rim
+                double edge = outerAt(climbed, Math.atan2(dz, dx)) + (rnd.nextDouble() - 0.5) * 1.6;
                 if (d > edge) continue;
                 BlockPos at = new BlockPos(cx + dx, y, cz + dz);
                 if (d < vent) {                                   // the throat stays open
@@ -198,8 +209,8 @@ public final class Volcano extends SavedData {
             }
         }
 
-        // the first course also beds the mountain into the ground beneath it
-        if (h == 0) foot(level, rnd, r);
+        // and from a third of the way up, the flank is open and running
+        if (climbed > 0.30) channel(level, rnd);
 
         level.playSound(null, cx, y, cz, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, 4.0F, 0.4F + rnd.nextFloat() * 0.2F);
         level.sendParticles(ParticleTypes.LARGE_SMOKE, cx + 0.5, y + 1.5, cz + 0.5, 60, outer * 0.4, 2.0, outer * 0.4, 0.05);
@@ -226,20 +237,58 @@ public final class Volcano extends SavedData {
      * throat widens as it climbs - so the thing ends with a crater you could stand in, not a chimney.
      */
     private double outerAt(double climbed) {
-        return baseR * (1.0 - 0.55 * climbed);
+        return baseR * (1.0 - 0.62 * climbed);
+    }
+
+    /**
+     * The rim at one bearing. A cone whose every ring is a true circle comes out as a stack of discs
+     * - which is exactly what the first one looked like on camera, a cake rather than a mountain. Two
+     * slow waves round the compass, seeded off the spill so a volcano does not look like the last
+     * one, give it ridges and gullies that run all the way down; and the rim is pulled in hard on the
+     * spill bearing so the lava has a notch to come over instead of a wall to climb.
+     */
+    private double outerAt(double climbed, double angle) {
+        double r = outerAt(climbed);
+        double ridges = 1.0 + 0.13 * Math.sin(angle * 3 + spill * 2.0) + 0.07 * Math.cos(angle * 5 - spill);
+        double notch = 1.0 - 0.30 * Math.exp(-sq(angleTo(angle, spill)) / 0.06) * climbed;
+        return r * ridges * notch;
+    }
+
+    private static double sq(double x) {
+        return x * x;
+    }
+
+    /** The shortest way round from one bearing to another, in radians. */
+    private static double angleTo(double a, double b) {
+        double d = (a - b) % (Math.PI * 2);
+        if (d > Math.PI) d -= Math.PI * 2;
+        if (d < -Math.PI) d += Math.PI * 2;
+        return d;
     }
 
     private double ventAt(double climbed) {
         return Math.max(1.5, outerAt(climbed) * (0.20 + 0.35 * climbed));
     }
 
-    /** Where the ground meets the new mountain: a skirt of rock so it does not stand on a lip of air. */
-    private void foot(ServerLevel level, RandomSource rnd, int r) {
-        for (int dx = -r - 3; dx <= r + 3; dx++) {
+    /** How many ticks of the warning the skirt is spread over. */
+    private static final int FOOT_SLICES = 5;
+
+    /**
+     * Where the ground meets the new mountain: a skirt of rock so it does not stand on a lip of air.
+     * One strip of it, so a wide foot can be laid a piece at a time instead of all inside one tick.
+     */
+    private void foot(ServerLevel level, RandomSource rnd, int r, int slice, int slices) {
+        int span = 2 * (r + 3) + 1;
+        int from = -r - 3 + (int) ((long) span * slice / slices);
+        int to = -r - 3 + (int) ((long) span * (slice + 1) / slices);
+        for (int dx = from; dx < to; dx++) {
             for (int dz = -r - 3; dz <= r + 3; dz++) {
                 double d = Math.sqrt(dx * dx + dz * dz);
                 if (d > r + 3) continue;
-                int top = Cataclysms.surface(level, cx + dx, cz + dz).getY();
+                // the heightmap, not Cataclysms.surface: the pulse has just written blocks into every
+                // one of these chunks, so they are loaded, and a getChunk per column is thousands of
+                // them in one tick once the foot is wide
+                int top = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, cx + dx, cz + dz);
                 for (int y = Math.min(top, baseY) - 1; y <= baseY; y++) {
                     BlockPos at = new BlockPos(cx + dx, y, cz + dz);
                     if (level.getBlockState(at).isAir() || !level.getFluidState(at).isEmpty()) {
@@ -276,11 +325,13 @@ public final class Volcano extends SavedData {
                 level.setBlock(new BlockPos(cx + dx, rimY - 2, cz + dz), Blocks.LAVA.defaultBlockState(), 2);
             }
         }
-        // three cooled flows down the flanks, following the same cone the pulses built
-        for (int f = 0; f < 3; f++) {
-            double angle = rnd.nextDouble() * Math.PI * 2;
+        // the live channel is cut one last time, now that the rim is at its full height
+        channel(level, rnd);
+        // and two older flows that have already set, off to either side of it
+        for (int f = 0; f < 2; f++) {
+            double angle = spill + (f == 0 ? 2.1 : -2.4);
             for (int h = courses - 1; h >= 0; h--) {
-                double ring = outerAt((double) h / courses) - 0.4;
+                double ring = outerAt((double) h / courses, angle) - 0.4;
                 double px = cx + 0.5 + Math.cos(angle) * ring;
                 double pz = cz + 0.5 + Math.sin(angle) * ring;
                 angle += (rnd.nextDouble() - 0.5) * 0.16;
@@ -307,12 +358,96 @@ public final class Volcano extends SavedData {
     }
 
     /** Ash and smoke drifting over anyone near enough to be under it. */
+    /**
+     * The plume. The first version put a dozen particles over the vent and was invisible from any
+     * distance worth filming from; this stacks them up the column so the thing has a shape against
+     * the sky, widening as it climbs the way real ash does, with embers near the throat and ash
+     * falling over anyone close enough to be under it.
+     */
     private void smoke(ServerLevel level) {
         int top = baseY + Math.max(1, course);
-        level.sendParticles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, cx + 0.5, top + 3.0, cz + 0.5, 12, 2.0, 1.0, 2.0, 0.02);
+        double vent = Math.max(2.0, ventAt(courses == 0 ? 0 : (double) course / courses));
+        // the column: eight stations up the sky, each wider and slower than the one below it
+        for (int i = 0; i < 8; i++) {
+            double up = 4 + i * 7.5;
+            double spread = vent * (0.7 + i * 0.55);
+            level.sendParticles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, cx + 0.5, top + up, cz + 0.5,
+                    6 + i, spread, 1.6, spread, 0.012 + i * 0.004);
+            if (i < 3) {
+                level.sendParticles(ParticleTypes.LARGE_SMOKE, cx + 0.5, top + up, cz + 0.5,
+                        8, spread * 0.7, 1.2, spread * 0.7, 0.03);
+            }
+        }
+        // what is still burning, right at the throat
+        level.sendParticles(ParticleTypes.LAVA, cx + 0.5, top + 1.5, cz + 0.5, 6, vent * 0.6, 0.6, vent * 0.6, 0.0);
+        level.sendParticles(ParticleTypes.FLAME, cx + 0.5, top + 2.5, cz + 0.5, 10, vent * 0.5, 1.2, vent * 0.5, 0.06);
         for (ServerPlayer p : level.players()) {
-            if (p.distanceToSqr(cx, top, cz) > 260 * 260) continue;
-            level.sendParticles(p, ParticleTypes.WHITE_ASH, false, p.getX(), p.getY() + 12, p.getZ(), 30, 16, 6, 16, 0.0);
+            double away = p.distanceToSqr(cx, top, cz);
+            if (away > 300 * 300) continue;
+            level.sendParticles(p, ParticleTypes.WHITE_ASH, false, p.getX(), p.getY() + 12, p.getZ(),
+                    away < 140 * 140 ? 60 : 24, 18, 8, 18, 0.0);
+        }
+    }
+
+    /**
+     * The lava that runs down one flank while the mountain is still going up.
+     *
+     * <p>It is cut as a groove rather than poured: a one-block channel down the spill bearing, walls
+     * of blackstone either side and lava standing in it. Real flowing lava down an open slope floods
+     * the valley, sets fire to everything in it and costs a fluid tick per block; standing lava in a
+     * walled groove goes nowhere, costs nothing after it is laid, and from any distance reads as
+     * exactly the thing it is meant to be - a line of fire down a black cone.</p>
+     */
+    private void channel(ServerLevel level, RandomSource rnd) {
+        double angle = spill;
+        int from = Math.max(0, course - 1);
+        for (int h = from; h >= 0; h--) {
+            double climbed = (double) h / courses;
+            double ring = outerAt(climbed, angle) - 0.6;
+            angle += (rnd.nextDouble() - 0.5) * 0.05;              // it wanders a little, not much
+            double px = cx + 0.5 + Math.cos(angle) * ring;
+            double pz = cz + 0.5 + Math.sin(angle) * ring;
+            int y = baseY + h;
+            double nx = Math.sin(angle), nz = -Math.cos(angle);
+            // the groove itself - two wide, so it reads as a river and not as a seam, and open to
+            // the sky above it or the rock closes over and the whole thing is invisible from outside
+            for (int c = 0; c <= 1; c++) {
+                BlockPos at = BlockPos.containing(px + nx * c * 0.9, y, pz + nz * c * 0.9);
+                level.setBlock(at, Blocks.LAVA.defaultBlockState(), 2);
+                level.setBlock(at.above(), Blocks.AIR.defaultBlockState(), 2);
+                level.setBlock(at.above(2), Blocks.AIR.defaultBlockState(), 2);
+            }
+            BlockPos at = BlockPos.containing(px, y, pz);
+            // and its banks, so it cannot go anywhere
+            for (int w = -1; w <= 2; w += 3) {
+                BlockPos bank = BlockPos.containing(px + nx * w, y, pz + nz * w);
+                if (level.getBlockState(bank).getFluidState().isEmpty()) {
+                    level.setBlock(bank, rnd.nextDouble() < 0.25 ? Blocks.MAGMA_BLOCK.defaultBlockState()
+                            : Blocks.BLACKSTONE.defaultBlockState(), 2);
+                }
+                if (level.getBlockState(bank.above()).getFluidState().isEmpty()
+                        && !level.getBlockState(bank.above()).isAir() && rnd.nextDouble() < 0.5) {
+                    level.setBlock(bank.above(), Blocks.BLACKSTONE.defaultBlockState(), 2);
+                }
+            }
+            for (int c = 0; c <= 1; c++) {
+                BlockPos under = BlockPos.containing(px + nx * c * 0.9, y - 1, pz + nz * c * 0.9);
+                if (level.getBlockState(under).isAir() || !level.getFluidState(under).isEmpty()) {
+                    level.setBlock(under, Blocks.BLACKSTONE.defaultBlockState(), 2);
+                }
+            }
+        }
+        // where it reaches the ground it spreads into a small burnt fan
+        double ex = cx + 0.5 + Math.cos(angle) * (outerAt(0, angle) + 2);
+        double ez = cz + 0.5 + Math.sin(angle) * (outerAt(0, angle) + 2);
+        for (int i = 0; i < 14; i++) {
+            int fx = (int) (ex + (rnd.nextDouble() - 0.5) * 7);
+            int fz = (int) (ez + (rnd.nextDouble() - 0.5) * 7);
+            BlockPos g = new BlockPos(fx, level.getHeight(
+                    net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, fx, fz), fz);
+            if (g.getY() > baseY + 3 || g.getY() <= level.getMinBuildHeight() + 1) continue;
+            level.setBlock(g.below(), rnd.nextDouble() < 0.3 ? Blocks.MAGMA_BLOCK.defaultBlockState()
+                    : Blocks.BLACKSTONE.defaultBlockState(), 2);
         }
     }
 
@@ -323,7 +458,7 @@ public final class Volcano extends SavedData {
      */
     private static BlockState wall(RandomSource rnd, double climbed) {
         double v = rnd.nextDouble();
-        if (v < 0.05 + 0.05 * climbed) return Blocks.MAGMA_BLOCK.defaultBlockState();   // hotter near the top
+        if (v < 0.018 + 0.022 * climbed) return Blocks.MAGMA_BLOCK.defaultBlockState();  // hotter near the top
         if (climbed < 0.34 && v < 0.13) return Blocks.GILDED_BLACKSTONE.defaultBlockState();
         if (v < 0.44) return Blocks.BASALT.defaultBlockState();
         if (v < 0.74) return Blocks.TUFF.defaultBlockState();
@@ -371,6 +506,7 @@ public final class Volcano extends SavedData {
         v.baseR = tag.getInt("Foot");
         v.nextPulse = tag.getInt("Next");
         v.riseSeconds = tag.getInt("RiseSeconds");
+        v.spill = tag.getFloat("Spill");
         return v;
     }
 
@@ -387,6 +523,7 @@ public final class Volcano extends SavedData {
         tag.putInt("Foot", baseR);
         tag.putInt("Next", nextPulse);
         tag.putInt("RiseSeconds", riseSeconds);
+        tag.putFloat("Spill", spill);
         return tag;
     }
 
@@ -402,6 +539,7 @@ public final class Volcano extends SavedData {
     public static void force(ServerLevel level, BlockPos at, int height, int foot, int riseSeconds) {
         Volcano v = get(level);
         v.riseSeconds = riseSeconds;
+        v.spill = level.random.nextFloat() * (float) (Math.PI * 2);
         v.cx = at.getX();
         v.cz = at.getZ();
         v.baseY = at.getY();

@@ -60,6 +60,10 @@ public final class Cinematic {
     private static List<Cinematics.Key> keys;
     private static int tick, fadeIn, fadeOut, length;
     private static boolean waiting, holding;
+    /** Whether this path wants the boss bar left on screen - a fight does, a cataclysm does not. */
+    private static boolean wantBossBar;
+    /** The player's own brightness, put back at the cut. */
+    private static double gammaBefore = -1;
     private static int waitTicks, arrivedAt, lastBuilt, stillTicks;
     private static boolean wasHidingGui;
     private static int renderBefore = -1;
@@ -88,10 +92,14 @@ public final class Cinematic {
         }
     }
 
-    public static void start(List<Cinematics.Key> path, int in, int out) {
+    public static void start(List<Cinematics.Key> path, int in, int out, boolean bar) {
         if (path == null || path.isEmpty()) return;
         Minecraft mc = Minecraft.getInstance();
-        if (!active()) wasHidingGui = mc.options.hideGui;
+        if (!active()) {
+            wasHidingGui = mc.options.hideGui;
+            gammaBefore = mc.options.gamma().get();
+        }
+        wantBossBar = bar;
         keys = path;
         tick = 0;
         fadeIn = in;
@@ -133,6 +141,10 @@ public final class Cinematic {
             if (mc.options.renderDistance().get() != renderBefore) mc.options.renderDistance().set(renderBefore);
             renderBefore = -1;
         }
+        if (gammaBefore >= 0) {
+            mc.options.gamma().set(gammaBefore);
+            gammaBefore = -1;
+        }
     }
 
     public static void clientTick(ClientTickEvent.Post event) {
@@ -143,6 +155,7 @@ public final class Cinematic {
             return;
         }
         mc.getToasts().clear(); // no advancement toasts over the picture
+        brightness(mc);
         if (mc.screen instanceof ReceivingLevelScreen) mc.setScreen(null); // our black covers the loading after a dimension change
         noTarget(mc);
         anchor(1f);
@@ -275,11 +288,34 @@ public final class Cinematic {
         noTarget(Minecraft.getInstance());
     }
 
-    /** The HUD goes, but the boss bar stays for the fights. */
+    /** The HUD goes. The boss bar stays only when the scene asked for it - a fight, not a cataclysm. */
     public static void guiLayer(RenderGuiLayerEvent.Pre event) {
         if (!active()) return;
-        if (event.getName().equals(VanillaGuiLayers.BOSS_OVERLAY) && !waiting && !holding) return;
+        if (wantBossBar && event.getName().equals(VanillaGuiLayers.BOSS_OVERLAY) && !waiting && !holding) return;
         event.setCanceled(true);
+    }
+
+    /**
+     * Tooltip mods read what the player is looking at during the client tick, not during the frame,
+     * so clearing it in {@code guiPre} was already too late - Jade had its answer and drew it over
+     * the take. This runs first of everything on the tick.
+     */
+    public static void tickPre(ClientTickEvent.Pre event) {
+        if (!active()) return;
+        noTarget(Minecraft.getInstance());
+    }
+
+    /**
+     * A night scene is unusable at the player's own brightness: the meteor and the blood moon came
+     * back as a black frame with a horizon in it. The lift is put back at the cut, and days are left
+     * exactly as the player has them.
+     */
+    private static void brightness(Minecraft mc) {
+        if (gammaBefore < 0) return;
+        boolean night = mc.level != null && mc.level.getDayTime() % 24000L >= 12800L
+                && mc.level.getDayTime() % 24000L < 23000L;
+        double want = night ? 2.6 : Math.max(gammaBefore, 1.0);
+        if (Math.abs(mc.options.gamma().get() - want) > 0.01) mc.options.gamma().set(want);
     }
 
     /** The letterbox and the fades, over everything; black while the stage is drawn and between paths. */

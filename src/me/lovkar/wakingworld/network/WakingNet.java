@@ -1,5 +1,6 @@
 package me.lovkar.wakingworld.network;
 
+import net.minecraft.core.BlockPos;
 import me.lovkar.wakingworld.WakingWorld;
 import me.lovkar.wakingworld.kingdom.TownsfolkEntity;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -71,11 +72,13 @@ public final class WakingNet {
     }
 
     /** Server -> client: the director's camera path; play it. */
-    public record CineStart(java.util.List<me.lovkar.wakingworld.story.Cinematics.Key> keys, int fadeIn, int fadeOut) implements CustomPacketPayload {
+    public record CineStart(java.util.List<me.lovkar.wakingworld.story.Cinematics.Key> keys, int fadeIn, int fadeOut,
+                            boolean bossBar) implements CustomPacketPayload {
         public static final Type<CineStart> TYPE = new Type<>(id("cine_start"));
         public static final StreamCodec<RegistryFriendlyByteBuf, CineStart> CODEC = StreamCodec.composite(
                 me.lovkar.wakingworld.story.Cinematics.Key.CODEC.apply(ByteBufCodecs.list()).cast(), CineStart::keys,
-                ByteBufCodecs.VAR_INT, CineStart::fadeIn, ByteBufCodecs.VAR_INT, CineStart::fadeOut, CineStart::new);
+                ByteBufCodecs.VAR_INT, CineStart::fadeIn, ByteBufCodecs.VAR_INT, CineStart::fadeOut,
+                ByteBufCodecs.BOOL, CineStart::bossBar, CineStart::new);
 
         @Override
         public Type<? extends CustomPacketPayload> type() {
@@ -133,6 +136,22 @@ public final class WakingNet {
         public static final Type<BloodMoonState> TYPE = new Type<>(WakingNet.id("blood_moon"));
         public static final StreamCodec<RegistryFriendlyByteBuf, BloodMoonState> CODEC = StreamCodec.composite(
                 net.minecraft.network.codec.ByteBufCodecs.BOOL, BloodMoonState::on, BloodMoonState::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /** Server -> client: you have come into a named land - put its card up. */
+    public record LandCard(String name, String lore, String kind, BlockPos at) implements CustomPacketPayload {
+        public static final Type<LandCard> TYPE = new Type<>(WakingNet.id("land_card"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, LandCard> CODEC = StreamCodec.composite(
+                net.minecraft.network.codec.ByteBufCodecs.STRING_UTF8, LandCard::name,
+                net.minecraft.network.codec.ByteBufCodecs.STRING_UTF8, LandCard::lore,
+                net.minecraft.network.codec.ByteBufCodecs.STRING_UTF8, LandCard::kind,
+                BlockPos.STREAM_CODEC, LandCard::at,
+                LandCard::new);
 
         @Override
         public Type<? extends CustomPacketPayload> type() {
@@ -211,7 +230,7 @@ public final class WakingNet {
         registrar.playToServer(Buy.TYPE, Buy.CODEC, WakingNet::handleBuy);
         registrar.playToServer(Leave.TYPE, Leave.CODEC, WakingNet::handleLeave);
         registrar.playToClient(CineSetup.TYPE, CineSetup.CODEC, (p, ctx) -> WakingWorld.hooks.cineSetup(p.renderDistance()));
-        registrar.playToClient(CineStart.TYPE, CineStart.CODEC, (p, ctx) -> WakingWorld.hooks.cineStart(p.keys(), p.fadeIn(), p.fadeOut()));
+        registrar.playToClient(CineStart.TYPE, CineStart.CODEC, (p, ctx) -> WakingWorld.hooks.cineStart(p.keys(), p.fadeIn(), p.fadeOut(), p.bossBar()));
         registrar.playToClient(CineStop.TYPE, CineStop.CODEC, (p, ctx) -> WakingWorld.hooks.cineStop());
         registrar.playToServer(CineReady.TYPE, CineReady.CODEC, (p, ctx) -> {
             if (ctx.player() instanceof ServerPlayer player) me.lovkar.wakingworld.story.Cinematics.ready(player);
@@ -221,6 +240,7 @@ public final class WakingNet {
         });
         registrar.playToClient(RefreshCosmetics.TYPE, RefreshCosmetics.CODEC, (p, ctx) -> me.lovkar.wakingworld.supporter.SupporterList.refreshAsync());
         registrar.playToClient(BloodMoonState.TYPE, BloodMoonState.CODEC, (p, ctx) -> WakingWorld.hooks.bloodMoon(p.on()));
+        registrar.playToClient(LandCard.TYPE, LandCard.CODEC, (p, ctx) -> WakingWorld.hooks.landCard(p.name(), p.lore(), p.kind(), p.at()));
     }
 
     /** Client: my cosmetics changed on the service. */
@@ -229,6 +249,11 @@ public final class WakingNet {
     }
 
     /** Server: the moon turns (everyone), or tells one client what it already is. */
+    /** Put a land's card up on one player's screen, and a waypoint at its middle on their map. */
+    public static void landCard(ServerPlayer player, String name, String lore, String kind, BlockPos at) {
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player, new LandCard(name, lore, kind, at));
+    }
+
     public static void bloodMoon(boolean on) {
         PacketDistributor.sendToAllPlayers(new BloodMoonState(on));
     }
@@ -246,8 +271,9 @@ public final class WakingNet {
         PacketDistributor.sendToPlayer(player, new CineSetup(renderDistance));
     }
 
-    public static void cineStart(ServerPlayer player, java.util.List<me.lovkar.wakingworld.story.Cinematics.Key> keys, int fadeIn, int fadeOut) {
-        PacketDistributor.sendToPlayer(player, new CineStart(keys, fadeIn, fadeOut));
+    public static void cineStart(ServerPlayer player, java.util.List<me.lovkar.wakingworld.story.Cinematics.Key> keys,
+                                 int fadeIn, int fadeOut, boolean bossBar) {
+        PacketDistributor.sendToPlayer(player, new CineStart(keys, fadeIn, fadeOut, bossBar));
     }
 
     public static void cineStop(ServerPlayer player) {

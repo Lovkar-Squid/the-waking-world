@@ -24,6 +24,9 @@ public interface ClientHooks {
     }
 
     /** The moon has turned red, or it has not any more: the sky and the fog go with it. */
+    default void landCard(String name, String lore, String kind, net.minecraft.core.BlockPos at) {
+    }
+
     default void bloodMoon(boolean on) {
     }
 
@@ -48,7 +51,7 @@ public interface ClientHooks {
     }
 
     /** The director's camera path: the client becomes the camera. */
-    default void cineStart(java.util.List<me.lovkar.wakingworld.story.Cinematics.Key> keys, int fadeIn, int fadeOut) {
+    default void cineStart(java.util.List<me.lovkar.wakingworld.story.Cinematics.Key> keys, int fadeIn, int fadeOut, boolean bossBar) {
     }
 
     /** Cut: the player is a player again. */
