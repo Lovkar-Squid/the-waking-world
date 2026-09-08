@@ -3,7 +3,7 @@
 All notable changes to The Waking World. The format follows [Keep a Changelog](https://keepachangelog.com/);
 versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-releases.
 
-## [Unreleased] - 0.2.0 "Falling Sky"
+## [0.2.0] - 2026-09-08 "Falling Sky"
 
 The Cataclysms: five things that can happen to a world that is waking up. Also the Named Lands, and
 the supporter perks switched off.
