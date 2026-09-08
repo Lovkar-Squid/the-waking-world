@@ -123,9 +123,12 @@ public final class GeminiLands {
             }
             if (res.statusCode() / 100 != 2) {
                 // busy is not broken: 429 and 503 mean the model is loaded and will not be shortly
-                if (res.statusCode() == 429 || res.statusCode() == 503) {
-                    why = "the model is busy (HTTP " + res.statusCode() + ")";
-                    WakingWorld.LOGGER.info("Gemini land name: the model is busy right now (HTTP {}); this land is named from the templates. Nothing is wrong.", res.statusCode());
+                if (res.statusCode() == 429) {
+                    why = "this key's allowance for " + WakingConfig.geminiModel() + " is used up for now (HTTP 429)";
+                    me.lovkar.wakingworld.story.GeminiNotice.quotaSpent(WakingConfig.geminiModel());
+                } else if (res.statusCode() == 503) {
+                    why = "the model is busy (HTTP 503)";
+                    WakingWorld.LOGGER.info("Gemini land name: the model is busy right now (HTTP 503); this land is named from the templates. Nothing is wrong.");
                 } else {
                     why = "HTTP " + res.statusCode();
                     WakingWorld.LOGGER.warn("Gemini land name: HTTP {}", res.statusCode());

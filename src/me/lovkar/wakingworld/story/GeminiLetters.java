@@ -123,8 +123,10 @@ public final class GeminiLetters {
                 // minute. Saying so plainly matters, because a warning with a wall of JSON in it reads
                 // as the mod being broken when what actually happened is that the letter came from the
                 // templates - which is the designed answer and is indistinguishable in the game.
-                if (res.statusCode() == 429 || res.statusCode() == 503) {
-                    WakingWorld.LOGGER.info("Gemini letter: the model is busy right now (HTTP {}); this letter is written from the templates instead. Nothing is wrong.", res.statusCode());
+                if (res.statusCode() == 429) {
+                    GeminiNotice.quotaSpent(WakingConfig.geminiModel());
+                } else if (res.statusCode() == 503) {
+                    WakingWorld.LOGGER.info("Gemini letter: the model is busy right now (HTTP 503); this letter is written from the templates instead. Nothing is wrong.");
                 } else {
                     WakingWorld.LOGGER.warn("Gemini letter: HTTP {} {}", res.statusCode(), res.body().length() > 300 ? res.body().substring(0, 300) : res.body());
                 }

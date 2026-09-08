@@ -317,6 +317,8 @@
   "entity.wakingworld.townsfolk.scribe": "Scribe",
   "entity.wakingworld.townsfolk.smith": "Smith",
   "entity.wakingworld.townsfolk.surveyor": "Surveyor",
+  "gemini.wakingworld.quota": "The Gemini key's free allowance for %s is spent for now. Names and letters are being written from the built-in ones instead - nothing is broken, and nothing is lost.",
+  "gemini.wakingworld.quota.what": "A free key is counted per model per day. Set geminiModel to a lite model for a far larger allowance, or use a key from another project.",
   "item.wakingworld.almanac": "Waker's Almanac",
   "item.wakingworld.almanac.tooltip": "What sleeps, where, and what is asked of anyone who would wake it.",
   "item.wakingworld.colossus_hammer": "Colossus Hammer",

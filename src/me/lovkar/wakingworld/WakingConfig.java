@@ -146,7 +146,15 @@ public final class WakingConfig {
                 .define("geminiLetters", true);
         GEMINI_API_KEY = b.comment("Your Google AI Studio API key (https://aistudio.google.com/apikey). Stays on the server; never shown to players.")
                 .define("geminiApiKey", "");
-        GEMINI_MODEL = b.comment("The Gemini model to write with. A retired model's error names its successor; the mod follows that by itself, but set it here to keep it.").define("geminiModel", "gemini-3.6-flash");
+        GEMINI_MODEL = b.comment("The Gemini model to write with. A retired model's error names its successor; the mod follows",
+                        "that by itself, but set it here to keep it.",
+                        "The default is a lite model on purpose. A free key's allowance is per model and per day, and on",
+                        "the bigger models it is twenty requests - which one evening of walking into new lands spends",
+                        "before you have read a single letter, after which everything quietly comes from the templates.",
+                        "The lite models have a far larger free allowance, they answer faster, and naming a wood and",
+                        "writing four lines from a dead man does not need a frontier model. Point this at a bigger one",
+                        "if you have a paid key and want the prose.")
+                .define("geminiModel", "gemini-flash-lite-latest");
         LETTER_LANGUAGE = b.comment("The language the AI writes the letters in (item names stay English).").define("letterLanguage", "English");
         VOICED_LETTERS = b.comment("Have Gemini read every Dead Letter aloud in its writer's voice (needs geminiApiKey; the voice is made once,",
                 "when the letter is written, and kept with the world). A free key allows only a handful of voices a day; the rest stay silent.").define("voicedLetters", true);
@@ -558,7 +566,7 @@ public final class WakingConfig {
     }
 
     public static String geminiModel() {
-        return loaded() ? GEMINI_MODEL.get() : "gemini-3.6-flash";
+        return loaded() ? GEMINI_MODEL.get() : "gemini-flash-lite-latest";
     }
 
     public static boolean geminiLetters() {
