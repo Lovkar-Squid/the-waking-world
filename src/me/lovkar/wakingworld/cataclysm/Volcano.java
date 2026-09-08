@@ -101,7 +101,7 @@ public final class Volcano extends SavedData {
                 if (day < cooldownUntilDay) return;
                 long t = level.getDayTime() % 24000L;
                 if (t < 500 || t > 1500) return;                 // it starts in the morning: worth seeing
-                if (rnd.nextDouble() > WakingConfig.volcanoChance()) {
+                if (rnd.nextDouble() > WakingConfig.volcanoChance() * Unrest.factor(level)) {
                     cooldownUntilDay = day + 1;
                     setDirty();
                     return;

@@ -97,7 +97,7 @@ public final class BloodMoon extends SavedData {
             int day = (int) (level.getDayTime() / 24000L);
             if (day < cooldownUntilDay) return;
             if (t < 13000 || t > 13600) return;                  // rolled once, at nightfall
-            if (level.random.nextDouble() > WakingConfig.bloodMoonChance()) {
+            if (level.random.nextDouble() > WakingConfig.bloodMoonChance() * Unrest.factor(level)) {
                 cooldownUntilDay = day + 1;
                 setDirty();
                 return;
@@ -135,6 +135,7 @@ public final class BloodMoon extends SavedData {
             }
             wave++;
             nextWave = Math.max(60, WakingConfig.bloodMoonWaveSeconds() * 20);
+            moonlit(level, true);
             setDirty();
         }
     }
@@ -155,6 +156,26 @@ public final class BloodMoon extends SavedData {
         WakingWorld.LOGGER.info("cataclysm: a blood moon rises");
     }
 
+    /**
+     * Any giant already awake is stronger while the moon is up.
+     *
+     * <p>Only the ones near a player, and only once a wave: a colossus nobody can see does not
+     * need the modifier, and re-applying it every wave means one that was unloaded through the
+     * moonrise still gets it when somebody walks back into its country. Turning it off at dawn is
+     * the same walk with false.</p>
+     */
+    private static void moonlit(ServerLevel level, boolean on) {
+        if (!WakingConfig.bloodMoonColossi()) return;
+        for (ServerPlayer p : level.players()) {
+            for (me.lovkar.wakingworld.entity.ColossusEntity c :
+                    level.getEntitiesOfClass(me.lovkar.wakingworld.entity.ColossusEntity.class,
+                            new net.minecraft.world.phys.AABB(p.position(), p.position()).inflate(160),
+                            e -> e.isAlive())) {
+                c.moonlit(on);
+            }
+        }
+    }
+
     private void end(ServerLevel level) {
         running = false;
         wave = 0;
@@ -168,6 +189,7 @@ public final class BloodMoon extends SavedData {
         }
         for (Mob mob : theirs) mob.discard();
         int gone = theirs.size();
+        moonlit(level, false);
         for (ServerPlayer p : level.players()) {
             p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.bloodmoon.over").withStyle(ChatFormatting.GOLD));
             reward(level, p);

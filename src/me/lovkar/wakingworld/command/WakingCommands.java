@@ -60,6 +60,8 @@ public final class WakingCommands {
                                         .executes(ctx -> meteor(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"),
                                                 IntegerArgumentType.getInteger(ctx, "size"))))))
                 .then(Commands.literal("shower").executes(WakingCommands::shower))
+                .then(Commands.literal("unrest").executes(WakingCommands::unrest)
+                        .then(Commands.literal("stir").executes(ctx -> stir(ctx, 1.0))))
                 .then(Commands.literal("lands").executes(WakingCommands::lands)
                         .then(Commands.literal("name").executes(ctx -> nameLand(ctx, null))
                                 .then(Commands.argument("at", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
@@ -475,6 +477,41 @@ public final class WakingCommands {
     }
 
     /** Where you are, and everywhere you have been. */
+    /**
+     * What the ground is still angry about, and how angry.
+     *
+     * <p>Unrest is invisible from inside the game - it changes the odds and steers a storm, and
+     * neither of those is something you can look at. This is the only way to see whether it is
+     * doing anything, which is exactly why it exists.</p>
+     */
+    private static int unrest(CommandContext<CommandSourceStack> ctx) {
+        net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
+        java.util.List<String> rows = me.lovkar.wakingworld.cataclysm.Unrest.report(level);
+        double worst = me.lovkar.wakingworld.cataclysm.Unrest.near(level);
+        double factor = me.lovkar.wakingworld.cataclysm.Unrest.factor(level);
+        if (rows.isEmpty()) {
+            ctx.getSource().sendSuccess(() -> Component.literal("The ground is quiet everywhere.")
+                    .withStyle(net.minecraft.ChatFormatting.GRAY), false);
+            return 0;
+        }
+        for (String row : rows) {
+            ctx.getSource().sendSuccess(() -> Component.literal("  " + row).withStyle(net.minecraft.ChatFormatting.YELLOW), false);
+        }
+        final String line = String.format("worst near a player %.2f - cataclysms are %.2fx likelier tonight", worst, factor);
+        ctx.getSource().sendSuccess(() -> Component.literal(line).withStyle(net.minecraft.ChatFormatting.DARK_GRAY), false);
+        return rows.size();
+    }
+
+    /** Make the ground under you as unquiet as it gets, for testing what that changes. */
+    private static int stir(CommandContext<CommandSourceStack> ctx, double amount) {
+        net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
+        net.minecraft.core.BlockPos at = net.minecraft.core.BlockPos.containing(ctx.getSource().getPosition());
+        me.lovkar.wakingworld.cataclysm.Unrest.stir(level, at, amount);
+        ctx.getSource().sendSuccess(() -> Component.literal("This land will not settle for a while.")
+                .withStyle(net.minecraft.ChatFormatting.GOLD), false);
+        return 1;
+    }
+
     private static int lands(CommandContext<CommandSourceStack> ctx) {
         net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
         me.lovkar.wakingworld.land.Lands lands = me.lovkar.wakingworld.land.Lands.get(level);

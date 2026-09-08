@@ -199,6 +199,10 @@ public class AlmanacScreen extends Screen {
                 .paragraph(t("cataclysms.tornado"), INK)
                 .paragraph(t("cataclysms.earthquake"), INK)
                 .paragraph(t("cataclysms.bloodmoon"), INK)
+                .heading(t("cataclysms.unrest"), HEAD)
+                .paragraph(t("cataclysms.unrest1"), INK)
+                .paragraph(t("cataclysms.unrest2"), INK)
+                .paragraph(t("cataclysms.unrest3"), INK)
                 .heading(t("star.title"), HEAD)
                 .paragraph(t("star.1"), INK)
                 .items(t("star.stone"), CAPTION,

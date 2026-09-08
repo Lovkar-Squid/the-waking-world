@@ -58,6 +58,11 @@ public final class WakingConfig {
     private static final ModConfigSpec.IntValue EARTHQUAKE_SECONDS;
     private static final ModConfigSpec.BooleanValue OMENS;
     private static final ModConfigSpec.IntValue OMEN_SECONDS;
+    private static final ModConfigSpec.BooleanValue UNREST;
+    private static final ModConfigSpec.IntValue UNREST_DAYS;
+    private static final ModConfigSpec.DoubleValue UNREST_FACTOR;
+    private static final ModConfigSpec.DoubleValue ANSWER_CHANCE;
+    private static final ModConfigSpec.BooleanValue MOON_COLOSSI;
     private static final ModConfigSpec.BooleanValue NAMED_LANDS;
     private static final ModConfigSpec.IntValue LAND_SIZE;
     private static final ModConfigSpec.BooleanValue GEMINI_LANDS;
@@ -163,6 +168,19 @@ public final class WakingConfig {
                 "the animals leaving, and a line in the chat. Off: they simply begin.").define("omens", true);
         OMEN_SECONDS = b.comment("How long the warning runs before the cataclysm itself, in seconds.")
                 .defineInRange("omenSeconds", 40, 5, 600);
+        UNREST = b.comment("The ground does not settle where a giant rose. Waking one, and killing one, leave the land",
+                "around it unquiet for a while: cataclysms are likelier there, and they aim at it.",
+                "Off: the two halves of the mod ignore each other, as they did in 0.1.").define("unrest", true);
+        UNREST_DAYS = b.comment("How many days the land stays unquiet after a giant rose or fell there.")
+                .defineInRange("unrestDays", 12, 1, 400);
+        UNREST_FACTOR = b.comment("How much likelier a cataclysm is over the most unquiet ground (1 = no difference,",
+                "2 = up to three times as likely where a giant has just died).")
+                .defineInRange("unrestFactor", 2.0, 0.0, 20.0);
+        ANSWER_CHANCE = b.comment("The chance that a cataclysm breaking over a sleeping giant's shrine wakes it by itself,",
+                "with no rite and nobody's leave. 0 = a shrine is only ever opened by a player.")
+                .defineInRange("answerChance", 0.25, 0.0, 1.0);
+        MOON_COLOSSI = b.comment("A giant already awake under a blood moon is stronger and faster while it lasts.")
+                .define("bloodMoonColossi", true);
         b.pop();
         b.push("lands");
         NAMED_LANDS = b.comment("The Named Lands: the world is divided into squares, and each one is named the first time somebody walks into it.",
@@ -258,6 +276,26 @@ public final class WakingConfig {
 
     public static int earthquakeSeconds() {
         return loaded() ? EARTHQUAKE_SECONDS.get() : 26;
+    }
+
+    public static boolean unrest() {
+        return loaded() && UNREST.get();
+    }
+
+    public static int unrestDays() {
+        return loaded() ? UNREST_DAYS.get() : 12;
+    }
+
+    public static double unrestFactor() {
+        return loaded() ? UNREST_FACTOR.get() : 2.0;
+    }
+
+    public static double answerChance() {
+        return loaded() ? ANSWER_CHANCE.get() : 0.25;
+    }
+
+    public static boolean bloodMoonColossi() {
+        return loaded() && MOON_COLOSSI.get();
     }
 
     public static boolean bloodMoons() {

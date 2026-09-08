@@ -121,6 +121,8 @@ public class ColossusEntity extends Monster {
 
     private static final ResourceLocation PHASE_SPEED = ResourceLocation.fromNamespaceAndPath(WakingWorld.MODID, "phase_speed");
     private static final ResourceLocation PHASE_DAMAGE = ResourceLocation.fromNamespaceAndPath(WakingWorld.MODID, "phase_damage");
+    private static final ResourceLocation MOON_SPEED = ResourceLocation.fromNamespaceAndPath(WakingWorld.MODID, "moon_speed");
+    private static final ResourceLocation MOON_DAMAGE = ResourceLocation.fromNamespaceAndPath(WakingWorld.MODID, "moon_damage");
 
     public static final int DEFAULT_HEIGHT = 40;
     private static final float ARMOR_FACTOR = 0.3F;
@@ -1272,6 +1274,9 @@ public class ColossusEntity extends Monster {
                 me.lovkar.wakingworld.advancement.WakingTriggers.COLOSSUS_WOKEN.get().trigger(sp, palette().kind, bodyHeight());
             }
             me.lovkar.wakingworld.story.Chronicle.record(server, "woken", palette().kind, blockPosition(), null);
+            // The land it came out of does not settle again for a fortnight: see Unrest.
+            me.lovkar.wakingworld.cataclysm.Unrest.stir(server, blockPosition(),
+                    me.lovkar.wakingworld.cataclysm.Unrest.WOKEN);
             this.attackCooldown = 0;
             startAttack(Attack.ROAR);
             this.attackCooldown = 30;
@@ -2281,6 +2286,41 @@ public class ColossusEntity extends Monster {
         if (held != null) held.setPos(at.x, at.y, at.z);
     }
 
+    /**
+     * Under a red moon.
+     *
+     * <p>A giant already awake when the moon comes up wrong is faster and hits harder until it
+     * sets. The modifiers are transient, so they go with the world's memory rather than being
+     * saved onto the entity - and {@link me.lovkar.wakingworld.cataclysm.BloodMoon} puts them back
+     * every wave, which means a colossus that was chunk-unloaded through the moonrise still gets
+     * them the moment somebody is near enough to fight it.</p>
+     *
+     * <p>Idempotent on purpose: called repeatedly with the same value, it does nothing new.</p>
+     */
+    public void moonlit(boolean on) {
+        AttributeInstance speed = this.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (speed != null) {
+            speed.removeModifier(MOON_SPEED);
+            if (on) {
+                speed.addTransientModifier(new AttributeModifier(MOON_SPEED, 0.20,
+                        AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+            }
+        }
+        AttributeInstance dmg = this.getAttribute(Attributes.ATTACK_DAMAGE);
+        if (dmg != null) {
+            dmg.removeModifier(MOON_DAMAGE);
+            if (on) {
+                dmg.addTransientModifier(new AttributeModifier(MOON_DAMAGE, 0.25,
+                        AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+            }
+        }
+    }
+
+    /** The kind of land it was built from - "stone", "ice", "titan". */
+    public String kind() {
+        return palette().kind;
+    }
+
     private void updatePhase() {
         float f = this.getHealth() / this.getMaxHealth();
         int wanted = f > 0.6F ? 1 : f > 0.25F ? 2 : 3;
@@ -2648,6 +2688,9 @@ public class ColossusEntity extends Monster {
                 }
             }
             me.lovkar.wakingworld.story.Chronicle.record(server, "slain", palette().kind, blockPosition(), slayer);
+            // and killing one is far worse for the ground than waking it was
+            me.lovkar.wakingworld.cataclysm.Unrest.stir(server, blockPosition(),
+                    me.lovkar.wakingworld.cataclysm.Unrest.SLAIN);
             this.level().broadcastEntityEvent(this, EV_DEATH_START);
         }
         // stagger: the cores go out, one every twelve ticks, each with a burst of its own fire

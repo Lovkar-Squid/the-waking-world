@@ -3,6 +3,7 @@ package me.lovkar.wakingworld.cataclysm;
 import me.lovkar.wakingworld.WakingConfig;
 import me.lovkar.wakingworld.WakingWorld;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -88,6 +89,8 @@ public final class Weather extends SavedData {
                     p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.earthquake.over").withStyle(ChatFormatting.GRAY));
                 }
                 Survived.near(level, Omen.Kind.EARTHQUAKE, new Vec3(qx, qy, qz));
+                // and a shrine that was under it may not have survived being shaken
+                Answer.maybe(level, new Vec3(qx, qy, qz), Omen.Kind.EARTHQUAKE);
                 WakingWorld.LOGGER.info("cataclysm: the ground settles");
             }
             setDirty();
@@ -107,9 +110,9 @@ public final class Weather extends SavedData {
 
         // a tornado comes in the afternoon, when the air has had all day to go wrong
         if (WakingConfig.tornadoes() && day >= tornadoCooldownDay && t >= 9000 && t <= 9600) {
-            if (rnd.nextDouble() <= WakingConfig.tornadoChance()) {
+            if (rnd.nextDouble() <= WakingConfig.tornadoChance() * Unrest.factor(level)) {
                 ServerPlayer near = players.get(rnd.nextInt(players.size()));
-                Vec3 at = Earthquake.site(level, near, rnd);
+                Vec3 at = where(level, near, rnd);
                 tornadoCooldownDay = day + WakingConfig.daysBetweenTornadoes();
                 warn(level, at, true);
             } else {
@@ -121,15 +124,36 @@ public final class Weather extends SavedData {
 
         // the ground turns at any hour, but it is rolled once, early
         if (WakingConfig.earthquakes() && day >= quakeCooldownDay && t >= 2000 && t <= 2600) {
-            if (rnd.nextDouble() <= WakingConfig.earthquakeChance()) {
+            if (rnd.nextDouble() <= WakingConfig.earthquakeChance() * Unrest.factor(level)) {
                 ServerPlayer near = players.get(rnd.nextInt(players.size()));
                 quakeCooldownDay = day + WakingConfig.daysBetweenEarthquakes();
-                warn(level, Earthquake.site(level, near, rnd), false);
+                warn(level, where(level, near, rnd), false);
             } else {
                 quakeCooldownDay = day + 1;
             }
             setDirty();
         }
+    }
+
+    /**
+     * Where it happens.
+     *
+     * <p>Ordinarily somewhere near a player, as it always was. But ground a giant rose or died on
+     * is unquiet, and the more unquiet it is the likelier the storm is to find it instead: at the
+     * worst of it, four times in five. That is the part a player actually notices - a tornado that
+     * comes back to the field where they killed something a week ago.</p>
+     */
+    private static Vec3 where(ServerLevel level, ServerPlayer near, RandomSource rnd) {
+        double unquiet = Unrest.at(level, near.blockPosition());
+        BlockPos scar = Unrest.worst(level, near, WakingConfig.landSize() * 2.0);
+        if (scar == null) return Earthquake.site(level, near, rnd);
+        double pull = Math.max(unquiet, Unrest.at(level, scar));
+        if (rnd.nextDouble() > pull * 0.8) return Earthquake.site(level, near, rnd);
+        // somewhere inside that land, not exactly on its middle stone
+        int size = WakingConfig.landSize();
+        int x = scar.getX() + rnd.nextInt(size / 2) - size / 4;
+        int z = scar.getZ() + rnd.nextInt(size / 2) - size / 4;
+        return Vec3.atBottomCenterOf(Cataclysms.surface(level, x, z));
     }
 
     /** Hold the thing back and sound the warning; the tick above lets it go when the time is up. */

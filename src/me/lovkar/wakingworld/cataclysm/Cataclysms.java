@@ -115,7 +115,7 @@ public final class Cataclysms extends SavedData {
                 // it starts at dusk, and only when somebody is awake to see it
                 long t = level.getDayTime() % 24000L;
                 if (t < 13000 || t > 14000) return;
-                if (rnd.nextDouble() > WakingConfig.meteorChance()) {
+                if (rnd.nextDouble() > WakingConfig.meteorChance() * Unrest.factor(level)) {
                     cooldownUntilDay = day + 1;                 // rolled and missed: try again tomorrow
                     setDirty();
                     return;
