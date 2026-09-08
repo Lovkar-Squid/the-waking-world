@@ -188,6 +188,27 @@ public final class WakingNet {
         }
     }
 
+    /**
+     * Client -> server: put a pin down at a spot, or take the nearest one away.
+     *
+     * <p>The chart is the only place a player ever sees their pins, so it is also where they make
+     * them: no command to remember and no key to bind.</p>
+     */
+    public record PinAt(String name, int x, int z, boolean remove) implements CustomPacketPayload {
+        public static final Type<PinAt> TYPE = new Type<>(WakingNet.id("pin"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, PinAt> CODEC = StreamCodec.composite(
+                ByteBufCodecs.STRING_UTF8, PinAt::name,
+                ByteBufCodecs.VAR_INT, PinAt::x,
+                ByteBufCodecs.VAR_INT, PinAt::z,
+                ByteBufCodecs.BOOL, PinAt::remove,
+                PinAt::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
     /** Server -> client: something is coming - put the warning light on for this long. */
     public record OmenState(int tint, int ticks) implements CustomPacketPayload {
         public static final Type<OmenState> TYPE = new Type<>(WakingNet.id("omen"));
@@ -259,6 +280,11 @@ public final class WakingNet {
         PacketDistributor.sendToPlayer(player, new OpenLetter(hand == net.minecraft.world.InteractionHand.OFF_HAND ? 1 : 0));
     }
 
+    /** Client: put a pin down where I am, or take the one near this spot away. */
+    public static void pin(String name, int x, int z, boolean remove) {
+        net.neoforged.neoforge.network.PacketDistributor.sendToServer(new PinAt(name, x, z, remove));
+    }
+
     public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("1");
         registrar.playToServer(RequestVoice.TYPE, RequestVoice.CODEC, WakingNet::handleRequestVoice);
@@ -284,6 +310,14 @@ public final class WakingNet {
         registrar.playToClient(LandCard.TYPE, LandCard.CODEC, (p, ctx) -> WakingWorld.hooks.landCard(p.name(), p.lore(), p.kind(), p.at()));
         registrar.playToClient(OmenState.TYPE, OmenState.CODEC, (p, ctx) -> WakingWorld.hooks.omen(p.tint(), p.ticks()));
         registrar.playToClient(AtlasData.TYPE, AtlasData.CODEC, (p, ctx) -> WakingWorld.hooks.atlas(p.lands()));
+        registrar.playToServer(PinAt.TYPE, PinAt.CODEC, (p, ctx) -> {
+            if (ctx.player() instanceof ServerPlayer sp) {
+                me.lovkar.wakingworld.land.Lands lands = me.lovkar.wakingworld.land.Lands.get(sp.serverLevel());
+                if (p.remove()) lands.unpin(sp, p.x(), p.z());
+                else lands.pin(sp, p.name(), p.x(), p.z());
+                me.lovkar.wakingworld.land.Lands.sendAtlas(sp);
+            }
+        });
         registrar.playToServer(RequestAtlas.TYPE, RequestAtlas.CODEC, (p, ctx) -> {
             if (ctx.player() instanceof ServerPlayer sp) me.lovkar.wakingworld.land.Lands.sendAtlas(sp);
         });

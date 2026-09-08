@@ -89,6 +89,12 @@ def almanac():
             for y in range(y0 + 1, y0 + 23): im.putpixel((x0 + w - 1, y), LEATHER_D)
     tab(300, 0, 28, False)
     tab(300, 26, 32, True)
+    # ---- the same two tabs mirrored, at (360, 0), for the right edge of the cover ----
+    # The screen used to draw these by flipping the pose with a negative X scale. That reverses the
+    # quad's winding order and the GUI pipeline culls it, so the right-hand tabs came out as bare
+    # floating icons with nothing behind them. A sheet that carries both facings has no such problem.
+    im.paste(im.crop((300, 0, 328, 24)).transpose(Image.FLIP_LEFT_RIGHT), (360, 0))
+    im.paste(im.crop((300, 26, 332, 50)).transpose(Image.FLIP_LEFT_RIGHT), (360, 26))
     # ---- page arrows at (300, 60): left normal, left hover, right normal, right hover; 18x10 each ----
     def arrow(x0, y0, right, hover):
         c = (196, 120, 40, 255) if hover else INK

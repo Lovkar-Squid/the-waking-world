@@ -121,6 +121,12 @@ public class LetterScreen extends Screen {
         if (speaker != null) {
             speaker.render(g, mouseX, mouseY, partialTick);
             if (speaker.making()) making(g);
+            // a letter no longer starts talking on its own, so the horn has to say what it is for
+            if (speaker.isHovered() && !speaker.making()) {
+                boolean going = LetterVoicePlayer.isPlaying(voice) && !LetterVoicePlayer.isPaused(voice);
+                g.renderTooltip(font, Component.translatable(going ? "letter.wakingworld.pause" : "letter.wakingworld.read"),
+                        mouseX, mouseY);
+            }
         }
     }
 

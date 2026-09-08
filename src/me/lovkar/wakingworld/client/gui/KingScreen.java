@@ -102,6 +102,7 @@ public class KingScreen extends Screen {
                 if (f.length < 5) continue;
                 Component kind = Component.translatable("entity.wakingworld.colossus." + f[1]);
                 if (f[0].equals("rite")) kind = Component.translatable(f[1].equals("titan") ? "structure.wakingworld.titan_arena" : "structure.wakingworld.shrine_" + f[1]);
+                if (f[0].equals("cataclysm")) kind = Component.translatable("cataclysm.wakingworld.name." + f[1]);
                 int days;
                 try {
                     days = Integer.parseInt(f[4]);
@@ -112,6 +113,9 @@ public class KingScreen extends Screen {
                 String key = switch (f[0]) {
                     case "woken" -> "king.wakingworld.news.woken";
                     case "slain" -> "king.wakingworld.news.slain";
+                    // one line per cataclysm: a king who says "an event occurred" is a noticeboard,
+                    // and the whole point of him is that he is a person who lives here
+                    case "cataclysm" -> "king.wakingworld.news.cataclysm." + f[1];
                     default -> "king.wakingworld.news.rite";
                 };
                 flow.paragraph(Component.translatable(key, kind, f[2], f[3], when), INK);

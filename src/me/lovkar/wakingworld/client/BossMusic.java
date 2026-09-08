@@ -36,6 +36,8 @@ public final class BossMusic {
     private static int themeDelay;
     private static int themeRetry;
     private static Object lastLevel;
+    /** The last thing said about the music, so the log carries a change and not a stream. */
+    private static String said = "";
 
     private BossMusic() {
     }
@@ -98,6 +100,8 @@ public final class BossMusic {
                 if (state == State.AFTER && --afterTicks <= 0) state = State.NONE;
                 if (near) {
                     boss = nearest;
+                    say("a colossus is near (" + (int) nearestD + " blocks, reach " + (int) range
+                            + ", " + (nearest.isWaking() ? "rising" : "up") + ", kind " + nearest.palette().kind + ")");
                     if (nearest.isWaking()) {
                         state = State.WAKING;
                         stopSting();
@@ -143,19 +147,36 @@ public final class BossMusic {
         if (state != State.NONE) event.setMusic(null);
     }
 
+    /**
+     * Say what the director just decided, once per decision.
+     *
+     * <p>Music that does not play is the hardest kind of bug to report: there is nothing on screen,
+     * nothing in the log, and no way for the person hearing the silence to tell whether the giant
+     * was too far away, the track was refused a channel, or the whole thing was switched off. One
+     * line per state change costs nothing and answers all three.</p>
+     */
+    private static void say(String what) {
+        if (what.equals(said)) return;
+        said = what;
+        me.lovkar.wakingworld.WakingWorld.LOGGER.info("music: {}", what);
+    }
+
     private static void playTheme(ColossusEntity boss, int fadeTicks) {
         String kind = boss.palette().kind;
         if (theme != null) {
             if (themeKind.equals(kind)) return;
             theme.fadeOutAndStop(fadeTicks);
         }
-        theme = start(available(WakingSounds.battleTheme(kind), WakingSounds.MUSIC_STONE.get()), true, 0f);
+        SoundEvent event = available(WakingSounds.battleTheme(kind), WakingSounds.MUSIC_STONE.get());
+        theme = start(event, true, 0f);
         theme.fadeTo(1f, fadeTicks);
         themeKind = kind;
+        say("battle theme " + event.getLocation());
     }
 
     private static void victory() {
         state = State.VICTORY;
+        say("victory");
         boolean titan = boss != null && boss.isTitan();
         boss = null;
         if (theme != null) { theme.fadeOutAndStop(25); theme = null; }
@@ -176,6 +197,7 @@ public final class BossMusic {
         state = State.AFTER;
         afterTicks = 20 * 20;
         themeRetry = 0;      // the next fight retries at once, not after the old countdown
+        say("quiet: nothing near");
     }
 
     private static void stopSting() {
@@ -183,8 +205,12 @@ public final class BossMusic {
     }
 
     private static void reset() {
-        if (theme != null) { theme.fadeOutAndStop(1); theme = null; }
-        if (sting != null) { sting.fadeOutAndStop(1); sting = null; }
+        // Cut, do not fade. A fade is driven by the track's own tick(), and a track the engine
+        // never started is never ticked - so a fade-out on one of those would leave it holding a
+        // streaming channel for ever, and the streaming pool is small enough that a few of them
+        // would leave the next fight with nowhere to play.
+        if (theme != null) { theme.cut(); theme = null; }
+        if (sting != null) { sting.cut(); sting = null; }
         boss = null;
         state = State.NONE;
         themeKind = "";
@@ -248,6 +274,12 @@ public final class BossMusic {
         void fadeOutAndStop(int ticks) {
             fadeTo(0f, ticks);
             stopping = true;
+        }
+
+        /** Stop now, and take the channel back with it. */
+        void cut() {
+            this.stop();
+            Minecraft.getInstance().getSoundManager().stop(this);
         }
 
         @Override
