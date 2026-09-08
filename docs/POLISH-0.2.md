@@ -8,6 +8,36 @@ where to stop if there is no time for the rest.
 Nothing here is a bug report. 0.2 works. This is the difference between a mod somebody installs
 and a mod somebody keeps.
 
+## Done since this was written  ·  8 September, 0.2.0-alpha.10
+
+**§5 is done.** Nine advancements (Starstone → Star Iron → the whole suit → taking a real blow in
+it; live through one cataclysm, live through all five, stand in a tornado for five seconds; the
+Chart, and twelve named lands). The Almanac has a tenth chapter on the five and on Star Iron. The
+suit says on its own tooltip what it does, because a number that never happens is invisible. The
+Wayfarer's Chart introduces itself the first time somebody walks into a named land.
+
+**§6 was mostly already there** and the plan was wrong to imply otherwise: every cataclysm already
+has its own on/off, chance and cooldown in the config, with a comment per value, and `omens` /
+`omenSeconds` are settings too. What is genuinely missing from §6 is only the balance pass, which
+needs §1 — playing it — before any number should be moved.
+
+**§3 was half wrong too.** The sounds exist and are registered: `cataclysm.volcano.rumble`,
+`cataclysm.tornado.roar`, `cataclysm.quake.rumble`, `cataclysm.meteor.scream`, `cataclysm.omen`.
+Whether they are *enough* is a question for headphones, not for a source tree — check it in §1.
+
+**§2 exists in outline**: `Omen.java` already gives every cataclysm forty seconds of warning, a low
+note, the light going wrong, the animals fleeing and a line in the chat. What is untested is
+whether forty seconds is enough and whether the five warnings are distinguishable from each other.
+Both are §1 questions.
+
+**§4 is partly there**: the tornado already lays a swathe behind it (`Aftermath.swathe`) and the
+volcano already leaves its ash on the downwind side. The earthquake's fault stays open. What is
+still missing is the volcano cooling to stone and anything at all happening to crops, animals and
+villagers.
+
+So the list below is now shorter than it looks: **§1 is the whole job**, and §4 and §9 are what
+follows from it.
+
 ---
 
 ## 1. The testing pass that has to happen anyway  · half an evening
