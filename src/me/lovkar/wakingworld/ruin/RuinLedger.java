@@ -88,6 +88,23 @@ public final class RuinLedger extends SavedData {
     }
 
     /**
+     * The nearest thing still happening near a point - a cataclysm in the middle of it, or a fight
+     * that is not over. The hourglass asks so it can say which of the two it is looking at: "there
+     * is nothing here" and "it has not finished yet" are different answers, and telling a player the
+     * first when the second is true is how a working feature gets reported as broken.
+     */
+    public FightRecord nearestOpen(BlockPos at, double range) {
+        FightRecord best = null;
+        double bestD = range;
+        for (FightRecord r : records.values()) {
+            if (r.finished || r.before.isEmpty()) continue;
+            double d = r.distanceTo(at);
+            if (d <= bestD) { bestD = d; best = r; }
+        }
+        return best;
+    }
+
+    /**
      * Some things that stand on a fight's ground are not the fight's to undo - the Titan's Gate the
      * arena raises when the Titan falls. Every record forgets these places, so the hourglass leaves
      * whatever stands there alone (a place still on a running restoration's list is simply skipped).

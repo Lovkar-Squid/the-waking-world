@@ -244,7 +244,9 @@ public final class WakingCommands {
         me.lovkar.wakingworld.ruin.RuinLedger ledger = me.lovkar.wakingworld.ruin.RuinLedger.get(level);
         me.lovkar.wakingworld.ruin.FightRecord ruin = ledger.nearestFinished(at, 256);
         if (ruin == null) {
-            ctx.getSource().sendFailure(Component.translatable("commands.wakingworld.restore.none", 256));
+            boolean going = ledger.nearestOpen(at, 256) != null;
+            ctx.getSource().sendFailure(Component.translatable(going
+                    ? "commands.wakingworld.restore.still" : "commands.wakingworld.restore.none", 256));
             return 0;
         }
         final int n = ruin.size();

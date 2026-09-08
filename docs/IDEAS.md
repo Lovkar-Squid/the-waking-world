@@ -176,3 +176,20 @@ story to go other than a stalemate over one cell.
 
 Fits naturally with the 0.3 headline being a sixth cataclysm: one is world-scale and the other is
 human-scale, and neither competes for the same code.
+
+## The hourglass could stop a cataclysm, not only follow it
+
+Turning the hourglass over during a volcano now says "it has not finished yet", which is honest and
+was a real bug fix - the old message said there was nothing here at all, and a working feature read
+as broken. But "wait eight minutes and then you may have your land back" is still the wrong answer
+to a player watching a mountain come up through their house.
+
+The version worth building: the hourglass takes an *open* scar too, and stopping the cataclysm is
+part of turning it over. That needs a way to ask whichever of the five owns a scar to end now rather
+than at its own pace - the volcano's SavedData to drop to IDLE, a tornado entity to be discarded, a
+quake to close its fault - and it has to leave the world in the state the record expects, or the
+restoration puts back blocks the cataclysm is still writing over.
+
+It is a better moment than waiting, and it makes the hourglass the answer to "make it stop" rather
+than only to "put it back". The reason it is not in 0.2 is that cancelling half of a running event
+is exactly the kind of change that wants its own testing, not a release-eve patch.

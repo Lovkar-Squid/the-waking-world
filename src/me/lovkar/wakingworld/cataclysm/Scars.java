@@ -54,9 +54,18 @@ public final class Scars {
         if (id == null) return;
         RuinLedger ledger = RuinLedger.get(level);
         FightRecord r = ledger.record(id);
+        BlockPos where = r == null ? null : r.center();
+        int blocks = r == null ? 0 : r.size();
         ledger.finish(id, level.getGameTime());
-        WakingWorld.LOGGER.info("cataclysm: the scar is closed - {} blocks remembered, an hourglass can put them back",
-                r == null ? 0 : r.size());
+        WakingWorld.LOGGER.info("cataclysm: the scar is closed - {} blocks remembered, an hourglass can put them back", blocks);
+        // and somebody has to be told. A volcano takes eight minutes to stop moving and said nothing
+        // when it had: a player holding an hourglass had no way of knowing when it would work, so it
+        // read as broken. This is the moment it starts working, and it is worth one line.
+        if (where == null || blocks <= 0) return;
+        for (net.minecraft.server.level.ServerPlayer p : level.getPlayers(pl -> pl.blockPosition().closerThan(where, 160))) {
+            p.sendSystemMessage(net.minecraft.network.chat.Component.translatable("cataclysm.wakingworld.settled")
+                    .withStyle(net.minecraft.ChatFormatting.AQUA));
+        }
     }
 
     /** Everything written between here and {@link #close()} belongs to this scar. */

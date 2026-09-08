@@ -39,7 +39,11 @@ public class HourglassItem extends Item {
         RuinLedger ledger = RuinLedger.get(server);
         FightRecord ruin = ledger.nearestFinished(player.blockPosition(), RANGE);
         if (ruin == null) {
-            player.displayClientMessage(Component.translatable("item.wakingworld.hourglass.nothing").withStyle(ChatFormatting.GRAY), true);
+            // it matters a great deal which of the two this is: a cataclysm records itself from the
+            // first block, but the hourglass cannot have it until it has stopped moving
+            boolean going = ledger.nearestOpen(player.blockPosition(), RANGE) != null;
+            player.displayClientMessage(Component.translatable(going
+                    ? "item.wakingworld.hourglass.still" : "item.wakingworld.hourglass.nothing").withStyle(ChatFormatting.GRAY), true);
             server.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.PLAYERS, 1.0F, 0.6F);
             player.getCooldowns().addCooldown(this, 20);
             return InteractionResultHolder.fail(stack);
