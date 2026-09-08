@@ -77,6 +77,7 @@ public final class WakingConfig {
     private static final ModConfigSpec.BooleanValue F_MAGE;
     private static final ModConfigSpec.IntValue LAND_SIZE;
     private static final ModConfigSpec.IntValue LAND_CELLS;
+    private static final ModConfigSpec.IntValue LAND_MIN_CELLS;
     private static final ModConfigSpec.BooleanValue LAND_CHAT;
     private static final ModConfigSpec.BooleanValue GEMINI_LANDS;
 
@@ -268,6 +269,12 @@ public final class WakingConfig {
                 "rectangle. Larger means bigger countries and rarer title cards: 1 puts back the old behaviour",
                 "of one square, one name.")
                 .defineInRange("landCells", 24, 1, 64);
+        LAND_MIN_CELLS = b.comment("The fewest squares a land is allowed to be. Country of the same kind is what a land grows",
+                        "over, and at this square size the kind often changes from one square to the next - a river",
+                        "through a wood, a ridge across a plain - which left the map covered in one-square lands whose",
+                        "names had to be abbreviated to fit. A land short of this many squares keeps taking the nearest",
+                        "unclaimed ones whatever kind they are, so no land is a lonely rectangle. 1 switches it off.")
+                .defineInRange("landMinCells", 6, 1, 64);
         LAND_CHAT = b.comment("Write the land's name and lore into the chat as well as showing the card.",
                 "Off (the default): only the card. The card says the same thing at the same moment, so the line",
                 "under it was two of everything, and it pushed the chat up the screen every time you crossed a",
@@ -365,6 +372,11 @@ public final class WakingConfig {
     /** How many squares a land may spread over. */
     public static int landCells() {
         return loaded() ? LAND_CELLS.get() : 24;
+    }
+
+    /** The fewest squares a land may be - below this it takes neighbours of any kind. */
+    public static int landMinCells() {
+        return loaded() ? LAND_MIN_CELLS.get() : 6;
     }
 
     public static boolean geminiLands() {

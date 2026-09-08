@@ -44,12 +44,21 @@ public final class GeminiLands {
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private static final Map<Long, CompletableFuture<Result>> PENDING = new ConcurrentHashMap<>();
     private static long lastFailure = 0;
+    /** Why the last land fell back to the templates, so the log can say rather than stay silent. */
+    private static volatile String why = "not asked yet";
     private static volatile String successor;
 
     public static boolean enabled() {
         String key = WakingConfig.geminiApiKey();
-        return WakingConfig.geminiLands() && key != null && key.length() > 10
-                && System.currentTimeMillis() - lastFailure > 60_000;
+        if (!WakingConfig.geminiLands()) { why = "geminiLands is off"; return false; }
+        if (key == null || key.length() <= 10) { why = "no geminiApiKey is set"; return false; }
+        if (System.currentTimeMillis() - lastFailure <= 60_000) { why = "the model failed a moment ago"; return false; }
+        return true;
+    }
+
+    /** What the last fallback was about. */
+    public static String why() {
+        return why;
     }
 
     /** Ask about one cell. Returns false when one is already in flight for it. */
@@ -59,6 +68,7 @@ public final class GeminiLands {
         PENDING.put(cell, CompletableFuture.supplyAsync(() -> call(facts), POOL)
                 .orTimeout(25, TimeUnit.SECONDS)
                 .exceptionally(ex -> {
+                    why = "the request did not come back in time";
                     WakingWorld.LOGGER.warn("Gemini land name failed: {}", ex.toString());
                     lastFailure = System.currentTimeMillis();
                     return new Result(null, null, false);
@@ -112,7 +122,14 @@ public final class GeminiLands {
                 }
             }
             if (res.statusCode() / 100 != 2) {
-                WakingWorld.LOGGER.warn("Gemini land name: HTTP {}", res.statusCode());
+                // busy is not broken: 429 and 503 mean the model is loaded and will not be shortly
+                if (res.statusCode() == 429 || res.statusCode() == 503) {
+                    why = "the model is busy (HTTP " + res.statusCode() + ")";
+                    WakingWorld.LOGGER.info("Gemini land name: the model is busy right now (HTTP {}); this land is named from the templates. Nothing is wrong.", res.statusCode());
+                } else {
+                    why = "HTTP " + res.statusCode();
+                    WakingWorld.LOGGER.warn("Gemini land name: HTTP {}", res.statusCode());
+                }
                 lastFailure = System.currentTimeMillis();
                 return new Result(null, null, false);
             }
@@ -123,10 +140,12 @@ public final class GeminiLands {
             String name = out.has("name") ? out.get("name").getAsString().trim() : "";
             String lore = out.has("lore") ? out.get("lore").getAsString().trim() : "";
             if (name.isBlank() || name.length() > 32 || lore.isBlank() || lore.length() > 160) {
+                why = "the model's answer did not fit (name " + name.length() + ", lore " + lore.length() + ")";
                 return new Result(null, null, false);
             }
             return new Result(name, lore, true);
         } catch (Exception e) {
+            why = e.toString();
             WakingWorld.LOGGER.warn("Gemini land name failed: {}", e.toString());
             lastFailure = System.currentTimeMillis();
             return new Result(null, null, false);

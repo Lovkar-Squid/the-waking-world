@@ -245,9 +245,12 @@ public final class Lands extends SavedData {
             return null;                                         // asked: come back in half a second
         }
         RandomSource rnd = RandomSource.create(k * 0x9E3779B97F4A7C15L ^ level.getSeed());
+        // say WHY the templates wrote it. A land named by the model and one named from the word lists
+        // look exactly alike in the game, so "I have never seen Gemini name one" is unanswerable
+        // without this line - and the answer is usually that the model was busy.
         return place(level, cx, cz, kind,
                 unused(LandNames.template(kind, rnd), () -> LandNames.template(kind, rnd)),
-                LandNames.templateLore(kind, rnd), "templates");
+                LandNames.templateLore(kind, rnd), "templates: " + GeminiLands.why());
     }
 
     /**
@@ -275,7 +278,9 @@ public final class Lands extends SavedData {
 
     /**
      * The squares a land takes: a breadth-first spread from the one walked into, over unowned
-     * neighbours of the same kind, stopping at {@code landCells}.
+     * neighbours of the same kind, stopping at {@code landCells} - and then, if that came to fewer
+     * than {@code landMinCells}, over the nearest unclaimed squares of any kind, so no land is left
+     * one square across.
      *
      * <p>It asks only for biomes. {@code getBiome} is answered by the generator's own biome source
      * when the chunk is not loaded, so nothing here generates terrain; a heightmap position would
@@ -284,27 +289,43 @@ public final class Lands extends SavedData {
      */
     private long[] spread(ServerLevel level, int cx, int cz, LandNames.Kind kind) {
         int max = Math.max(1, WakingConfig.landCells());
+        int floor = Math.min(max, Math.max(1, WakingConfig.landMinCells()));
         java.util.LinkedHashSet<Long> region = new java.util.LinkedHashSet<>();
-        java.util.ArrayDeque<int[]> queue = new java.util.ArrayDeque<>();
         region.add(key(cx, cz));
-        queue.add(new int[]{cx, cz});
-        int[][] around = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-        while (!queue.isEmpty() && region.size() < max) {
-            int[] c = queue.poll();
-            for (int[] d : around) {
-                if (region.size() >= max) break;
-                int nx = c[0] + d[0], nz = c[1] + d[1];
-                long nk = key(nx, nz);
-                if (region.contains(nk) || owner.containsKey(nk)) continue;
-                if (kindOfCell(level, nx, nz) != kind) continue;
-                region.add(nk);
-                queue.add(new int[]{nx, nz});
-            }
-        }
+        int[] seed = {cx, cz};
+
+        // first over country of the same kind, which is what gives a land the shape of its country
+        grow(level, region, seed, max, kind);
+        // and then, if the country changed at once, over the nearest unclaimed squares whatever they
+        // are. Without this the map fills with one-square lands: at this square size a river through
+        // a wood or a ridge across a plain is enough to change the kind from one square to the next,
+        // so a walk of two minutes hands you four names and every box is too small to write them in.
+        if (region.size() < floor) grow(level, region, seed, floor, null);
+
         long[] out = new long[region.size()];
         int i = 0;
         for (long c : region) out[i++] = c;
         return out;
+    }
+
+    /** Breadth-first out of the squares already taken, to {@code target}; a null kind takes anything. */
+    private void grow(ServerLevel level, java.util.LinkedHashSet<Long> region, int[] seed, int target, LandNames.Kind kind) {
+        java.util.ArrayDeque<int[]> queue = new java.util.ArrayDeque<>();
+        for (long c : region) queue.add(new int[]{(int) (c >> 32), (int) c});
+        if (queue.isEmpty()) queue.add(seed);
+        int[][] around = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        while (!queue.isEmpty() && region.size() < target) {
+            int[] c = queue.poll();
+            for (int[] d : around) {
+                if (region.size() >= target) break;
+                int nx = c[0] + d[0], nz = c[1] + d[1];
+                long nk = key(nx, nz);
+                if (region.contains(nk) || owner.containsKey(nk)) continue;
+                if (kind != null && kindOfCell(level, nx, nz) != kind) continue;
+                region.add(nk);
+                queue.add(new int[]{nx, nz});
+            }
+        }
     }
 
     /** What kind of country a square is, without loading a chunk to find out. */
