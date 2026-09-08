@@ -12,7 +12,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
-/** The mod's structures: the Titan's arena in the End, the six shrines, the vaults, the ruins and hamlets. */
+/** The mod's structures: the Titan's arena in the End, the six shrines, the vaults, the ruins and hamlets, the kingdoms, the mage's tower. */
 public final class WakingStructures {
     private WakingStructures() {
     }
@@ -51,6 +51,11 @@ public final class WakingStructures {
     public static final DeferredHolder<StructurePieceType, StructurePieceType> KEEP_PIECE =
             PIECES.register("keep", () -> (StructurePieceType) (context, tag) -> new me.lovkar.wakingworld.kingdom.KeepPiece(tag));
 
+    public static final DeferredHolder<StructureType<?>, StructureType<me.lovkar.wakingworld.mage.MageTowerStructure>> MAGE_TOWER =
+            TYPES.register("mage_tower", () -> mageTowerType());
+    public static final DeferredHolder<StructurePieceType, StructurePieceType> MAGE_TOWER_PIECE =
+            PIECES.register("mage_tower", () -> (StructurePieceType) (context, tag) -> new me.lovkar.wakingworld.mage.MageTowerPiece(tag));
+
     /** The structure key and the tag the Key of the Titan looks for. */
     public static final ResourceKey<Structure> TITAN_ARENA_KEY = ResourceKey.create(Registries.STRUCTURE, ResourceLocation.fromNamespaceAndPath(WakingWorld.MODID, "titan_arena"));
     public static final TagKey<Structure> TITAN_ARENA_TAG = TagKey.create(Registries.STRUCTURE, ResourceLocation.fromNamespaceAndPath(WakingWorld.MODID, "titan_arena"));
@@ -81,6 +86,10 @@ public final class WakingStructures {
 
     private static StructureType<me.lovkar.wakingworld.kingdom.KingdomStructure> kingdomType() {
         return () -> me.lovkar.wakingworld.kingdom.KingdomStructure.CODEC;
+    }
+
+    private static StructureType<me.lovkar.wakingworld.mage.MageTowerStructure> mageTowerType() {
+        return () -> me.lovkar.wakingworld.mage.MageTowerStructure.CODEC;
     }
 
     public static void register(IEventBus modBus) {

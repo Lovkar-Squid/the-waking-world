@@ -39,9 +39,28 @@ P = {
  "minecraft:basalt": (0x4c,0x4a,0x50), "minecraft:blackstone": (0x2b,0x25,0x2b),
  "minecraft:magma_block": (0x8e,0x3f,0x22), "minecraft:soul_sand": (0x51,0x3e,0x32),
  "minecraft:fire": (0xe8,0x86,0x2f), "wakingworld:starstone": (0x2a,0x21,0x2c),
+ # the mage's tower: deepslate and blackstone, and the few things that burn in it
+ "minecraft:deepslate_bricks": (0x3a,0x39,0x3f), "minecraft:cracked_deepslate_bricks": (0x33,0x32,0x37),
+ "minecraft:polished_deepslate": (0x36,0x35,0x3b), "minecraft:cobbled_deepslate": (0x45,0x44,0x4a),
+ "minecraft:deepslate_tiles": (0x2e,0x2d,0x32), "minecraft:cracked_deepslate_tiles": (0x2a,0x29,0x2e),
+ "minecraft:chiseled_deepslate": (0x32,0x31,0x36),
+ "minecraft:polished_blackstone": (0x2f,0x2a,0x31), "minecraft:polished_blackstone_bricks": (0x2b,0x26,0x2d),
+ "minecraft:cracked_polished_blackstone_bricks": (0x26,0x22,0x28), "minecraft:gilded_blackstone": (0x3c,0x2c,0x22),
+ "minecraft:crying_obsidian": (0x2a,0x14,0x44), "minecraft:soul_soil": (0x4a,0x39,0x2e),
+ "minecraft:soul_fire": (0x3a,0xc4,0xd8), "minecraft:soul_lantern": (0x5a,0xc8,0xd0),
+ "minecraft:black_candle": (0x1c,0x1a,0x1e), "minecraft:respawn_anchor": (0x24,0x14,0x3c),
+ "minecraft:bookshelf": (0x74,0x5b,0x38), "minecraft:chiseled_bookshelf": (0x7c,0x62,0x3c),
+ "minecraft:dark_oak_planks": (0x42,0x2c,0x16), "minecraft:lectern": (0x6a,0x51,0x30),
+ "minecraft:enchanting_table": (0x3a,0x28,0x3e), "minecraft:cartography_table": (0x5e,0x4a,0x33),
+ "minecraft:chest": (0x8a,0x6a,0x33), "minecraft:brewing_stand": (0x6a,0x5c,0x4e),
+ "minecraft:cauldron": (0x38,0x38,0x3c), "minecraft:decorated_pot": (0x9a,0x6a,0x52),
+ "minecraft:chain": (0x33,0x36,0x3d), "minecraft:cobweb": (0xc8,0xc8,0xcc),
+ "minecraft:mushroom_stem": (0xcb,0xc5,0xb4), "minecraft:red_mushroom_block": (0xa0,0x2c,0x28),
 }
 GLOW = {"minecraft:magma_block": (255,140,40, 0.9), "minecraft:fire": (255,190,90, 1.0),
-        "wakingworld:starstone": (255,150,60, 1.0), "minecraft:lava": (255,150,40, 1.0)}
+        "wakingworld:starstone": (255,150,60, 1.0), "minecraft:lava": (255,150,40, 1.0),
+        "minecraft:soul_fire": (90,220,240, 1.0), "minecraft:soul_lantern": (110,230,240, 0.9),
+        "minecraft:crying_obsidian": (150,80,255, 0.7), "minecraft:respawn_anchor": (150,80,255, 0.6)}
 SKIP = {"minecraft:air","minecraft:cave_air","minecraft:void_air"}
 # thin things the renderer would otherwise draw as full cubes, burying the terrain under them
 SKIP |= {"minecraft:snow", "minecraft:short_grass", "minecraft:grass", "minecraft:tall_grass",

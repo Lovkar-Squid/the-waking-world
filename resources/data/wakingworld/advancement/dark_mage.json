@@ -1,0 +1,19 @@
+{
+  "display": {
+    "icon": { "id": "wakingworld:storm_rod" },
+    "title": { "translate": "advancement.wakingworld.dark_mage.title" },
+    "description": { "translate": "advancement.wakingworld.dark_mage.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:ember",
+  "criteria": {
+    "slain": {
+      "trigger": "wakingworld:colossus_slain",
+      "conditions": { "kind": "dark_mage" }
+    }
+  },
+  "rewards": { "experience": 400 }
+}

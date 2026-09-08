@@ -625,8 +625,52 @@ def hammer_textures():
     glow(im, {(7, 7), (8, 8), (7, 8), (8, 7)}, gl, 3, 0.3)
     save(im, "hammer_rune")
 
+
+# ------------------------------------------------------------------ the storm rod
+
+def storm_rod():
+    """What the mage was holding: a black haft, a bound head, and the pressure it keeps in it."""
+    im = img()
+    dark = (36, 32, 44, 255); dark_l = (66, 60, 80, 255); dark_d = (20, 18, 26, 255)
+    brass = (150, 116, 54, 255); brass_l = (214, 178, 98, 255)
+    core = (168, 96, 246, 255); hot = (238, 210, 255, 255)
+    # the haft, corner to corner, with a slight taper
+    x0, y0, x1, y1 = 7, 26, 22, 8
+    for i in range(140):
+        t = i / 139
+        x, y = x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
+        w = 3 if t < 0.75 else 2
+        for k in range(-w, w + 1):
+            c = dark_l if k <= -w + 1 else dark_d if k >= w - 1 else dark
+            if (i // 6) % 5 == 0 and abs(k) < w: c = shade(dark, 1.18)
+            px(im, x + k, y, c)
+    # two bands of old brass where the grip ends
+    for (bt, n) in ((0.30, 2), (0.52, 2)):
+        x, y = x0 + (x1 - x0) * bt, y0 + (y1 - y0) * bt
+        for j in range(n):
+            for k in range(-4, 5):
+                px(im, x + k, y + j, brass if (k + j) % 3 else brass_l)
+    # the head: a cage of four brass claws round something that is not a stone
+    hx, hy = 22, 8
+    disc(im, hx, hy, 4.4, core, strength=0.55)
+    disc(im, hx, hy, 2.2, hot, strength=0.2)
+    for (dx, dy) in ((-5, 1), (5, 1), (-1, -5), (1, 5)):
+        line(im, hx, hy, hx + dx, hy + dy, brass, 2)
+    for a in range(0, 360, 45):
+        r = math.radians(a)
+        px(im, hx + math.cos(r) * 5.6, hy + math.sin(r) * 5.6, brass_l)
+    # sparks coming off it
+    rnd = random.Random(7)
+    for _ in range(16):
+        a = rnd.random() * math.tau
+        r = 6.5 + rnd.random() * 3.5
+        px(im, hx + math.cos(a) * r, hy + math.sin(a) * r, core if rnd.random() < 0.6 else hot)
+    glow(im, {(hx, hy)}, core, 7.0, 0.42)
+    outline(im, (10, 8, 14, 255))
+    save(im, "storm_rod")
+
 if __name__ == "__main__":
-    colossus_heart(); heart_of_the_end(); horn_of_waking(); titan_key(); hourglass(); sleepers_ember(); dead_letter(); almanac(); hammer_textures()
+    colossus_heart(); heart_of_the_end(); horn_of_waking(); titan_key(); hourglass(); sleepers_ember(); dead_letter(); almanac(); hammer_textures(); storm_rod()
     for k in KINDS:
         if k != "void": rune_item(k)
         sigil(k)

@@ -123,6 +123,9 @@ public final class WakingCommands {
                         .executes(ctx -> rite(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getLoadedBlockPos(ctx, "altar")))))
                 .then(Commands.literal("terrain").then(Commands.argument("at", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
                         .executes(ctx -> terrain(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getBlockPos(ctx, "at")))))
+                .then(Commands.literal("tidy").executes(ctx -> tidy(ctx, 62))
+                        .then(Commands.argument("radius", com.mojang.brigadier.arguments.IntegerArgumentType.integer(8, 128))
+                                .executes(ctx -> tidy(ctx, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "radius")))))
                 .then(Commands.literal("kingdomscan").then(Commands.argument("at", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
                         .then(Commands.argument("cells", IntegerArgumentType.integer(1, 40))
                                 .executes(ctx -> kingdomScan(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getBlockPos(ctx, "at"), IntegerArgumentType.getInteger(ctx, "cells")))))));
@@ -352,6 +355,15 @@ public final class WakingCommands {
         return 1;
     }
 
+    /** Rake the wood here: floating leaves a wall or a tower cut are asked to count again, and fall. */
+    private static int tidy(com.mojang.brigadier.context.CommandContext<net.minecraft.commands.CommandSourceStack> ctx, int radius) {
+        net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
+        net.minecraft.core.BlockPos at = net.minecraft.core.BlockPos.containing(ctx.getSource().getPosition());
+        me.lovkar.wakingworld.worldgen.Tidy.begin(level, at, radius, 0, -8, 46);
+        ctx.getSource().sendSuccess(() -> Component.literal("Raking " + radius + " blocks round here - the orphaned leaves will come down over the next few seconds."), true);
+        return 1;
+    }
+
     private static int diff(CommandContext<CommandSourceStack> ctx) {
         ServerLevel level = ctx.getSource().getLevel();
         Map<String, Integer> kinds = new java.util.HashMap<>();
@@ -440,6 +452,21 @@ public final class WakingCommands {
         final int count = n;
         ctx.getSource().sendSuccess(() -> Component.literal(count + " colossi now target " + who.getName().getString()), true);
         return n;
+    }
+
+    /**
+     * Open ground near the caller, the way the world itself picks a site.
+     *
+     * <p>These commands used to drop the thing on the caller's own column, so running one while
+     * standing in a wood put a tornado in the wood - and then the tornado was reported as siting
+     * itself badly, when the world's own siting had never been asked. A command that is meant to
+     * show you what the world does has to choose its ground the same way the world does; naming a
+     * position still puts it exactly there.</p>
+     */
+    private static BlockPos open(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 from, int minOut, int maxOut) {
+        net.minecraft.world.phys.Vec3 site = me.lovkar.wakingworld.cataclysm.Cataclysms.openSite(level, from, level.random, minOut, maxOut);
+        if (site != null) return BlockPos.containing(site);
+        return me.lovkar.wakingworld.cataclysm.Cataclysms.surface(level, from.x, from.z);
     }
 
     /** One star, on its way: where you are looking, or where you say. */
@@ -539,7 +566,7 @@ public final class WakingCommands {
     private static int tornado(CommandContext<CommandSourceStack> ctx, BlockPos at, int seconds) {
         net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
         net.minecraft.world.phys.Vec3 from = ctx.getSource().getPosition();
-        BlockPos ground = at != null ? at : me.lovkar.wakingworld.cataclysm.Cataclysms.surface(level, from.x, from.z);
+        BlockPos ground = at != null ? at : open(level, from, 24, 70);
         me.lovkar.wakingworld.cataclysm.TornadoEntity.spawn(level,
                 new net.minecraft.world.phys.Vec3(ground.getX() + 0.5, ground.getY(), ground.getZ() + 0.5), seconds);
         final String w = ground.getX() + " " + ground.getY() + " " + ground.getZ();
@@ -551,7 +578,7 @@ public final class WakingCommands {
     private static int earthquake(CommandContext<CommandSourceStack> ctx, BlockPos at) {
         net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
         net.minecraft.world.phys.Vec3 from = ctx.getSource().getPosition();
-        BlockPos ground = at != null ? at : me.lovkar.wakingworld.cataclysm.Cataclysms.surface(level, from.x, from.z);
+        BlockPos ground = at != null ? at : open(level, from, 16, 60);
         me.lovkar.wakingworld.cataclysm.Weather.forceQuake(level,
                 new net.minecraft.world.phys.Vec3(ground.getX() + 0.5, ground.getY(), ground.getZ() + 0.5));
         ctx.getSource().sendSuccess(() -> Component.literal("The ground turns."), true);

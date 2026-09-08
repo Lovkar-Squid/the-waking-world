@@ -33,6 +33,8 @@ public class AlmanacScreen extends Screen {
     private static final int LEFT_X = 24, RIGHT_X = 166;
     static final int INK = 0x3A2A1C, HEAD = 0x6E2A18, CAPTION = 0x4A3A2A, FADED = 0x7A6A58;
 
+    private static final int TAB_W = 28, TAB_H = 24, TAB_STEP = 23, TAB_OUT = 4;
+
     private static final int KEY_RIGHT = 262, KEY_LEFT = 263, KEY_PAGE_UP = 266, KEY_PAGE_DOWN = 267;
 
     private record Chapter(String id, ItemStack icon, List<List<PageLayout.Element>> pages) {
@@ -61,9 +63,32 @@ public class AlmanacScreen extends Screen {
         clampSpread();
         tabs.clear();
         arrows.clear();
-        for (int i = 0; i < chapters.size(); i++) tabs.add(addRenderableWidget(new Tab(i, left - 27, top + 5 + i * 23)));
+        layOutTabs();
         arrows.add(addRenderableWidget(new Arrow(false, left + 22, top + 176)));
         arrows.add(addRenderableWidget(new Arrow(true, left + BOOK_W - 40, top + 176)));
+    }
+
+    /**
+     * The chapter tabs. They used to run down the left edge in one column, which was fine at six
+     * chapters and wrong at ten: the last of them hung below the book and off the bottom of the
+     * screen. They are split down BOTH edges now - the first half on the left, the rest on the
+     * right - which halves the column and keeps the book itself in the middle of the window.
+     *
+     * <p>Two columns want {@code BOOK_W + 60} of width. A window too narrow for that (the game
+     * guarantees only 320) keeps them all on the left and closes the spacing up until they fit the
+     * cover instead, which is worse-looking and still readable, rather than off the screen.</p>
+     */
+    private void layOutTabs() {
+        int n = chapters.size();
+        boolean bothEdges = width >= BOOK_W + 60;
+        int perSide = bothEdges ? (n + 1) / 2 : n;
+        int step = perSide > 1 ? Math.min(TAB_STEP, (BOOK_H - 10 - TAB_H) / (perSide - 1)) : TAB_STEP;
+        for (int i = 0; i < n; i++) {
+            boolean right = bothEdges && i >= perSide;
+            int row = right ? i - perSide : i;
+            int x = right ? left + BOOK_W - 1 : left - TAB_W + 1;
+            tabs.add(addRenderableWidget(new Tab(i, x, top + 5 + row * step, right)));
+        }
     }
 
     private void clampSpread() {
@@ -176,6 +201,31 @@ public class AlmanacScreen extends Screen {
         atlas();
         // X. what the world does back
         cataclysms();
+        // XI. and the one man who will sell you a piece of it
+        if (me.lovkar.wakingworld.WakingConfig.mage()) mage();
+    }
+
+    /**
+     * The chapter on the mage.
+     *
+     * <p>It is deliberately short and deliberately unhelpful about where he is, because finding the
+     * tower is the good part. What it does say is the two things a player cannot work out by
+     * looking: that he will not start it, and that the stone comes from him and from nowhere else -
+     * without those two sentences somebody kills him on sight and never learns there was a trade.</p>
+     */
+    private void mage() {
+        add("mage", of(me.lovkar.wakingworld.mage.MageBlocks.RITE_STONE_ITEM.get()), flow()
+                .paragraph(t("mage.1"), INK)
+                .paragraph(t("mage.2"), INK)
+                .items(t("mage.stone"), CAPTION, of(me.lovkar.wakingworld.mage.MageBlocks.RITE_STONE_ITEM.get()))
+                .paragraph(t("mage.3"), INK)
+                .heading(t("mage.price.title"), HEAD)
+                .paragraph(t("mage.price.1"), INK)
+                .items(t("mage.price.ember"), CAPTION, of(WakingItems.SLEEPERS_EMBER.get()))
+                .heading(t("mage.fight.title"), HEAD)
+                .paragraph(t("mage.fight.1"), INK)
+                .items(t("mage.fight.rod"), CAPTION, of(WakingItems.STORM_ROD.get()))
+                .paragraph(t("mage.fight.2"), FADED));
     }
 
     /**
@@ -339,21 +389,42 @@ public class AlmanacScreen extends Screen {
         return false;
     }
 
-    /** A chapter tab down the left edge of the cover; the open chapter's is wider and paper-coloured. */
+    /**
+     * A chapter tab on one edge of the cover; the open chapter's is wider and paper-coloured, and a
+     * hovered one leans a little further out.
+     *
+     * <p>A tab on the right edge is the same picture drawn backwards - the sheet has one tab in it,
+     * and mirroring it under the pose is cheaper and truer than painting a second one that has to be
+     * kept in step with the first. The icon is drawn outside the mirror, or it would be backwards
+     * too.</p>
+     */
     private class Tab extends AbstractWidget {
         final int index;
+        final boolean right;
 
-        Tab(int index, int x, int y) {
-            super(x, y, 28, 24, Component.empty());
+        Tab(int index, int x, int y, boolean right) {
+            super(x, y, TAB_W, TAB_H, Component.empty());
             this.index = index;
+            this.right = right;
         }
 
         @Override
         protected void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
             boolean sel = index == chapter;
-            int x = getX() - (sel ? 4 : 0) - (isHovered() && !sel ? 2 : 0);
-            g.blit(TEX, x, getY(), sel ? 300 : 300, sel ? 26 : 0, sel ? 32 : 28, 24, TEX_W, TEX_H);
-            g.renderItem(chapters.get(index).icon, x + 5, getY() + 4);
+            int out = sel ? TAB_OUT : (isHovered() ? 2 : 0);      // how far it leans clear of the cover
+            int w = sel ? TAB_W + 4 : TAB_W;
+            if (right) {
+                // the sheet carries a mirrored copy at u=360. Flipping the pose with a negative
+                // scale reverses the quad's winding, which the GUI pipeline culls: the tabs on this
+                // side drew nothing at all and their icons hung in the air.
+                int x = getX() + out;
+                g.blit(TEX, x, getY(), 360, sel ? 26 : 0, w, TAB_H, TEX_W, TEX_H);
+                g.renderItem(chapters.get(index).icon, x + w - 21, getY() + 4);
+            } else {
+                int x = getX() - out;
+                g.blit(TEX, x, getY(), 300, sel ? 26 : 0, w, TAB_H, TEX_W, TEX_H);
+                g.renderItem(chapters.get(index).icon, x + 5, getY() + 4);
+            }
         }
 
         @Override

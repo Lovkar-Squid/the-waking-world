@@ -1,0 +1,7 @@
+{
+  "type": "wakingworld:mage_tower",
+  "biomes": "#wakingworld:has_structure/mage_tower",
+  "step": "surface_structures",
+  "spawn_overrides": {},
+  "terrain_adaptation": "none"
+}

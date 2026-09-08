@@ -95,6 +95,9 @@ public final class WakingItems {
     }
 
     /** The rite's fuel - only the vaults have them. */
+    public static final DeferredItem<StormRodItem> STORM_ROD = ITEMS.registerItem("storm_rod", StormRodItem::new,
+            new Item.Properties());
+
     public static final DeferredItem<Item> SLEEPERS_EMBER = ITEMS.registerItem("sleepers_ember",
             p -> new LoreItem(p, "item.wakingworld.sleepers_ember.tooltip", true), new Item.Properties().rarity(Rarity.RARE).fireResistant());
     public static final DeferredItem<Item> RUNE_STONE = rune("stone");
@@ -190,6 +193,8 @@ public final class WakingItems {
                         for (DeferredItem<Item> d : discs()) out.accept(d.get());
                         out.accept(me.lovkar.wakingworld.ritual.WakingRitual.ALTAR_ITEM.get());
                         out.accept(me.lovkar.wakingworld.kingdom.KingdomBlocks.THRONE_ITEM.get());
+                        out.accept(me.lovkar.wakingworld.mage.MageBlocks.RITE_STONE_ITEM.get());
+                        out.accept(STORM_ROD.get());
                         out.accept(STONE_THRALL_EGG.get());
                         out.accept(EMBER_WRAITH_EGG.get());
                         out.accept(RUNE_SENTINEL_EGG.get());

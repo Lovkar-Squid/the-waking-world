@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "lit=false": { "model": "wakingworld:block/asking_stone" },
+    "lit=true": { "model": "wakingworld:block/asking_stone_lit" }
+  }
+}

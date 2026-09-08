@@ -64,6 +64,8 @@ public final class WakingConfig {
     private static final ModConfigSpec.DoubleValue ANSWER_CHANCE;
     private static final ModConfigSpec.BooleanValue MOON_COLOSSI;
     private static final ModConfigSpec.IntValue VOLCANO_COOL_MINUTES;
+    private static final ModConfigSpec.BooleanValue LAVA_BOMBS;
+    private static final ModConfigSpec.BooleanValue CATACLYSM_RESTORE;
     private static final ModConfigSpec.BooleanValue BLIGHT;
     private static final ModConfigSpec.BooleanValue GREETING;
     private static final ModConfigSpec.BooleanValue NAMED_LANDS;
@@ -72,7 +74,10 @@ public final class WakingConfig {
     private static final ModConfigSpec.BooleanValue F_CATACLYSMS;
     private static final ModConfigSpec.BooleanValue F_KINGDOMS;
     private static final ModConfigSpec.BooleanValue F_RUINS;
+    private static final ModConfigSpec.BooleanValue F_MAGE;
     private static final ModConfigSpec.IntValue LAND_SIZE;
+    private static final ModConfigSpec.IntValue LAND_CELLS;
+    private static final ModConfigSpec.BooleanValue LAND_CHAT;
     private static final ModConfigSpec.BooleanValue GEMINI_LANDS;
 
     static {
@@ -89,25 +94,36 @@ public final class WakingConfig {
                         "the rites that wake them, the fight, the hourglass that puts the ground back.",
                         "Off: no shrine and no vault generates, an altar stays quiet, and nothing rises.",
                         "The /wakingworld summon commands still work, so an operator can still show somebody.")
+                .translation("wakingworld.configuration.features.colossi")
                 .define("colossi", true);
         F_TITAN = b.comment("The seventh and last of them, in the End: the void reliquaries, the arena and the Titan itself.",
                         "Off with colossi on: the six sleepers are still in the world, the ending is not.",
                         "This does nothing with colossi off - there is no rite to finish.")
+                .translation("wakingworld.configuration.features.titan")
                 .define("titan", true);
         F_CATACLYSMS = b.comment("The five: the Falling Sky, the Rising Mountain, the Blood Moon, the Wandering Column,",
                         "the Turning Ground - with their omens, the unrest a giant leaves behind, and the blight.",
                         "Off: the weather is Minecraft's again. The /wakingworld commands still work.")
+                .translation("wakingworld.configuration.features.cataclysms")
                 .define("cataclysms", true);
         F_KINGDOMS = b.comment("The living towns: their kings, guards, townsfolk and traders, the permits and the treasury.",
                         "Off: no kingdom generates and none of its people are in the world.")
+                .translation("wakingworld.configuration.features.kingdoms")
                 .define("kingdoms", true);
         F_RUINS = b.comment("The dead world you walk through: the ruins, the empty hamlets, the ember forges and the",
                         "drowned cisterns, the Dead Letters in them, and the thralls, wraiths and keepers that wander.",
                         "Off: the country is empty of the old people. The vaults stay - they belong to the giants.")
+                .translation("wakingworld.configuration.features.ruins")
                 .define("ruins", true);
+        F_MAGE = b.comment("The dark mage and his tower: the one man in the world who will tell you the price of a",
+                        "cataclysm, and hand you the stone to ask for it on. Attack him and he is a boss instead.",
+                        "Off: no tower generates, and nobody is selling.")
+                .translation("wakingworld.configuration.features.mage")
+                .define("mage", true);
         NAMED_LANDS = b.comment("The Named Lands: the world is divided into squares, and each one is named the first time somebody walks into it.",
                         "The name is shown once, as a title card, and then lives in /wakingworld lands and on the Wayfarer's Chart.",
                         "Off: the Chart is blank, and a land is just ground again.")
+                .translation("wakingworld.configuration.features.namedLands")
                 .define("namedLands", true);
         b.pop();
         b.push("colossi");
@@ -178,6 +194,14 @@ public final class WakingConfig {
                 .defineInRange("volcanoRadius", 16, 6, 48);
         VOLCANO_MINUTES = b.comment("How long the mountain takes to rise, in minutes. Longer is calmer on the server and better to watch.")
                 .defineInRange("volcanoMinutes", 1, 1, 60);
+        LAVA_BOMBS = b.comment("A volcano throws molten rock as well as cold: one bomb in three arcs out of the throat",
+                "and leaves lava where it lands, which then does what lava does. Off: it throws only stone,",
+                "so a volcano in a forest does not set the forest alight.")
+                .define("volcanoLavaBombs", true);
+        CATACLYSM_RESTORE = b.comment("Write down what each cataclysm changes, so an Hourglass of Restoration can put the country",
+                "back the way it was - the same item and the same gesture that undoes a colossus fight.",
+                "Off: what a cataclysm does to your world is permanent, and the world saves a little smaller.")
+                .define("cataclysmRestore", true);
         BLOOD_MOONS = b.comment("The Blood Moon: a night that keeps sending monsters at you until the sun comes up.",
                 "Off: no blood moons (the /wakingworld bloodmoon command still works).").define("bloodMoons", true);
         BLOOD_MOON_CHANCE = b.comment("The chance, rolled once at nightfall on any night that is allowed one, that the moon turns.")
@@ -235,8 +259,20 @@ public final class WakingConfig {
                 .define("greeting", true);
         b.pop();
         b.push("lands");
-        LAND_SIZE = b.comment("How wide a named land is, in blocks. Smaller means more names and more title cards.")
-                .defineInRange("landSize", 384, 96, 4096);
+        LAND_SIZE = b.comment("The grain of the map, in blocks: the size of one square a land is built out of.",
+                "This is NOT how big a land is - see landCells. Smaller squares make a land's border follow",
+                "the coast and the treeline more closely, and cost a little more to work out.")
+                .defineInRange("landSize", 160, 32, 4096);
+        LAND_CELLS = b.comment("How many squares a land may grow to. A land is grown from the square you walk into,",
+                "outwards over country of the same kind, so its border is the shape of the country and not a",
+                "rectangle. Larger means bigger countries and rarer title cards: 1 puts back the old behaviour",
+                "of one square, one name.")
+                .defineInRange("landCells", 24, 1, 64);
+        LAND_CHAT = b.comment("Write the land's name and lore into the chat as well as showing the card.",
+                "Off (the default): only the card. The card says the same thing at the same moment, so the line",
+                "under it was two of everything, and it pushed the chat up the screen every time you crossed a",
+                "border. What you have walked is kept either way - on the Wayfarer's Chart and in /wakingworld lands.")
+                .define("landChat", false);
         GEMINI_LANDS = b.comment("Let Gemini name the lands from what is actually on the ground there (needs geminiApiKey).",
                 "Off or without a key: the built-in names, which are chosen by the terrain the same way.").define("geminiLands", true);
         b.pop();
@@ -261,8 +297,11 @@ public final class WakingConfig {
                 .define("bossMusic", true);
         b.pop();
         b.push("letters");
-        READ_LETTERS = b.comment("Read a Dead Letter aloud when it is opened, if the server made a voice for it (the speaker on the letter starts and stops it either way). Uses the Voice/Speech volume slider.")
-                .define("readLettersAloud", true);
+        READ_LETTERS = b.comment("Start reading a Dead Letter aloud the moment it is opened, when the server has made a voice",
+                "for it. Off (the default): it waits, and the speaker beside the seal starts it - a letter that",
+                "begins talking at you before you have read a word of it is startling rather than atmospheric.",
+                "Uses the Voice/Speech volume slider either way.")
+                .define("readLettersAloud", false);
         b.pop();
         b.push("lands");
         LAND_WAYPOINTS = b.comment("Drop a waypoint on your map when you walk into a named land (JourneyMap and Xaero's, if you have one).",
@@ -305,12 +344,27 @@ public final class WakingConfig {
         return loaded() && F_RUINS.get();
     }
 
+    /** The mage in his tower, and the stone he sells. */
+    public static boolean mage() {
+        return loaded() && F_MAGE.get();
+    }
+
     public static boolean namedLands() {
         return loaded() && NAMED_LANDS.get();
     }
 
     public static int landSize() {
-        return loaded() ? LAND_SIZE.get() : 384;
+        return loaded() ? LAND_SIZE.get() : 160;
+    }
+
+    /** Whether a land's name is written into the chat as well as shown on its card. */
+    public static boolean landChat() {
+        return loaded() && LAND_CHAT.get();
+    }
+
+    /** How many squares a land may spread over. */
+    public static int landCells() {
+        return loaded() ? LAND_CELLS.get() : 24;
     }
 
     public static boolean geminiLands() {
@@ -375,6 +429,16 @@ public final class WakingConfig {
 
     public static boolean bloodMoonColossi() {
         return cataclysms() && colossi() && MOON_COLOSSI.get();
+    }
+
+    /** Whether the five write down what they change, so the hourglass can undo them. */
+    public static boolean cataclysmRestore() {
+        return loaded() && CATACLYSM_RESTORE.get();
+    }
+
+    /** Whether a volcano's bombs may be molten. */
+    public static boolean lavaBombs() {
+        return volcanoes() && LAVA_BOMBS.get();
     }
 
     public static int volcanoCoolMinutes() {
@@ -466,7 +530,7 @@ public final class WakingConfig {
     }
 
     public static boolean readLettersAloud() {
-        return CLIENT_SPEC.isLoaded() ? READ_LETTERS.get() : true;
+        return CLIENT_SPEC.isLoaded() && READ_LETTERS.get();
     }
 
     public static boolean showAuras() {

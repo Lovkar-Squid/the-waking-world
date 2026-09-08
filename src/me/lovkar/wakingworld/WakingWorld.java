@@ -102,6 +102,15 @@ public class WakingWorld {
                     .clientTrackingRange(10)
                     .build("king"));
 
+    /** The man in the tower: neutral until struck, a boss after it. */
+    public static final DeferredHolder<EntityType<?>, EntityType<me.lovkar.wakingworld.mage.MageEntity>> DARK_MAGE = ENTITIES.register("dark_mage",
+            () -> EntityType.Builder.of(me.lovkar.wakingworld.mage.MageEntity::new, MobCategory.CREATURE)
+                    .sized(0.6F, 1.95F)
+                    .eyeHeight(1.72F)
+                    .clientTrackingRange(16)
+                    .fireImmune()
+                    .build("dark_mage"));
+
     /** A falling star: the first of the Cataclysms. */
     public static final DeferredHolder<EntityType<?>, EntityType<me.lovkar.wakingworld.cataclysm.MeteorEntity>> METEOR = ENTITIES.register("meteor",
             () -> EntityType.Builder.<me.lovkar.wakingworld.cataclysm.MeteorEntity>of(me.lovkar.wakingworld.cataclysm.MeteorEntity::new, MobCategory.MISC)
@@ -132,6 +141,7 @@ public class WakingWorld {
         me.lovkar.wakingworld.ritual.WakingRitual.register(modBus);
         me.lovkar.wakingworld.kingdom.KingdomBlocks.register(modBus);
         me.lovkar.wakingworld.cataclysm.CataclysmBlocks.register(modBus);
+        me.lovkar.wakingworld.mage.MageBlocks.register(modBus);
         modBus.addListener(WakingWorld::registerAttributes);
         modBus.addListener(me.lovkar.wakingworld.network.WakingNet::register);
         modBus.addListener(me.lovkar.wakingworld.entity.WakingSpawns::register);
@@ -149,6 +159,7 @@ public class WakingWorld {
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.kingdom.KingdomEvents::onRightClickBlock);
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.kingdom.KingdomEvents::onBreak);
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.kingdom.KingdomEvents::onLevelTick);
+        NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.worldgen.Tidy::tick);
         if (me.lovkar.wakingworld.supporter.SupporterList.ENABLED) {     // parked while the Patreon is down
             NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.supporter.SupporterList::onServerStarted);
             NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.supporter.SupporterList::onServerTick);
@@ -161,7 +172,7 @@ public class WakingWorld {
             container.registerConfig(ModConfig.Type.CLIENT, WakingConfig.CLIENT_SPEC);
             WakingWorldClient.init(modBus, container);
         }
-        LOGGER.info("The Waking World 0.2.0-alpha.13 - the world is waking. /wakingworld for the tools.");
+        LOGGER.info("The Waking World 0.2.0-alpha.20 - the world is waking. /wakingworld for the tools.");
     }
 
     /** Nobody sneaks out of a colossus' fist: a dismount is refused while it holds you (it lets go when it throws). */
@@ -182,5 +193,6 @@ public class WakingWorld {
         event.put(GUARD.get(), me.lovkar.wakingworld.kingdom.GuardEntity.createAttributes().build());
         event.put(TOWNSFOLK.get(), me.lovkar.wakingworld.kingdom.TownsfolkEntity.createAttributes().build());
         event.put(KING.get(), me.lovkar.wakingworld.kingdom.KingEntity.createAttributes().build());
+        event.put(DARK_MAGE.get(), me.lovkar.wakingworld.mage.MageEntity.createAttributes().build());
     }
 }

@@ -1,0 +1,10 @@
+{
+  "structures": [ { "structure": "wakingworld:mage_tower", "weight": 1 } ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 44,
+    "separation": 19,
+    "salt": 71180923,
+    "exclusion_zone": { "other_set": "wakingworld:kingdoms", "chunk_count": 10 }
+  }
+}

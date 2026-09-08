@@ -142,6 +142,8 @@ public final class WakingWorldClient {
         NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.HIGHEST, Cinematic::guiPre);
         NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOWEST, Cinematic::guiPost);
         NeoForge.EVENT_BUS.addListener(LetterVoicePlayer::clientTick);
+        NeoForge.EVENT_BUS.addListener(LandMap::clientTick);
+        NeoForge.EVENT_BUS.addListener(LandMap::onLeave);
         NeoForge.EVENT_BUS.addListener(LandCard::clientTick);
         NeoForge.EVENT_BUS.addListener(LandCard::render);
         NeoForge.EVENT_BUS.addListener(RedSky::clientTick);          // the blood moon, not a perk
@@ -161,6 +163,7 @@ public final class WakingWorldClient {
 
     private static void registerLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
         for (GarbModel.Kind k : GarbModel.Kind.values()) event.registerLayerDefinition(k.layer, () -> GarbModel.createLayer(k));
+        event.registerLayerDefinition(MageModel.LAYER, MageModel::create);
     }
 
     private static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
@@ -177,6 +180,7 @@ public final class WakingWorldClient {
         event.registerEntityRenderer(WakingWorld.GUARD.get(), ctx -> new KingdomHumanRenderer<>(ctx, false));
         event.registerEntityRenderer(WakingWorld.TOWNSFOLK.get(), ctx -> new KingdomHumanRenderer<>(ctx, false));
         event.registerEntityRenderer(WakingWorld.KING.get(), ctx -> new KingdomHumanRenderer<>(ctx, true));
+        event.registerEntityRenderer(WakingWorld.DARK_MAGE.get(), MageRenderer::new);
     }
 
     private static void registerParticles(net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent event) {
