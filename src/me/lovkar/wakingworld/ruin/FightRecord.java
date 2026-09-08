@@ -60,13 +60,23 @@ public final class FightRecord {
      * out also remembers the leaves near it, which would otherwise decay unrecorded.
      */
     public void mark(ServerLevel level, BlockPos pos) {
+        mark(level, pos, true);
+    }
+
+    /**
+     * {@code deep} also remembers the leaves around a log, which is what makes a felled tree come
+     * back whole. It is thirteen cubed reads for one block, which is right for a colossus taking a
+     * wood apart and quite wrong for a cataclysm writing a mountain: the five do their own work on
+     * the greenery and record it as they go.
+     */
+    public void mark(ServerLevel level, BlockPos pos, boolean deep) {
         BlockState state = level.getBlockState(pos);
         markOne(level, pos, state);
         for (Direction d : Direction.values()) {
             BlockPos n = pos.relative(d);
             markOne(level, n, level.getBlockState(n));
         }
-        if (state.is(BlockTags.LOGS)) {
+        if (deep && state.is(BlockTags.LOGS)) {
             BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
             for (int dx = -6; dx <= 6; dx++)
                 for (int dy = -6; dy <= 6; dy++)

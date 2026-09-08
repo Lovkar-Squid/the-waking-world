@@ -212,6 +212,9 @@ public final class Cataclysms extends SavedData {
 
     // ---- the shower ------------------------------------------------------------------------
 
+    /** The scar the whole shower writes: one for the night, not one per stone. */
+    private java.util.UUID scar;
+
     private void begin(ServerLevel level) {
         phase = Phase.WARNING;
         phaseTicks = 30 * 20;
@@ -222,10 +225,27 @@ public final class Cataclysms extends SavedData {
             p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.meteor.warning").withStyle(ChatFormatting.GOLD));
             level.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, 1.0F, 0.3F);
         }
+        for (ServerPlayer p : level.players()) {
+            // one entry for the shower, not one per star: a king telling you about fourteen stones
+            // in a row is a list, and a list is not news
+            me.lovkar.wakingworld.story.Chronicle.record(level, "cataclysm", "meteor", p.blockPosition(), null);
+            break;
+        }
+        for (ServerPlayer p : level.players()) {
+            scar = Scars.begin(level, p.blockPosition(), "a meteor shower");
+            break;
+        }
         WakingWorld.LOGGER.info("cataclysm: a meteor shower begins ({} stars)", meteorsLeft);
     }
 
+    /** The scar the stars are writing into, for as long as the shower lasts. */
+    public static java.util.UUID scarOf(ServerLevel level) {
+        return get(level).scar;
+    }
+
     private void end(ServerLevel level) {
+        Scars.done(level, scar);
+        scar = null;
         boolean wasFalling = phase == Phase.FALLING;
         phase = Phase.IDLE;
         phaseTicks = 0;

@@ -99,11 +99,24 @@ public final class TornadoEntity extends Entity {
             clientTick();
             return;
         }
+        Scars.writing(level, scar);
+        try {
+            serverTick(level);
+        } finally {
+            Scars.close();
+        }
+    }
 
+    /** The scar it is scouring as it walks, so an hourglass can lay the country back down. */
+    private java.util.UUID scar;
+
+    private void serverTick(ServerLevel level) {
         life--;
         if (life <= 0) {
             level.playSound(null, getX(), getY(), getZ(), SoundEvents.WITHER_DEATH, SoundSource.WEATHER, 2.0F, 1.6F);
             Survived.near(level, Omen.Kind.TORNADO, position());
+            Scars.done(level, scar);
+            scar = null;
             discard();
             return;
         }
@@ -172,19 +185,58 @@ public final class TornadoEntity extends Entity {
         this.setPos(x, y, z);
     }
 
-    /** Everything alive inside the reach is dragged in and up. */
+    /** How high above the column's foot it carries something before it lets go of it. */
+    private static final double THROW_AT = 20.0;
+
+    /**
+     * Everything inside the reach is dragged in and up - and anything that gets into the column
+     * itself is taken off its feet, carried round and up, and then thrown clear.
+     *
+     * <p>Standing near it used to be a nudge and a scratch, which is a strange thing for a tornado
+     * to be. There are two grips now. Out in the skirt you are pulled and pushed about and can walk
+     * out of it if you mean to. Inside the column you are not walking anywhere: your own momentum
+     * is mostly taken away from you, you go round it and up, and at {@value #THROW_AT} blocks above
+     * its foot it has finished with you and flings you out - and from there the ground is your
+     * problem, because a fall you did not choose is the whole point of having been picked up.</p>
+     */
     private void pull(ServerLevel level, float s) {
         double reach = radius() * 2.6;
-        AABB box = new AABB(getX() - reach, getY() - 4, getZ() - reach, getX() + reach, getY() + 34, getZ() + reach);
+        double core = Math.max(2.5, radius() * 0.9);
+        AABB box = new AABB(getX() - reach, getY() - 4, getZ() - reach, getX() + reach, getY() + 40, getZ() + reach);
         for (Entity e : level.getEntities(this, box, e -> !(e instanceof TornadoEntity))) {
+            if (e instanceof net.minecraft.world.entity.player.Player p && p.isSpectator()) continue;
             Vec3 d = new Vec3(getX() - e.getX(), 0, getZ() - e.getZ());
             double dist = d.length();
-            if (dist > reach || dist < 0.01) continue;
-            double grip = (1.0 - dist / reach) * s;
-            Vec3 in = d.scale(1.0 / dist).scale(0.16 * grip);
-            // a little sideways, so it circles rather than falling straight in
-            Vec3 round = new Vec3(-d.z, 0, d.x).scale(1.0 / dist).scale(0.24 * grip);
-            e.setDeltaMovement(e.getDeltaMovement().add(in).add(round).add(0, 0.28 * grip, 0));
+            if (dist > reach) continue;
+            double grip = (1.0 - Math.min(1.0, dist / reach)) * s;
+            double norm = 1.0 / Math.max(0.6, dist);              // never divide by nothing at the axis
+            Vec3 round = new Vec3(-d.z, 0, d.x).scale(norm);
+            Vec3 in = d.scale(norm);
+
+            if (dist < core && s > 0.45) {
+                double up = e.getY() - getY();
+                if (up > THROW_AT) {
+                    // it is done with you
+                    Vec3 out = in.scale(-1.35);
+                    e.setDeltaMovement(out.x, 0.5, out.z);
+                    e.hurtMarked = true;
+                    continue;                                     // and the fall from here is not reset
+                }
+                // caught: most of your own movement is taken, and the column has you
+                e.setDeltaMovement(e.getDeltaMovement().scale(0.55)
+                        .add(round.scale(0.62))
+                        .add(in.scale(0.10))
+                        .add(0, up < THROW_AT * 0.6 ? 0.62 : 0.22, 0));
+                e.hurtMarked = true;
+                e.fallDistance = 0;
+                if (e instanceof LivingEntity living && this.tickCount % 10 == 0) {
+                    living.hurt(level.damageSources().flyIntoWall(), 2.0F);
+                }
+                continue;
+            }
+
+            if (dist < 0.01) continue;
+            e.setDeltaMovement(e.getDeltaMovement().add(in.scale(0.16 * grip)).add(round.scale(0.24 * grip)).add(0, 0.28 * grip, 0));
             e.hurtMarked = true;
             e.fallDistance = 0;
             if (e instanceof LivingEntity living && this.tickCount % 20 == 0 && grip > 0.4) {
@@ -316,6 +368,7 @@ public final class TornadoEntity extends Entity {
         maxLife = Math.max(1, tag.getInt("MaxLife"));
         headingX = tag.getDouble("HX");
         headingZ = tag.getDouble("HZ");
+        if (tag.hasUUID("Scar")) scar = tag.getUUID("Scar");
     }
 
     @Override
@@ -324,6 +377,7 @@ public final class TornadoEntity extends Entity {
         tag.putInt("MaxLife", maxLife);
         tag.putDouble("HX", headingX);
         tag.putDouble("HZ", headingZ);
+        if (scar != null) tag.putUUID("Scar", scar);
     }
 
     @Override
@@ -339,6 +393,7 @@ public final class TornadoEntity extends Entity {
     /** Everything a tornado needs: on the ground, wandering, for a while. */
     public static TornadoEntity spawn(ServerLevel level, Vec3 at, int seconds) {
         TornadoEntity t = new TornadoEntity(WakingWorld.TORNADO.get(), level);
+        t.scar = Scars.begin(level, BlockPos.containing(at.x, at.y, at.z), "a tornado");
         t.aimFrom(at, seconds > 0 ? seconds : WakingConfig.tornadoSeconds());
         level.addFreshEntity(t);
         return t;

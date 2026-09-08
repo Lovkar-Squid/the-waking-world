@@ -68,6 +68,7 @@ public final class Weather extends SavedData {
                     for (ServerPlayer p : level.players()) {
                         p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.tornado.warning").withStyle(ChatFormatting.GRAY));
                     }
+                    me.lovkar.wakingworld.story.Chronicle.record(level, "cataclysm", "tornado", BlockPos.containing(ox, oy, oz), null);
                     WakingWorld.LOGGER.info("cataclysm: a tornado forms at {} {} {}", (int) ox, (int) oy, (int) oz);
                 } else {
                     startQuake(level, where, level.random);
@@ -79,6 +80,7 @@ public final class Weather extends SavedData {
 
         // the quake first: it is already running, and it does not care what else is going on
         if (quakeTicks > 0) {
+            Scars.writing(level, scar);
             quakeTicks -= 20;
             int total = Math.max(1, WakingConfig.earthquakeSeconds() * 20);
             float progress = Math.min(1.0F, 1.0F - quakeTicks / (float) total);
@@ -93,10 +95,14 @@ public final class Weather extends SavedData {
                     Aftermath.blight(level, BlockPos.containing(qx, qy, qz), 34, 0.45, level.random);
                 }
                 Survived.near(level, Omen.Kind.EARTHQUAKE, new Vec3(qx, qy, qz));
+                Scars.close();
+                Scars.done(level, scar);
+                scar = null;
                 // and a shrine that was under it may not have survived being shaken
                 Answer.maybe(level, new Vec3(qx, qy, qz), Omen.Kind.EARTHQUAKE);
                 WakingWorld.LOGGER.info("cataclysm: the ground settles");
             }
+            Scars.close();
             setDirty();
             return;
         }
@@ -176,7 +182,11 @@ public final class Weather extends SavedData {
         Omen.begin(level, at, tornado ? Omen.Kind.TORNADO : Omen.Kind.EARTHQUAKE, WakingConfig.omenSeconds());
     }
 
+    /** The quake's scar; the tornado carries its own on the entity. */
+    private java.util.UUID scar;
+
     private void startQuake(ServerLevel level, Vec3 at, RandomSource rnd) {
+        scar = Scars.begin(level, BlockPos.containing(at.x, at.y, at.z), "an earthquake");
         qx = at.x;
         qy = at.y;
         qz = at.z;
@@ -185,7 +195,12 @@ public final class Weather extends SavedData {
         for (ServerPlayer p : level.players()) {
             p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.earthquake.warning").withStyle(ChatFormatting.GOLD));
         }
-        WakingWorld.LOGGER.info("cataclysm: an earthquake at {} {} {} ({} blocks of fault)", (int) at.x, (int) at.y, (int) at.z, opened);
+        // "blocks of fault" was written when the whole fault was cut in one tick. It walks now, a
+        // few blocks a second for the whole of the shaking, so this count is only what opened in the
+        // first instant - it read as nearly always zero, which looked like a broken earthquake.
+        me.lovkar.wakingworld.story.Chronicle.record(level, "cataclysm", "quake", BlockPos.containing(at.x, at.y, at.z), null);
+        WakingWorld.LOGGER.info("cataclysm: an earthquake at {} {} {} ({} s of shaking, {} blocks opened at once)",
+                (int) at.x, (int) at.y, (int) at.z, WakingConfig.earthquakeSeconds(), opened);
         setDirty();
     }
 
@@ -202,6 +217,7 @@ public final class Weather extends SavedData {
         w.tornadoCooldownDay = tag.getInt("TornadoCooldown");
         w.quakeCooldownDay = tag.getInt("QuakeCooldown");
         w.quakeTicks = tag.getInt("QuakeTicks");
+        if (tag.hasUUID("Scar")) w.scar = tag.getUUID("Scar");
         w.omenTicks = tag.getInt("OmenTicks");
         w.ox = tag.getDouble("OmenX");
         w.oy = tag.getDouble("OmenY");
@@ -218,6 +234,7 @@ public final class Weather extends SavedData {
         tag.putInt("TornadoCooldown", tornadoCooldownDay);
         tag.putInt("QuakeCooldown", quakeCooldownDay);
         tag.putInt("QuakeTicks", quakeTicks);
+        if (scar != null) tag.putUUID("Scar", scar);
         tag.putInt("OmenTicks", omenTicks);
         tag.putDouble("OmenX", ox);
         tag.putDouble("OmenY", oy);

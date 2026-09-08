@@ -153,6 +153,10 @@ public final class BloodMoon extends SavedData {
             p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.bloodmoon.warning").withStyle(ChatFormatting.DARK_RED));
             level.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.WITHER_SPAWN, SoundSource.WEATHER, 0.5F, 0.5F);
         }
+        for (net.minecraft.server.level.ServerPlayer p : level.players()) {
+            me.lovkar.wakingworld.story.Chronicle.record(level, "cataclysm", "bloodmoon", p.blockPosition(), null);
+            break;                              // it is one night over the whole world, not one per player
+        }
         WakingWorld.LOGGER.info("cataclysm: a blood moon rises");
     }
 

@@ -81,7 +81,7 @@ public final class Earthquake {
             for (int k = 1; k <= lift; k++) {
                 BlockPos up = on.above(k);
                 if (!level.getBlockState(up).isAir() && level.getFluidState(up).isEmpty()) break;
-                level.setBlock(up, state, 2);
+                Scars.set(level, up, state);
             }
         }
     }
@@ -148,8 +148,8 @@ public final class Earthquake {
                 for (int d = 1; d < depth; d++) {
                     BlockPos p = top.below(d);
                     if (!natural(level, p)) break;
-                    level.setBlock(p, d == depth - 1 ? Blocks.DEEPSLATE.defaultBlockState()
-                            : Blocks.AIR.defaultBlockState(), 2);
+                    Scars.set(level, p, d == depth - 1 ? Blocks.DEEPSLATE.defaultBlockState()
+                            : Blocks.AIR.defaultBlockState());
                 }
                 Cataclysms.puff(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, top.getY() + 1.0, pz,
                         6, 0.4, 0.5, 0.4, 0.03);
@@ -186,8 +186,8 @@ public final class Earthquake {
                 for (int d = 0; d < depth; d++) {
                     BlockPos p = top.below(d);
                     if (!natural(level, p)) break;
-                    level.setBlock(p, d == depth - 1 ? Blocks.DEEPSLATE.defaultBlockState()
-                            : Blocks.AIR.defaultBlockState(), 2);
+                    Scars.set(level, p, d == depth - 1 ? Blocks.DEEPSLATE.defaultBlockState()
+                            : Blocks.AIR.defaultBlockState());
                     opened++;
                 }
                 Cataclysms.puff(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, px, top.getY() + 1.0, pz, 2, 0.3, 0.2, 0.3, 0.01);

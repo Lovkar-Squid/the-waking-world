@@ -1,6 +1,7 @@
 package me.lovkar.wakingworld.entity;
 
 import me.lovkar.wakingworld.WakingConfig;
+import me.lovkar.wakingworld.cataclysm.Scars;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
@@ -86,7 +87,8 @@ public final class Crater {
         BlockState there = level.getBlockState(pos);
         if (!there.isAir() && !there.canBeReplaced() && there.getFluidState().isEmpty()) return false;
         me.lovkar.wakingworld.ruin.Ruin.mark(level, pos);
-        return level.setBlock(pos, state, 3);
+        Scars.set(level, pos, state);      // a cataclysm's crater is remembered too, if one is open
+        return true;
     }
 
     /** Blocks the world can lose to a giant: not bedrock, not blast-proof, not chests and machines, not fluids. */

@@ -66,6 +66,8 @@ public final class Volcano extends SavedData {
      * inside a shot.
      */
     private int riseSeconds;
+    /** The scar this mountain is writing, so an hourglass can put the country back under it. */
+    private java.util.UUID scar;
 
     private Volcano() {
     }
@@ -92,6 +94,15 @@ public final class Volcano extends SavedData {
     }
 
     private void tick(ServerLevel level) {
+        Scars.writing(level, scar);
+        try {
+            body(level);
+        } finally {
+            Scars.close();
+        }
+    }
+
+    private void body(ServerLevel level) {
         List<ServerPlayer> players = level.players();
         RandomSource rnd = level.random;
 
@@ -125,7 +136,7 @@ public final class Volcano extends SavedData {
                     foot(level, rnd, (int) Math.ceil(outerAt(0.0)) + 1, slice, FOOT_SLICES);
                 }
                 if (phaseTicks % 60 == 0) {
-                    level.playSound(null, cx, baseY, cz, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, 3.0F, 0.35F);
+                    level.playSound(null, cx, baseY, cz, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, 10.0F, 0.35F);
                     WakingWorld.hooks.shakeAt(new Vec3(cx, baseY, cz), 1.2F, 160);
                 }
                 if (phaseTicks <= 0) {
@@ -223,10 +234,13 @@ public final class Volcano extends SavedData {
         phaseTicks = 22 * 20;
         cooldownUntilDay = (int) (level.getDayTime() / 24000L) + WakingConfig.daysBetweenVolcanoes();
         setDirty();
+        scar = Scars.begin(level, new BlockPos(cx, baseY, cz), "a volcano");
         Omen.begin(level, new Vec3(cx, baseY, cz), Omen.Kind.VOLCANO, phaseTicks / 20);
         for (ServerPlayer p : level.players()) {
             p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.volcano.warning").withStyle(ChatFormatting.GOLD));
         }
+        // the chronicle is what the kings read: a mountain coming up in their country is news
+        me.lovkar.wakingworld.story.Chronicle.record(level, "cataclysm", "volcano", new BlockPos(cx, baseY, cz), null);
         WakingWorld.LOGGER.info("cataclysm: a volcano opens at {} {} {} ({} courses, foot {})", cx, baseY, cz, courses, baseR);
     }
 
@@ -245,20 +259,30 @@ public final class Volcano extends SavedData {
                 double edge = outerAt(climbed, Math.atan2(dz, dx)) + (rnd.nextDouble() - 0.5) * 1.6;
                 if (d > edge) continue;
                 BlockPos at = new BlockPos(cx + dx, y, cz + dz);
-                if (d < vent) {                                   // the throat stays open
-                    if (!level.getBlockState(at).isAir()) level.setBlock(at, Blocks.AIR.defaultBlockState(), 2);
+                if (d < vent) {
+                    // The throat used to be cleared to AIR at every course, which left the thing an
+                    // empty black chimney for the whole of its rise - you could stand on the rim of
+                    // a volcano that was actively building itself and look down a dark hole. It is
+                    // full of lava now, one course at a time, so the shaft glows all the way up and
+                    // the eye has something to look at while the mountain grows round it. It cannot
+                    // spill: this course's ring is laid at the same height and encloses it, and the
+                    // course below is lava already, so there is nowhere for it to go.
+                    Scars.set(level, at, Blocks.LAVA.defaultBlockState());
                     continue;
                 }
                 BlockState state = level.getBlockState(at);
                 if (!state.isAir() && state.getFluidState().isEmpty() && h > 0 && rnd.nextDouble() < 0.35) continue;
-                level.setBlock(at, wall(rnd, climbed), 2);
+                Scars.set(level, at, wall(rnd, climbed));
             }
         }
 
         // and from a third of the way up, the flank is open and running
         if (climbed > 0.30) channel(level, rnd);
 
-        level.playSound(null, cx, y, cz, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, 4.0F, 0.28F + rnd.nextFloat() * 0.12F);
+        // 16 blocks of range per unit of volume, and a sound is never louder than 1.0 where you are
+        // standing: a big number here is DISTANCE, not noise. Two hundred and forty blocks means the
+        // country hears the mountain going up, which is the point of it.
+        level.playSound(null, cx, y, cz, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, 15.0F, 0.28F + rnd.nextFloat() * 0.12F);
         Cataclysms.puff(level, ParticleTypes.LARGE_SMOKE, cx + 0.5, y + 1.5, cz + 0.5, 60, outer * 0.4, 2.0, outer * 0.4, 0.05);
         Cataclysms.puff(level, ParticleTypes.LAVA, cx + 0.5, y + 1.0, cz + 0.5, 24, vent, 0.5, vent, 0.0);
         WakingWorld.hooks.shakeAt(new Vec3(cx, y, cz), 2.2F, 200);
@@ -282,29 +306,57 @@ public final class Volcano extends SavedData {
      * ground. It lands as a block, which is also one more mark the thing leaves behind.</p>
      */
     private void bombs(ServerLevel level, RandomSource rnd, int y, double vent) {
+        // ABOVE the rim, not inside the throat. Fired from within the bowl, a bomb was already
+        // against the crater wall on its first tick: it lost all of its horizontal speed to that
+        // collision and dropped straight back in, which is exactly what he watched happen. Nothing
+        // about the arc was wrong - it never got to fly it.
+        // The rim is not a circle: the cone is ridged on purpose, so one bearing can stand several
+        // blocks above another, and a launch cleared for the average was still inside the wall on
+        // the high side. Take the highest point of a ring of samples at three radii, and go over it.
+        int rim = y;
+        for (double f : new double[]{1.0, 1.6, 2.4}) {
+            double r = Math.max(vent + 1.0, vent * f);
+            for (int i = 0; i < 12; i++) {
+                double a = i * Math.PI / 6.0;
+                int rx = (int) Math.round(cx + Math.cos(a) * r);
+                int rz = (int) Math.round(cz + Math.sin(a) * r);
+                rim = Math.max(rim, level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, rx, rz));
+            }
+        }
+        int launch = rim + 4;
+
         int count = rnd.nextInt(3) == 0 ? 3 : 2;
         for (int i = 0; i < count; i++) {
             double angle = rnd.nextDouble() * Math.PI * 2;
-            double out = rnd.nextDouble() * Math.max(0.5, vent * 0.5);
-            double bx = cx + 0.5 + Math.cos(angle) * out;
-            double bz = cz + 0.5 + Math.sin(angle) * out;
-            BlockPos from = BlockPos.containing(bx, y + 2.0, bz);
-            if (!level.getBlockState(from).isAir()) continue;
-            BlockState thrown = rnd.nextDouble() < 0.45 ? Blocks.MAGMA_BLOCK.defaultBlockState()
-                    : (rnd.nextBoolean() ? Blocks.BASALT.defaultBlockState() : Blocks.BLACKSTONE.defaultBlockState());
-            net.minecraft.world.entity.item.FallingBlockEntity fb =
-                    net.minecraft.world.entity.item.FallingBlockEntity.fall(level, from, thrown);
-            fb.setHurtsEntities(2.0F, 14);
-            // A falling block loses two per cent of its speed a tick, so most of the horizontal is
-            // gone long before it lands: thrown at what looked like the right speed, nearly all of
-            // them came down on the cone they were fired from. This is what it takes to clear a
-            // thirty-block foot and land in the country beyond it.
-            double speed = 1.15 + rnd.nextDouble() * 0.95;
-            fb.setDeltaMovement(Math.cos(angle) * speed, 1.35 + rnd.nextDouble() * 0.55, Math.sin(angle) * speed);
+            double bx = cx + 0.5 + Math.cos(angle) * 0.6;
+            double bz = cz + 0.5 + Math.sin(angle) * 0.6;
+            // aim for open country beyond the foot, and work the speed back from that. A falling
+            // block keeps 98% of its speed a tick, which comes to about 43 blocks of ground for
+            // every 1.0 of horizontal it leaves with.
+            double reach = baseR + 14 + rnd.nextDouble() * 46;
+            double speed = reach / 43.0;
+
+            if (rnd.nextInt(3) == 0 && WakingConfig.lavaBombs()) {
+                // one throw in three is molten: it arcs out under its own gravity and leaves lava
+                MeteorEntity bomb = WakingWorld.METEOR.get().create(level);
+                if (bomb != null) {
+                    bomb.hurl(new Vec3(bx, launch + 1.0, bz),
+                            new Vec3(Math.cos(angle) * speed * 1.6, 1.5 + rnd.nextDouble() * 0.5, Math.sin(angle) * speed * 1.6));
+                    level.addFreshEntity(bomb);
+                }
+            } else {
+                BlockState thrown = rnd.nextDouble() < 0.45 ? Blocks.MAGMA_BLOCK.defaultBlockState()
+                        : (rnd.nextBoolean() ? Blocks.BASALT.defaultBlockState() : Blocks.BLACKSTONE.defaultBlockState());
+                BlockPos from = new BlockPos((int) Math.floor(bx), launch, (int) Math.floor(bz));
+                net.minecraft.world.entity.item.FallingBlockEntity fb =
+                        net.minecraft.world.entity.item.FallingBlockEntity.fall(level, from, thrown);
+                fb.setHurtsEntities(2.0F, 14);
+                fb.setDeltaMovement(Math.cos(angle) * speed, 1.6 + rnd.nextDouble() * 0.6, Math.sin(angle) * speed);
+            }
             // and the muzzle flash, so the launch itself is seen and not only the arrival
-            Cataclysms.puff(level, ParticleTypes.LAVA, bx, y + 1.5, bz, 12, 0.6, 0.4, 0.6, 0.0);
-            Cataclysms.puff(level, ParticleTypes.FLAME, bx, y + 2.0, bz, 14, 0.5, 0.5, 0.5, 0.22);
-            Cataclysms.puff(level, ParticleTypes.LARGE_SMOKE, bx, y + 2.5, bz, 10, 0.8, 0.6, 0.8, 0.10);
+            Cataclysms.puff(level, ParticleTypes.LAVA, bx, launch + 0.5, bz, 12, 0.6, 0.4, 0.6, 0.0);
+            Cataclysms.puff(level, ParticleTypes.FLAME, bx, launch + 1.0, bz, 14, 0.5, 0.5, 0.5, 0.22);
+            Cataclysms.puff(level, ParticleTypes.LARGE_SMOKE, bx, launch + 1.5, bz, 10, 0.8, 0.6, 0.8, 0.10);
         }
     }
 
@@ -368,13 +420,13 @@ public final class Volcano extends SavedData {
                 for (int y = Math.min(top, baseY) - 1; y <= baseY; y++) {
                     BlockPos at = new BlockPos(cx + dx, y, cz + dz);
                     if (level.getBlockState(at).isAir() || !level.getFluidState(at).isEmpty()) {
-                        level.setBlock(at, wall(rnd, 0.0), 2);
+                        Scars.set(level, at, wall(rnd, 0.0));
                     }
                 }
                 if (d > r && rnd.nextDouble() < 0.4) {           // scorched ground around the foot
                     BlockPos at = new BlockPos(cx + dx, baseY, cz + dz);
                     if (!level.getBlockState(at).isAir()) {
-                        level.setBlock(at, rnd.nextBoolean() ? Blocks.TUFF.defaultBlockState() : Blocks.BASALT.defaultBlockState(), 2);
+                        Scars.set(level, at, rnd.nextBoolean() ? Blocks.TUFF.defaultBlockState() : Blocks.BASALT.defaultBlockState());
                     }
                 }
             }
@@ -395,10 +447,10 @@ public final class Volcano extends SavedData {
         for (int dx = -r; dx <= r; dx++) {
             for (int dz = -r; dz <= r; dz++) {
                 if (Math.sqrt(dx * dx + dz * dz) > vent) continue;
-                level.setBlock(new BlockPos(cx + dx, rimY - 5, cz + dz), Blocks.BLACKSTONE.defaultBlockState(), 2);
-                level.setBlock(new BlockPos(cx + dx, rimY - 4, cz + dz), Blocks.MAGMA_BLOCK.defaultBlockState(), 2);
-                level.setBlock(new BlockPos(cx + dx, rimY - 3, cz + dz), Blocks.LAVA.defaultBlockState(), 2);
-                level.setBlock(new BlockPos(cx + dx, rimY - 2, cz + dz), Blocks.LAVA.defaultBlockState(), 2);
+                Scars.set(level, new BlockPos(cx + dx, rimY - 5, cz + dz), Blocks.BLACKSTONE.defaultBlockState());
+                Scars.set(level, new BlockPos(cx + dx, rimY - 4, cz + dz), Blocks.MAGMA_BLOCK.defaultBlockState());
+                Scars.set(level, new BlockPos(cx + dx, rimY - 3, cz + dz), Blocks.LAVA.defaultBlockState());
+                Scars.set(level, new BlockPos(cx + dx, rimY - 2, cz + dz), Blocks.LAVA.defaultBlockState());
             }
         }
         // the live channel is cut one last time, now that the rim is at its full height
@@ -414,12 +466,12 @@ public final class Volcano extends SavedData {
                 for (int w = -1; w <= 1; w++) {
                     BlockPos at = BlockPos.containing(px + w * Math.sin(angle), baseY + h, pz - w * Math.cos(angle));
                     if (level.getBlockState(at).isAir()) continue;
-                    level.setBlock(at, rnd.nextDouble() < 0.55 ? Blocks.OBSIDIAN.defaultBlockState()
-                            : Blocks.MAGMA_BLOCK.defaultBlockState(), 2);
+                    Scars.set(level, at, rnd.nextDouble() < 0.55 ? Blocks.OBSIDIAN.defaultBlockState()
+                            : Blocks.MAGMA_BLOCK.defaultBlockState());
                 }
             }
         }
-        level.playSound(null, cx, rimY, cz, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, 6.0F, 0.3F);
+        level.playSound(null, cx, rimY, cz, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, 18.0F, 0.3F);
         // and the ash, carried away on the opposite bearing to the flow so the two are not the same
         // side of the mountain. This is what somebody finds a week later and follows back to here.
         Aftermath.ashfall(level, new BlockPos(cx, baseY, cz), spill + Math.PI,
@@ -427,12 +479,14 @@ public final class Volcano extends SavedData {
     }
 
     private void end(ServerLevel level) {
+        Scars.done(level, scar);
+        scar = null;
         phase = Phase.IDLE;
         phaseTicks = 0;
         course = 0;
         cooledTo = 0;
         setDirty();
-        WakingWorld.LOGGER.info("cataclysm: the flow at {} {} has set ({} blocks turned to rock)", cx, cz, cooledBlocks);
+        WakingWorld.LOGGER.info("cataclysm: the flow at {} {} has set ({} blocks turned to rock; the crater keeps its pool)", cx, cz, cooledBlocks);
         cooledBlocks = 0;
     }
 
@@ -500,27 +554,27 @@ public final class Volcano extends SavedData {
             // the sky above it or the rock closes over and the whole thing is invisible from outside
             for (int c = 0; c <= 1; c++) {
                 BlockPos at = BlockPos.containing(px + nx * c * 0.9, y, pz + nz * c * 0.9);
-                level.setBlock(at, Blocks.LAVA.defaultBlockState(), 2);
-                level.setBlock(at.above(), Blocks.AIR.defaultBlockState(), 2);
-                level.setBlock(at.above(2), Blocks.AIR.defaultBlockState(), 2);
+                Scars.set(level, at, Blocks.LAVA.defaultBlockState());
+                Scars.set(level, at.above(), Blocks.AIR.defaultBlockState());
+                Scars.set(level, at.above(2), Blocks.AIR.defaultBlockState());
             }
             BlockPos at = BlockPos.containing(px, y, pz);
             // and its banks, so it cannot go anywhere
             for (int w = -1; w <= 2; w += 3) {
                 BlockPos bank = BlockPos.containing(px + nx * w, y, pz + nz * w);
                 if (level.getBlockState(bank).getFluidState().isEmpty()) {
-                    level.setBlock(bank, rnd.nextDouble() < 0.25 ? Blocks.MAGMA_BLOCK.defaultBlockState()
-                            : Blocks.BLACKSTONE.defaultBlockState(), 2);
+                    Scars.set(level, bank, rnd.nextDouble() < 0.25 ? Blocks.MAGMA_BLOCK.defaultBlockState()
+                            : Blocks.BLACKSTONE.defaultBlockState());
                 }
                 if (level.getBlockState(bank.above()).getFluidState().isEmpty()
                         && !level.getBlockState(bank.above()).isAir() && rnd.nextDouble() < 0.5) {
-                    level.setBlock(bank.above(), Blocks.BLACKSTONE.defaultBlockState(), 2);
+                    Scars.set(level, bank.above(), Blocks.BLACKSTONE.defaultBlockState());
                 }
             }
             for (int c = 0; c <= 1; c++) {
                 BlockPos under = BlockPos.containing(px + nx * c * 0.9, y - 1, pz + nz * c * 0.9);
                 if (level.getBlockState(under).isAir() || !level.getFluidState(under).isEmpty()) {
-                    level.setBlock(under, Blocks.BLACKSTONE.defaultBlockState(), 2);
+                    Scars.set(level, under, Blocks.BLACKSTONE.defaultBlockState());
                 }
             }
         }
@@ -533,8 +587,8 @@ public final class Volcano extends SavedData {
             BlockPos g = new BlockPos(fx, level.getHeight(
                     net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, fx, fz), fz);
             if (g.getY() > baseY + 3 || g.getY() <= level.getMinBuildHeight() + 1) continue;
-            level.setBlock(g.below(), rnd.nextDouble() < 0.3 ? Blocks.MAGMA_BLOCK.defaultBlockState()
-                    : Blocks.BLACKSTONE.defaultBlockState(), 2);
+            Scars.set(level, g.below(), rnd.nextDouble() < 0.3 ? Blocks.MAGMA_BLOCK.defaultBlockState()
+                    : Blocks.BLACKSTONE.defaultBlockState());
         }
     }
 
@@ -592,6 +646,7 @@ public final class Volcano extends SavedData {
         v.courses = tag.getInt("Courses");
         v.baseR = tag.getInt("Foot");
         v.nextPulse = tag.getInt("Next");
+        if (tag.hasUUID("Scar")) v.scar = tag.getUUID("Scar");
         v.cooledTo = tag.getInt("CooledTo");
         v.riseSeconds = tag.getInt("RiseSeconds");
         v.spill = tag.getFloat("Spill");
@@ -610,6 +665,7 @@ public final class Volcano extends SavedData {
         tag.putInt("Courses", courses);
         tag.putInt("Foot", baseR);
         tag.putInt("Next", nextPulse);
+        if (scar != null) tag.putUUID("Scar", scar);
         tag.putInt("CooledTo", cooledTo);
         tag.putInt("RiseSeconds", riseSeconds);
         tag.putFloat("Spill", spill);
@@ -637,6 +693,7 @@ public final class Volcano extends SavedData {
         v.course = 0;
         v.phase = Phase.WARNING;
         v.phaseTicks = 5 * 20;
+        v.scar = Scars.begin(level, at, "a volcano");   // a forced one is written down like any other
         v.cooldownUntilDay = (int) (level.getDayTime() / 24000L) + WakingConfig.daysBetweenVolcanoes();
         v.setDirty();
     }

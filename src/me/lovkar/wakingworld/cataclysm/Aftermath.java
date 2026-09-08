@@ -58,11 +58,11 @@ public final class Aftermath {
             // whatever was growing here is dead
             BlockState above = level.getBlockState(on);
             if (above.is(BlockTags.REPLACEABLE) && !above.isAir()) {
-                level.setBlock(on, Blocks.AIR.defaultBlockState(), 2);
+                Scars.set(level, on, Blocks.AIR.defaultBlockState());
             }
             Block dressed = ash(state, rnd);
             if (dressed == null) continue;
-            level.setBlock(ground, dressed.defaultBlockState(), 2);
+            Scars.set(level, ground, dressed.defaultBlockState());
             laid++;
         }
         WakingWorld.LOGGER.info("cataclysm: {} blocks of ash fell downwind of {}", laid, vent);
@@ -101,18 +101,18 @@ public final class Aftermath {
             if (top <= level.getMinBuildHeight() + 1) continue;
             BlockPos on = new BlockPos(ix, top, iz);
             BlockState above = level.getBlockState(on);
-            if (above.is(BlockTags.REPLACEABLE) && !above.isAir()) level.setBlock(on, Blocks.AIR.defaultBlockState(), 2);
+            if (above.is(BlockTags.REPLACEABLE) && !above.isAir()) Scars.set(level, on, Blocks.AIR.defaultBlockState());
             BlockPos ground = on.below();
             BlockState state = level.getBlockState(ground);
             if (!state.getFluidState().isEmpty() || state.isAir()) continue;
             if (state.is(Blocks.GRASS_BLOCK) || state.is(Blocks.DIRT) || state.is(Blocks.PODZOL)
                     || state.is(Blocks.MOSS_BLOCK) || state.is(Blocks.MYCELIUM)) {
-                level.setBlock(ground, rnd.nextDouble() < 0.12
+                Scars.set(level, ground, rnd.nextDouble() < 0.12
                         ? Blocks.BLACK_GLAZED_TERRACOTTA.defaultBlockState()   // where the heat sat
-                        : Blocks.COARSE_DIRT.defaultBlockState(), 2);
+                        : Blocks.COARSE_DIRT.defaultBlockState());
                 burnt++;
             } else if (state.is(BlockTags.SAND) && rnd.nextDouble() < 0.3) {
-                level.setBlock(ground, Blocks.GLASS.defaultBlockState(), 2);   // sand, fused
+                Scars.set(level, ground, Blocks.GLASS.defaultBlockState());   // sand, fused
                 burnt++;
             }
         }
@@ -140,17 +140,17 @@ public final class Aftermath {
                 BlockPos on = new BlockPos(ix, top - 1, iz);
                 BlockState state = level.getBlockState(on);
                 if (state.is(BlockTags.LEAVES)) {
-                    level.setBlock(on, Blocks.AIR.defaultBlockState(), 2);
+                    Scars.set(level, on, Blocks.AIR.defaultBlockState());
                 } else if (state.is(BlockTags.LOGS)) {
                     // snapped: everything above the stump goes
                     for (int y = on.getY(); y > on.getY() - 12; y--) {
                         BlockPos t = new BlockPos(ix, y, iz);
                         if (!level.getBlockState(t).is(BlockTags.LOGS)) break;
                         if (y <= groundOf(level, ix, iz) + 1 + rnd.nextInt(2)) break;   // leave a stump
-                        level.setBlock(t, Blocks.AIR.defaultBlockState(), 2);
+                        Scars.set(level, t, Blocks.AIR.defaultBlockState());
                     }
                 } else if (state.is(Blocks.GRASS_BLOCK) && rnd.nextDouble() < 0.5) {
-                    level.setBlock(on, Blocks.COARSE_DIRT.defaultBlockState(), 2);
+                    Scars.set(level, on, Blocks.COARSE_DIRT.defaultBlockState());
                 }
             }
         }
@@ -204,8 +204,19 @@ public final class Aftermath {
                             : roll < 0.82 ? Blocks.BLACKSTONE
                             : roll < 0.94 ? Blocks.OBSIDIAN
                             : Blocks.MAGMA_BLOCK;
-                    level.setBlock(at, into.defaultBlockState(), 2);
+                    Scars.set(level, at, into.defaultBlockState());
                     set++;
+                    // Steam where it actually sets, not a puff over the crater. Cooling is slow by
+                    // design and the only way to tell it apart from nothing happening is to watch
+                    // the crust travel: this is what turns "it did not work" into "look at it".
+                    if (rnd.nextInt(5) == 0) {
+                        Cataclysms.puff(level, net.minecraft.core.particles.ParticleTypes.CAMPFIRE_COSY_SMOKE,
+                                x + 0.5, y + 1.0, z + 0.5, 2, 0.22, 0.10, 0.22, 0.012);
+                        if (rnd.nextInt(4) == 0) {
+                            Cataclysms.puff(level, net.minecraft.core.particles.ParticleTypes.LAVA,
+                                    x + 0.5, y + 1.0, z + 0.5, 1, 0.15, 0.05, 0.15, 0.0);
+                        }
+                    }
                 }
             }
         }
@@ -243,7 +254,7 @@ public final class Aftermath {
                     continue;
                 }
                 if (state.is(Blocks.FARMLAND) && rnd.nextDouble() < 0.55) {
-                    level.setBlock(on, Blocks.DIRT.defaultBlockState(), 2);      // ploughed under
+                    Scars.set(level, on, Blocks.DIRT.defaultBlockState());      // ploughed under
                     hit++;
                 }
             }

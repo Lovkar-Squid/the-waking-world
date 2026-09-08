@@ -45,6 +45,11 @@ public class MeteorEntity extends Entity {
     private Vec3 target = Vec3.ZERO;
     private boolean carriesStar = true;
     private int life;
+    /**
+     * A lava bomb rather than a star: thrown out of a volcano's throat instead of falling out of the
+     * sky, so it arcs under gravity, and where it lands it leaves lava rather than a crater.
+     */
+    private boolean bomb;
 
     public MeteorEntity(EntityType<? extends MeteorEntity> type, Level level) {
         super(type, level);
@@ -64,6 +69,20 @@ public class MeteorEntity extends Entity {
 
     public void setCarriesStar(boolean carries) {
         this.carriesStar = carries;
+    }
+
+    /**
+     * Throw it, rather than aim it: a lava bomb leaves the vent with a velocity and then belongs to
+     * gravity, so it draws the arc out of the mountain that a player's eye can follow all the way to
+     * where it lands.
+     */
+    public void hurl(Vec3 from, Vec3 velocity) {
+        this.bomb = true;
+        this.carriesStar = false;
+        this.setSize(1);
+        this.setPos(from.x, from.y, from.z);
+        this.setDeltaMovement(velocity);
+        this.target = from;
     }
 
     /** Aim it at a point on the ground and let go: it comes in at a slant from the given height. */
@@ -100,10 +119,20 @@ public class MeteorEntity extends Entity {
             if (++life > 400 || this.getY() < this.level().getMinBuildHeight()) this.discard();
         }
         this.setPos(to.x, to.y, to.z);
+        if (bomb) {
+            // thrown, not aimed: it slows and it falls, so it comes down where an arc says it should
+            this.setDeltaMovement(this.getDeltaMovement().scale(0.99).add(0.0, -0.055, 0.0));
+        }
     }
 
     /** Smoke, fire and rock behind it, and a roar that grows the closer it gets to the ground. */
     private void trail(ServerLevel server) {
+        if (bomb) {
+            Cataclysms.puff(server, ParticleTypes.LAVA, this.getX(), this.getY(), this.getZ(), 4, 0.25, 0.25, 0.25, 0.02);
+            Cataclysms.puff(server, ParticleTypes.FLAME, this.getX(), this.getY(), this.getZ(), 3, 0.2, 0.2, 0.2, 0.01);
+            Cataclysms.puff(server, ParticleTypes.LARGE_SMOKE, this.getX(), this.getY(), this.getZ(), 2, 0.3, 0.3, 0.3, 0.01);
+            return;
+        }
         int s = size();
         Vec3 back = this.getDeltaMovement().normalize().scale(-1);
         for (int i = 0; i < 3 + s * 2; i++) {
@@ -130,6 +159,20 @@ public class MeteorEntity extends Entity {
     // ---- landing ---------------------------------------------------------------------------
 
     private void impact(ServerLevel server, Vec3 at) {
+        Scars.writing(server, Cataclysms.scarOf(server));
+        try {
+            land(server, at);
+        } finally {
+            Scars.close();
+        }
+    }
+
+    private void land(ServerLevel server, Vec3 at) {
+        if (bomb) {
+            splash(server, at);
+            this.discard();
+            return;
+        }
         int s = size();
         double craterRadius = 4.0 + s * 2.5;
         float damage = 12.0F + s * 8;
@@ -211,5 +254,43 @@ public class MeteorEntity extends Entity {
         carriesStar = !tag.contains("Star") || tag.getBoolean("Star");
         life = tag.getInt("Life");
         target = new Vec3(tag.getDouble("Tx"), tag.getDouble("Ty"), tag.getDouble("Tz"));
+    }
+
+    /**
+     * Where a lava bomb lands: lava, and a little of it thrown about.
+     *
+     * <p>Three or four source blocks rather than one, on whatever they land on and never inside
+     * anything - a bomb that punched a hole in somebody's roof and filled it with lava would be the
+     * single most hated thing in this mod. The lava then does what lava does, which is the point:
+     * the mountain is throwing pieces of itself into the country and setting fire to them.</p>
+     */
+    private void splash(ServerLevel server, Vec3 at) {
+        server.playSound(null, at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, 3.0F, 0.55F);
+        server.playSound(null, at.x, at.y, at.z, SoundEvents.LAVA_POP, SoundSource.WEATHER, 3.0F, 0.6F);
+        Cataclysms.puff(server, ParticleTypes.EXPLOSION, at.x, at.y + 0.5, at.z, 2, 0.4, 0.3, 0.4, 0.0);
+        Cataclysms.puff(server, ParticleTypes.LAVA, at.x, at.y + 0.4, at.z, 40, 1.2, 0.6, 1.2, 0.0);
+        Cataclysms.puff(server, ParticleTypes.FLAME, at.x, at.y + 0.5, at.z, 30, 1.0, 0.5, 1.0, 0.08);
+        Cataclysms.puff(server, ParticleTypes.LARGE_SMOKE, at.x, at.y + 1.0, at.z, 20, 1.0, 0.8, 1.0, 0.03);
+
+        for (LivingEntity target : server.getEntitiesOfClass(LivingEntity.class, new AABB(at, at).inflate(3.0), LivingEntity::isAlive)) {
+            target.hurt(this.damageSources().explosion(this, null), 6.0F);
+            target.igniteForSeconds(6);
+        }
+
+        BlockPos centre = BlockPos.containing(at);
+        pour(server, centre);
+        for (int i = 0; i < 3; i++) {
+            BlockPos near = centre.offset(this.random.nextInt(3) - 1, 0, this.random.nextInt(3) - 1);
+            if (this.random.nextFloat() < 0.75F) pour(server, near);
+        }
+    }
+
+    /** One source block of lava, put down on the surface and never into anything solid. */
+    private void pour(ServerLevel server, BlockPos at) {
+        BlockPos on = at;
+        for (int i = 0; i < 4 && !server.getBlockState(on).canBeReplaced(); i++) on = on.above();
+        if (!server.getBlockState(on).canBeReplaced()) return;
+        if (server.getBlockState(on.below()).isAir()) return;               // not hanging in the air
+        Scars.set(server, on, Blocks.LAVA.defaultBlockState());
     }
 }

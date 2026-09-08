@@ -34,18 +34,18 @@ public final class Starfall {
                 double edge = d / radius;                    // 0 in the middle, 1 at the rim
                 double heat = 1.0 - edge;
                 if (rnd.nextDouble() < heat * 0.55) {
-                    level.setBlock(top, rnd.nextDouble() < 0.30 * heat ? Blocks.MAGMA_BLOCK.defaultBlockState()
-                            : (rnd.nextBoolean() ? Blocks.BASALT.defaultBlockState() : Blocks.BLACKSTONE.defaultBlockState()), 3);
+                    Scars.set(level, top, rnd.nextDouble() < 0.30 * heat ? Blocks.MAGMA_BLOCK.defaultBlockState()
+                            : (rnd.nextBoolean() ? Blocks.BASALT.defaultBlockState() : Blocks.BLACKSTONE.defaultBlockState()));
                 } else if (edge > 0.55 && rnd.nextDouble() < 0.25) {
                     // the rim is scorched rather than melted
-                    if (state.is(BlockTags.DIRT)) level.setBlock(top, Blocks.COARSE_DIRT.defaultBlockState(), 3);
-                    else if (state.is(BlockTags.SAND)) level.setBlock(top, Blocks.SOUL_SAND.defaultBlockState(), 3);
+                    if (state.is(BlockTags.DIRT)) Scars.set(level, top, Blocks.COARSE_DIRT.defaultBlockState());
+                    else if (state.is(BlockTags.SAND)) Scars.set(level, top, Blocks.SOUL_SAND.defaultBlockState());
                 }
                 // a few small fires near the middle, on solid ground only
                 if (heat > 0.4 && rnd.nextDouble() < 0.06) {
                     BlockPos above = top.above();
                     if (level.isEmptyBlock(above) && level.getBlockState(top).isFaceSturdy(level, top, net.minecraft.core.Direction.UP)) {
-                        level.setBlock(above, Blocks.FIRE.defaultBlockState(), 3);
+                        Scars.set(level, above, Blocks.FIRE.defaultBlockState());
                     }
                 }
             }
@@ -60,11 +60,11 @@ public final class Starfall {
         BlockPos at = floor.below(1 + rnd.nextInt(2));
         int n = 3 + size * 3;
         BlockState star = CataclysmBlocks.STARSTONE.get().defaultBlockState();
-        level.setBlock(at, star, 3);
+        Scars.set(level, at, star);
         for (int i = 0; i < n; i++) {
             BlockPos p = at.offset(rnd.nextInt(3) - 1, rnd.nextInt(3) - 1, rnd.nextInt(3) - 1);
             BlockState there = level.getBlockState(p);
-            if (there.isAir() || there.canOcclude()) level.setBlock(p, star, 3);
+            if (there.isAir() || there.canOcclude()) Scars.set(level, p, star);
         }
     }
 
