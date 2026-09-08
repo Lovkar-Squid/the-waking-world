@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -102,16 +103,32 @@ public final class Omen {
     private static void flee(ServerLevel level, Vec3 at, Kind kind) {
         AABB box = new AABB(at, at).inflate(90);
         int moved = 0;
-        for (Animal animal : level.getEntitiesOfClass(Animal.class, box, Entity::isAlive)) {
-            Vec3 away = animal.position().subtract(at);
+        for (PathfinderMob mob : level.getEntitiesOfClass(PathfinderMob.class, box, Omen::minds)) {
+            Vec3 away = mob.position().subtract(at);
             if (away.lengthSqr() < 1) away = new Vec3(1, 0, 0);
             away = away.normalize();
-            animal.setDeltaMovement(animal.getDeltaMovement().add(away.x * 0.42, 0.22, away.z * 0.42));
-            animal.hurtMarked = true;
-            animal.getNavigation().moveTo(animal.getX() + away.x * 40, animal.getY(), animal.getZ() + away.z * 40, 1.6);
+            mob.setDeltaMovement(mob.getDeltaMovement().add(away.x * 0.42, 0.22, away.z * 0.42));
+            mob.hurtMarked = true;
+            mob.getNavigation().moveTo(mob.getX() + away.x * 40, mob.getY(), mob.getZ() + away.z * 40, 1.6);
             moved++;
         }
-        if (moved > 0) WakingWorld.LOGGER.info("cataclysm: {} animals left before the {}", moved, kind.key);
+        if (moved > 0) WakingWorld.LOGGER.info("cataclysm: {} living things left before the {}", moved, kind.key);
+    }
+
+    /**
+     * Who takes the hint.
+     *
+     * <p>The animals always did, and it is the oldest warning there is. A village that stands
+     * about while the sky goes wrong makes the warning look like scenery, so the people go too -
+     * villagers, wandering traders, and the kingdom's own townsfolk and guards. Monsters do not:
+     * a creeper is not frightened of a volcano, and a night that empties of hostiles is a night
+     * that plays worse.</p>
+     */
+    private static boolean minds(Entity e) {
+        if (!e.isAlive()) return false;
+        return e instanceof Animal
+                || e instanceof net.minecraft.world.entity.npc.AbstractVillager
+                || e instanceof me.lovkar.wakingworld.kingdom.TownsfolkEntity;
     }
 
     /** Where the omen should be centred for a cataclysm that has not picked its spot yet. */

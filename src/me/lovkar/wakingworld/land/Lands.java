@@ -132,6 +132,44 @@ public final class Lands extends SavedData {
         p.sendSystemMessage(Component.literal("You have come into ").withStyle(ChatFormatting.DARK_GRAY)
                 .append(Component.literal(land.name()).withStyle(ChatFormatting.GOLD))
                 .append(Component.literal(". " + land.lore()).withStyle(ChatFormatting.DARK_GRAY)));
+        Component held = holds(level, middle);
+        if (held != null) p.sendSystemMessage(held);
+    }
+
+    /**
+     * What this country is known for, if anything.
+     *
+     * <p>A name on its own is a label, and a label is not a reason to walk anywhere. What makes a
+     * land worth entering is that entering it tells you something - so if a giant was woken or
+     * killed here, or the ground has not settled since, the card says so.</p>
+     *
+     * <p>It costs nothing: both answers are already in memory ({@link
+     * me.lovkar.wakingworld.story.Chronicle} and {@link me.lovkar.wakingworld.cataclysm.Unrest}),
+     * and neither is a structure search. A land nothing has happened in stays quiet, which is also
+     * information.</p>
+     */
+    private static Component holds(ServerLevel level, BlockPos middle) {
+        int size = WakingConfig.landSize();
+        int cx = cellOf(middle.getX()), cz = cellOf(middle.getZ());
+        String saw = null;
+        for (String type : new String[]{"slain", "woken"}) {
+            for (me.lovkar.wakingworld.story.Chronicle.Event e
+                    : me.lovkar.wakingworld.story.Chronicle.get(level).near(middle, type, 8)) {
+                if (cellOf(e.x()) != cx || cellOf(e.z()) != cz) continue;
+                saw = "slain".equals(type)
+                        ? "Something the size of a hill fell in this country."
+                        : "Something was woken in this country.";
+                break;
+            }
+            if (saw != null) break;
+        }
+        double unquiet = me.lovkar.wakingworld.cataclysm.Unrest.at(level, middle);
+        if (saw == null && unquiet <= 0.0) return null;
+        String line = saw == null ? "" : saw;
+        if (unquiet > 0.35) {
+            line = (line.isEmpty() ? "The ground here has not settled." : line + " The ground has not settled since.");
+        }
+        return Component.literal(line).withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC);
     }
 
     /**

@@ -159,4 +159,95 @@ public final class Aftermath {
     private static int groundOf(ServerLevel level, int x, int z) {
         return level.getHeight(Heightmap.Types.OCEAN_FLOOR, x, z) - 1;
     }
+
+    /**
+     * Lava setting into rock, from the bottom of the flow upward.
+     *
+     * <p>A volcano that leaves lava is not a mountain, it is a hazard that never goes away: a
+     * player who comes back in a week finds the same glowing channel, and nothing about the place
+     * says the eruption is over. Real flows crust over from the toe up while the vent is still
+     * bright, so that is what this does - the volcano raises {@code upTo} a little at a time and
+     * everything below it turns to rock, leaving the crater pool last and, if the caller likes,
+     * for good.</p>
+     *
+     * @param upTo the highest level that has cooled so far; lava above it is left alone
+     * @return how many blocks set
+     */
+    public static int cool(ServerLevel level, int cx, int cz, double radius, int fromY, int upTo,
+                           int slice, int slices, double chance, RandomSource rnd) {
+        int set = 0;
+        int r = (int) Math.ceil(radius);
+        int n = -1;
+        for (int dx = -r; dx <= r; dx++) {
+            for (int dz = -r; dz <= r; dz++) {
+                if (dx * dx + dz * dz > radius * radius) continue;
+                // One slice of the disc per pulse. The whole cone has to be swept over and over
+                // rather than in a single rising band, because lava that has already been passed
+                // flows down into ground that was swept a minute ago - the first version left a
+                // channel that was still running an hour later, because it had looked at that
+                // height once, before the flow got there.
+                if (++n % slices != slice) continue;
+                int x = cx + dx, z = cz + dz;
+                for (int y = fromY; y <= upTo; y++) {
+                    BlockPos at = new BlockPos(x, y, z);
+                    BlockState state = level.getBlockState(at);
+                    if (!state.is(Blocks.LAVA)) continue;
+                    // The toe sets first: a block near the bottom of the flow is much likelier to
+                    // go on any given pass than one just under the crater, so the black creeps up
+                    // the mountain instead of the whole flank turning at once.
+                    double deep = (upTo - y) / (double) Math.max(1, upTo - fromY);
+                    if (rnd.nextDouble() > chance * (0.35 + 0.65 * deep)) continue;
+                    // what it sets into: mostly the black rock a flow leaves, obsidian where it
+                    // stood deepest, and a little magma still holding its heat
+                    double roll = rnd.nextDouble();
+                    Block into = roll < 0.62 ? Blocks.BASALT
+                            : roll < 0.82 ? Blocks.BLACKSTONE
+                            : roll < 0.94 ? Blocks.OBSIDIAN
+                            : Blocks.MAGMA_BLOCK;
+                    level.setBlock(at, into.defaultBlockState(), 2);
+                    set++;
+                }
+            }
+        }
+        return set;
+    }
+
+    /**
+     * What a cataclysm does to a field.
+     *
+     * <p>Everything the five of them do is to the landscape, and a landscape is not what a player
+     * has feelings about. A wheat field flattened and a fence knocked flat is worth more than
+     * another acre of coarse dirt, because somebody planted that.</p>
+     *
+     * <p>It only touches what grows: crops go, farmland reverts to dirt in patches, grass is
+     * scoured. It never breaks a block a player laid - the same rule the earthquake already
+     * keeps - so a house in the path loses its garden and not its walls.</p>
+     */
+    public static int blight(ServerLevel level, BlockPos at, double radius, double strength, RandomSource rnd) {
+        int hit = 0;
+        int r = (int) Math.ceil(radius);
+        for (int dx = -r; dx <= r; dx++) {
+            for (int dz = -r; dz <= r; dz++) {
+                double d = Math.sqrt(dx * dx + dz * dz);
+                if (d > radius) continue;
+                if (rnd.nextDouble() > strength * (1.0 - d / radius) + 0.03) continue;
+                int x = at.getX() + dx, z = at.getZ() + dz;
+                int top = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
+                if (top <= level.getMinBuildHeight() + 1) continue;
+                BlockPos on = new BlockPos(x, top - 1, z);
+                BlockState state = level.getBlockState(on);
+                if (state.is(BlockTags.CROPS) || state.is(Blocks.MELON) || state.is(Blocks.PUMPKIN)
+                        || state.is(Blocks.SUGAR_CANE) || state.is(BlockTags.FLOWERS) || state.is(BlockTags.SAPLINGS)) {
+                    level.destroyBlock(on, false);
+                    hit++;
+                    continue;
+                }
+                if (state.is(Blocks.FARMLAND) && rnd.nextDouble() < 0.55) {
+                    level.setBlock(on, Blocks.DIRT.defaultBlockState(), 2);      // ploughed under
+                    hit++;
+                }
+            }
+        }
+        return hit;
+    }
 }

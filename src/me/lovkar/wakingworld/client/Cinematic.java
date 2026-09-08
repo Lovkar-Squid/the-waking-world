@@ -274,7 +274,9 @@ public final class Cinematic {
         int high = Integer.MIN_VALUE;
         for (int dx = -2; dx <= 2; dx += 2) {
             for (int dz = -2; dz <= 2; dz += 2) {
-                high = Math.max(high, mc.level.getHeight(Heightmap.Types.MOTION_BLOCKING,
+                // bare ground, not the canopy: a camera that will not fly through leaves ends up
+                // filming the tops of them, which is the same bug the server side had
+                high = Math.max(high, mc.level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                         (int) Math.floor(pos.x) + dx, (int) Math.floor(pos.z) + dz));
             }
         }

@@ -156,11 +156,12 @@ public class WakingWorld {
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.cataclysm.Cataclysms::onLevelTick);
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.cataclysm.BloodMoon::onEntityJoin);
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.land.Lands::onLevelTick);
+        NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.story.Welcome::onJoin);
         if (FMLEnvironment.dist.isClient()) {
             container.registerConfig(ModConfig.Type.CLIENT, WakingConfig.CLIENT_SPEC);
             WakingWorldClient.init(modBus, container);
         }
-        LOGGER.info("The Waking World 0.2.0-alpha.11 - the world is waking. /wakingworld for the tools.");
+        LOGGER.info("The Waking World 0.2.0-alpha.12 - the world is waking. /wakingworld for the tools.");
     }
 
     /** Nobody sneaks out of a colossus' fist: a dismount is refused while it holds you (it lets go when it throws). */

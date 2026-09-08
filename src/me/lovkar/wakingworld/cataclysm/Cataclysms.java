@@ -90,6 +90,66 @@ public final class Cataclysms extends SavedData {
         }
     }
 
+    /**
+     * Open ground near a player: dry, above the sea, level enough, and not under a wood.
+     *
+     * <p>{@link Earthquake#site} was one unfiltered sample - an angle, a distance and whatever was
+     * there. Most of the time that is a field and it is fine; the rest of the time it is a lake, a
+     * cliff or the middle of a jungle, and a tornado in a jungle is sixteen seconds of leaves. That
+     * is exactly what cost the trailer its second shot.</p>
+     *
+     * <p>The canopy test is the interesting one. There is no way to ask the world generator whether
+     * a column has a tree on it - trees are placed after the noise, so every generator heightmap
+     * answers bare ground. On a <em>loaded</em> chunk, though, the difference between
+     * {@code MOTION_BLOCKING} and {@code MOTION_BLOCKING_NO_LEAVES} is precisely the depth of the
+     * canopy over that column. {@link #surface} loads the chunk anyway, so the five extra samples
+     * are free and stay inside that same chunk.</p>
+     *
+     * @return the best spot found, or the last one looked at if nothing passed - a cataclysm that
+     *         refuses to happen is worse than one in a slightly poor place
+     */
+    public static Vec3 openSite(ServerLevel level, Vec3 from, RandomSource rnd,
+                                double minOut, double maxOut) {
+        Vec3 fallback = null;
+        Vec3 best = null;
+        int bestScore = Integer.MAX_VALUE;
+        for (int i = 0; i < 14; i++) {
+            double angle = rnd.nextDouble() * Math.PI * 2;
+            double dist = minOut + rnd.nextDouble() * (maxOut - minOut);
+            double x = from.x + Math.cos(angle) * dist;
+            double z = from.z + Math.sin(angle) * dist;
+            BlockPos ground = surface(level, x, z);              // loads the chunk
+            Vec3 here = new Vec3(x, ground.getY(), z);
+            if (fallback == null) fallback = here;
+            if (ground.getY() <= level.getSeaLevel() + 1) continue;                  // water, or a shore
+            if (!level.getFluidState(ground.below()).isEmpty()) continue;            // a lake or a river
+
+            // five columns inside the chunk we have just loaded: how uneven, and how wooded
+            int lo = ground.getY(), hi = ground.getY(), canopy = 0;
+            for (int k = 0; k < 5; k++) {
+                int sx = (int) x + (k % 3 - 1) * 6, sz = (int) z + (k / 3 - 1) * 6;
+                int bare = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, sx, sz);
+                int over = level.getHeight(Heightmap.Types.MOTION_BLOCKING, sx, sz);
+                lo = Math.min(lo, bare);
+                hi = Math.max(hi, bare);
+                canopy = Math.max(canopy, over - bare);
+            }
+            if (canopy > 4) continue;                            // standing under a wood
+            int spread = hi - lo;
+            if (spread > 14) continue;                           // a cliff or a gorge
+            if (spread < bestScore) {
+                bestScore = spread;
+                best = here;
+            }
+            if (spread <= 4) break;                              // good enough; stop paying for better
+        }
+        if (best == null) {
+            WakingWorld.LOGGER.info("cataclysm: no open ground found near {} {} - taking what there is",
+                    (int) from.x, (int) from.z);
+        }
+        return best != null ? best : (fallback != null ? fallback : Vec3.atBottomCenterOf(surface(level, from.x, from.z)));
+    }
+
     /** True while the sky is falling - the other cataclysms wait their turn. */
     public static boolean busy(ServerLevel level) {
         return get(level).phase != Phase.IDLE;

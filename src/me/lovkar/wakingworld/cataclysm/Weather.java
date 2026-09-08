@@ -88,6 +88,10 @@ public final class Weather extends SavedData {
                 for (ServerPlayer p : level.players()) {
                     p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.earthquake.over").withStyle(ChatFormatting.GRAY));
                 }
+                // until now the quake was the only one of the five that left nothing at all
+                if (WakingConfig.blight()) {
+                    Aftermath.blight(level, BlockPos.containing(qx, qy, qz), 34, 0.45, level.random);
+                }
                 Survived.near(level, Omen.Kind.EARTHQUAKE, new Vec3(qx, qy, qz));
                 // and a shrine that was under it may not have survived being shaken
                 Answer.maybe(level, new Vec3(qx, qy, qz), Omen.Kind.EARTHQUAKE);
@@ -146,14 +150,16 @@ public final class Weather extends SavedData {
     private static Vec3 where(ServerLevel level, ServerPlayer near, RandomSource rnd) {
         double unquiet = Unrest.at(level, near.blockPosition());
         BlockPos scar = Unrest.worst(level, near, WakingConfig.landSize() * 2.0);
-        if (scar == null) return Earthquake.site(level, near, rnd);
+        if (scar == null) return Cataclysms.openSite(level, near.position(), rnd, 30, 90);
         double pull = Math.max(unquiet, Unrest.at(level, scar));
-        if (rnd.nextDouble() > pull * 0.8) return Earthquake.site(level, near, rnd);
-        // somewhere inside that land, not exactly on its middle stone
+        if (rnd.nextDouble() > pull * 0.8) return Cataclysms.openSite(level, near.position(), rnd, 30, 90);
+        // somewhere inside that land, not exactly on its middle stone. Still open ground: the
+        // unquiet country is a reason to go there, not a reason to put a tornado in a jungle.
         int size = WakingConfig.landSize();
         int x = scar.getX() + rnd.nextInt(size / 2) - size / 4;
         int z = scar.getZ() + rnd.nextInt(size / 2) - size / 4;
-        return Vec3.atBottomCenterOf(Cataclysms.surface(level, x, z));
+        Vec3 mid = Vec3.atBottomCenterOf(Cataclysms.surface(level, x, z));
+        return Cataclysms.openSite(level, mid, rnd, 0, 60);
     }
 
     /** Hold the thing back and sound the warning; the tick above lets it go when the time is up. */

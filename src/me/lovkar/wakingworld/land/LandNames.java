@@ -56,63 +56,99 @@ public final class LandNames {
     private static Words words(Kind kind) {
         return switch (kind) {
             case PLAINS -> new Words(
-                    List.of("Long", "Wide", "Quiet", "Green", "Old", "Wind-worn", "Endless", "Hollow"),
-                    List.of("Meadows", "Reach", "Furrows", "Commons", "Downs", "Sweep", "Grasslands", "Fields"));
+                    List.of("Long", "Wide", "Quiet", "Green", "Old", "Wind-worn", "Endless", "Hollow", "Open", "Unfenced"),
+                    List.of("Meadows", "Furrows", "Commons", "Downs", "Sweep", "Grasslands", "Fields", "Pasture", "Levels", "Green"));
             case FOREST -> new Words(
-                    List.of("Deep", "Old", "Whispering", "Shaded", "Root-bound", "Unlit", "Tangled", "Green"),
-                    List.of("Wood", "Thicket", "Weald", "Hollows", "Canopy", "Shade", "Timberland", "Grove"));
+                    List.of("Deep", "Old", "Whispering", "Shaded", "Root-bound", "Unlit", "Tangled", "Close", "Standing", "Patient"),
+                    List.of("Wood", "Thicket", "Weald", "Hollows", "Canopy", "Shade", "Timberland", "Grove", "Boughs", "Understory"));
             case TAIGA -> new Words(
-                    List.of("Silent", "Cold", "Needle", "Grey", "Frost-bitten", "Standing", "Bitter"),
-                    List.of("Pines", "Taiga", "Stand", "Firs", "Reach", "Woods", "Highwood"));
+                    List.of("Silent", "Cold", "Needle", "Grey", "Frost-bitten", "Standing", "Bitter", "Sharp", "Slow", "Iron"),
+                    List.of("Pines", "Stand", "Firs", "Woods", "Highwood", "Needles", "Cones", "Rime", "Spires", "Hush"));
             case JUNGLE -> new Words(
-                    List.of("Steaming", "Choked", "Green", "Fevered", "Loud", "Wet", "Devouring"),
-                    List.of("Canopy", "Jungle", "Tangle", "Rainlands", "Understory", "Vines", "Deeps"));
+                    List.of("Steaming", "Choked", "Fevered", "Loud", "Wet", "Devouring", "Sleepless", "Bright", "Crowded", "Root-thick"),
+                    List.of("Canopy", "Tangle", "Rainlands", "Understory", "Vines", "Deeps", "Green", "Riot", "Roof", "Ferns"));
             case DESERT -> new Words(
-                    List.of("Thirsting", "Burning", "Glass", "Bleached", "Endless", "Wandering", "Sun-struck"),
-                    List.of("Waste", "Sands", "Flats", "Reach", "Dunes", "Barrens", "Emptiness"));
+                    List.of("Thirsting", "Burning", "Glass", "Bleached", "Endless", "Wandering", "Sun-struck", "Patient", "White", "Slow"),
+                    List.of("Waste", "Sands", "Flats", "Dunes", "Barrens", "Glare", "Wind", "Bones", "Pan", "Sea"));
             case BADLANDS -> new Words(
-                    List.of("Red", "Broken", "Rusted", "Layered", "Cracked", "Ochre", "Bleeding"),
-                    List.of("Mesas", "Badlands", "Steps", "Terraces", "Bluffs", "Cuts", "Country"));
+                    List.of("Broken", "Rusted", "Layered", "Cracked", "Ochre", "Bleeding", "Standing", "Burnt", "Sheer", "Old"),
+                    List.of("Mesas", "Steps", "Terraces", "Bluffs", "Cuts", "Stacks", "Shelves", "Ledges", "Spires", "Strata"));
             case SAVANNA -> new Words(
-                    List.of("Dry", "Golden", "Lion", "Wide", "Burnt", "Thorn", "Slow"),
-                    List.of("Savanna", "Plateau", "Grass", "Veldt", "Reach", "Plains", "Range"));
+                    List.of("Dry", "Golden", "Lion", "Wide", "Burnt", "Thorn", "Slow", "Brass", "Hunting", "Open"),
+                    List.of("Plateau", "Grass", "Veldt", "Range", "Acacias", "Flats", "Basin", "Sweep", "Scrub", "Rise"));
             case SWAMP -> new Words(
-                    List.of("Drowned", "Sunken", "Still", "Black", "Rotting", "Fever", "Sighing"),
-                    List.of("Mire", "Marsh", "Fens", "Bog", "Sloughs", "Waters", "Reeds"));
+                    List.of("Drowned", "Sunken", "Still", "Black", "Rotting", "Fever", "Sighing", "Patient", "Green", "Slow"),
+                    List.of("Mire", "Marsh", "Fens", "Bog", "Sloughs", "Waters", "Reeds", "Shallows", "Sedge", "Rot"));
             case MOUNTAIN -> new Words(
-                    List.of("High", "Cold", "Broken", "Standing", "Grey", "Sheer", "Wind-cut", "Sleeping"),
-                    List.of("Teeth", "Peaks", "Spine", "Crags", "Heights", "Stones", "Shoulders", "Wall"));
+                    List.of("High", "Cold", "Broken", "Standing", "Grey", "Sheer", "Wind-cut", "Sleeping", "Bare", "Old"),
+                    List.of("Teeth", "Peaks", "Spine", "Crags", "Heights", "Stones", "Shoulders", "Wall", "Saddles", "Scree"));
             case SNOW -> new Words(
-                    List.of("White", "Silent", "Frozen", "Glass", "Long", "Killing", "Pale"),
-                    List.of("Waste", "Snows", "Fields", "Reach", "Winter", "Drifts", "Cold"));
+                    List.of("White", "Silent", "Frozen", "Glass", "Long", "Killing", "Pale", "Clean", "Sleeping", "Hard"),
+                    List.of("Waste", "Snows", "Fields", "Winter", "Drifts", "Glare", "Sheet", "Barrens", "Wind", "Hush"));
             case SHORE -> new Words(
-                    List.of("Salt", "Grey", "Long", "Wrack", "Loud", "Broken", "Shell"),
-                    List.of("Shore", "Strand", "Coast", "Sands", "Reach", "Margin", "Edge"));
+                    List.of("Salt", "Grey", "Long", "Wrack", "Loud", "Broken", "Shell", "Patient", "Bleached", "Cold"),
+                    List.of("Shore", "Strand", "Coast", "Sands", "Margin", "Edge", "Spit", "Shingle", "Tideline", "Reach"));
             case OCEAN -> new Words(
-                    List.of("Deep", "Cold", "Green", "Wide", "Sunless", "Grey", "Drowning"),
-                    List.of("Water", "Deep", "Sea", "Expanse", "Blue", "Swell", "Reach"));
+                    List.of("Deep", "Cold", "Green", "Wide", "Sunless", "Grey", "Drowning", "Slow", "Old", "Restless"),
+                    List.of("Deep", "Sea", "Expanse", "Swell", "Blue", "Trough", "Fathoms", "Waters", "Shelf", "Dark"));
             case CAVE -> new Words(
-                    List.of("Lightless", "Dripping", "Deep", "Hollow", "Bone", "Sleeping"),
-                    List.of("Under", "Hollows", "Dark", "Deeps", "Vaults", "Roots"));
+                    List.of("Lightless", "Dripping", "Deep", "Hollow", "Bone", "Sleeping", "Blind", "Patient", "Cold", "Nameless"),
+                    List.of("Under", "Hollows", "Deeps", "Vaults", "Roots", "Throat", "Galleries", "Bore", "Wells", "Seams"));
             case END -> new Words(
-                    List.of("Void", "Pale", "Sleeping", "Last", "Outer", "Hollow"),
-                    List.of("Isles", "Reach", "Dark", "Shelf", "Rim", "Silence"));
+                    List.of("Void", "Pale", "Sleeping", "Last", "Outer", "Hollow", "Unlit", "Drifting", "Thin", "Quiet"),
+                    List.of("Isles", "Shelf", "Rim", "Dark", "Shards", "Marches", "Verge", "Stones", "Drift", "Edge"));
             case NETHER -> new Words(
-                    List.of("Burning", "Screaming", "Ash", "Red", "Sunless"),
-                    List.of("Waste", "Reach", "Fields", "Country", "Deeps"));
+                    List.of("Burning", "Screaming", "Ash", "Red", "Sunless", "Blistered", "Old", "Hungry", "Choking", "Bright"),
+                    List.of("Waste", "Fields", "Country", "Deeps", "Cinders", "Flues", "Wastes", "Glow", "Furnace", "Smoke"));
             case WILD -> new Words(
-                    List.of("Nameless", "Far", "Empty", "Wild", "Untravelled"),
-                    List.of("Country", "Reach", "Lands", "March", "Waste"));
+                    List.of("Nameless", "Far", "Empty", "Wild", "Untravelled", "Quiet", "Unmapped", "Long", "Old", "Open"),
+                    List.of("Country", "Reach", "Lands", "March", "Waste", "Marches", "Bounds", "Ground", "Parts", "Quarter"));
         };
     }
 
-    /** A name the world can live with, built from what the ground is. */
+    /**
+     * A name the world can live with, built from what the ground is.
+     *
+     * <p>Two shapes out of the same two word lists, because one shape is what makes a generated
+     * name sound generated. "The Deep Weald" and "The Weald of the Deep" are the same two words
+     * and read as different places; with ten adjectives and ten nouns per kind that is four
+     * hundred names for a country instead of sixty-four, and a world of thirty lands stops
+     * colliding with itself.</p>
+     *
+     * <p>A pairing is refused when the adjective and the noun mean the same thing. "The Red
+     * Badlands", "The Golden Savanna" and "Burning Waste" were all real output, and every one of
+     * them says the biome twice.</p>
+     */
     public static String template(Kind kind, RandomSource rnd) {
         Words w = words(kind);
         String head = HEADS.get(rnd.nextInt(HEADS.size()));
         String adjective = w.adjectives().get(rnd.nextInt(w.adjectives().size()));
         String noun = w.nouns().get(rnd.nextInt(w.nouns().size()));
-        return (head.isEmpty() ? "" : head + " ") + adjective + " " + noun;
+        for (int i = 0; i < 6 && says(adjective, noun); i++) {
+            noun = w.nouns().get(rnd.nextInt(w.nouns().size()));
+        }
+        boolean of = rnd.nextInt(4) == 0;                       // one name in four turns itself round
+        String body = of ? noun + " of the " + adjective : adjective + " " + noun;
+        return (head.isEmpty() ? "" : head + " ") + body;
+    }
+
+    /** Whether the two halves say the same thing, in which case the name says nothing. */
+    private static boolean says(String adjective, String noun) {
+        String a = adjective.toLowerCase(Locale.ROOT), n = noun.toLowerCase(Locale.ROOT);
+        if (a.equals(n)) return true;
+        return switch (a) {
+            case "burning", "ash", "red" -> n.equals("cinders") || n.equals("glow") || n.equals("furnace") || n.equals("smoke");
+            case "frozen", "white", "pale" -> n.equals("snows") || n.equals("winter") || n.equals("drifts") || n.equals("sheet");
+            case "deep", "sunless", "drowning" -> n.equals("deeps") || n.equals("deep") || n.equals("fathoms") || n.equals("dark");
+            case "wet", "steaming" -> n.equals("rainlands") || n.equals("waters");
+            case "green" -> n.equals("green") || n.equals("grass") || n.equals("grasslands");
+            case "cold" -> n.equals("rime") || n.equals("winter") || n.equals("snows");
+            case "salt", "wrack", "shell" -> n.equals("tideline") || n.equals("shingle");
+            case "wild", "empty", "nameless", "untravelled" -> n.equals("waste") || n.equals("wastes") || n.equals("lands");
+            case "high", "sheer" -> n.equals("heights") || n.equals("peaks");
+            case "root-bound", "root-thick", "tangled" -> n.equals("roots") || n.equals("tangle") || n.equals("vines");
+            default -> false;
+        };
     }
 
     /** One line about it, for the Almanac, when there is no model to write a better one. */

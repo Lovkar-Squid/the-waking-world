@@ -63,6 +63,9 @@ public final class WakingConfig {
     private static final ModConfigSpec.DoubleValue UNREST_FACTOR;
     private static final ModConfigSpec.DoubleValue ANSWER_CHANCE;
     private static final ModConfigSpec.BooleanValue MOON_COLOSSI;
+    private static final ModConfigSpec.IntValue VOLCANO_COOL_MINUTES;
+    private static final ModConfigSpec.BooleanValue BLIGHT;
+    private static final ModConfigSpec.BooleanValue GREETING;
     private static final ModConfigSpec.BooleanValue NAMED_LANDS;
     private static final ModConfigSpec.IntValue LAND_SIZE;
     private static final ModConfigSpec.BooleanValue GEMINI_LANDS;
@@ -181,6 +184,15 @@ public final class WakingConfig {
                 .defineInRange("answerChance", 0.25, 0.0, 1.0);
         MOON_COLOSSI = b.comment("A giant already awake under a blood moon is stronger and faster while it lasts.")
                 .define("bloodMoonColossi", true);
+        VOLCANO_COOL_MINUTES = b.comment("How long the flow takes to set into rock after the mountain is finished.",
+                "It crusts over from the bottom up; the crater pool is left glowing for good.")
+                .defineInRange("volcanoCoolMinutes", 8, 1, 240);
+        GREETING = b.comment("Say once, the first time somebody joins, what this mod is and where to read the rest.",
+                "Off: they find out on their own, which for the first few days looks like nothing happening.")
+                .define("greeting", true);
+        BLIGHT = b.comment("A cataclysm flattens what is growing where it passes: crops, flowers, saplings, and",
+                "the farmland under them in patches. It never breaks a block a player laid.",
+                "Off: fields are the one thing in the world a cataclysm walks straight over.").define("blight", true);
         b.pop();
         b.push("lands");
         NAMED_LANDS = b.comment("The Named Lands: the world is divided into squares, and each one is named the first time somebody walks into it.",
@@ -296,6 +308,18 @@ public final class WakingConfig {
 
     public static boolean bloodMoonColossi() {
         return loaded() && MOON_COLOSSI.get();
+    }
+
+    public static int volcanoCoolMinutes() {
+        return loaded() ? VOLCANO_COOL_MINUTES.get() : 8;
+    }
+
+    public static boolean blight() {
+        return loaded() && BLIGHT.get();
+    }
+
+    public static boolean greeting() {
+        return loaded() && GREETING.get();
     }
 
     public static boolean bloodMoons() {

@@ -585,5 +585,8 @@
   "wakingworld.configuration.voiceModel": "Voice model",
   "wakingworld.configuration.voiceModel.tooltip": "The Gemini text-to-speech model for the letters' voices.",
   "wakingworld.configuration.voicedLetters": "Voiced letters",
-  "wakingworld.configuration.voicedLetters.tooltip": "Gemini reads every new Dead Letter aloud in its writer's voice (needs the API key). A free key allows a handful a day."
+  "wakingworld.configuration.voicedLetters.tooltip": "Gemini reads every new Dead Letter aloud in its writer's voice (needs the API key). A free key allows a handful a day.",
+  "welcome.wakingworld.1": "The Waking World is installed. The land here is not finished with you.",
+  "welcome.wakingworld.2": "Somewhere out there are giants built out of the ground they sleep in, shrines that will wake them, letters from people who did not make it, and five things the sky and the earth can do to a country. None of it will come and find you today.",
+  "welcome.wakingworld.3": "Everything is written down in the Waker's Almanac — you should have one. If not, it is four paper, a colossus heart's worth of curiosity, and /wakingworld will find you the rest."
 }

@@ -168,6 +168,9 @@ public class MeteorEntity extends Entity {
         Crater.blast(server, at, craterRadius, 40 + 20 * s, 0.75, this.random);
         Starfall.dress(server, BlockPos.containing(at), craterRadius, s, carriesStar, this.random);
         Aftermath.scorch(server, BlockPos.containing(at), craterRadius, craterRadius * 3.2 + 8, this.random);
+        if (me.lovkar.wakingworld.WakingConfig.blight()) {
+            Aftermath.blight(server, BlockPos.containing(at), craterRadius * 2.6 + 6, 0.8, this.random);
+        }
         // a star that lands on a shrine may open it. Only the ones carrying a star: a pebble that
         // scorched a field is not the sky making a point about anything.
         if (carriesStar) Answer.maybe(server, at, Omen.Kind.METEOR);

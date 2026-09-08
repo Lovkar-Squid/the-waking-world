@@ -451,20 +451,51 @@ public final class Cinematics {
     /** The camera's least height over the ground under it, and the step it is lifted by while a hill blocks the view. */
     private static final double CLEARANCE = 4.5, LIFT = 1.5;
 
-    /** The top of the ground (trees included) round a point: the highest surface within three blocks. */
+    /** The ground round a point, trees ignored: the highest bare surface within three blocks. */
     private static int roof(ServerLevel level, double x, double z) {
+        return top(level, x, z, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES);
+    }
+
+    /** The same, but counting whatever is growing on it. */
+    private static int canopy(ServerLevel level, double x, double z) {
+        return top(level, x, z, Heightmap.Types.MOTION_BLOCKING);
+    }
+
+    private static int top(ServerLevel level, double x, double z, Heightmap.Types type) {
         int top = level.getMinBuildHeight();
-        for (int dx = -3; dx <= 3; dx += 3) for (int dz = -3; dz <= 3; dz += 3) top = Math.max(top, level.getHeight(Heightmap.Types.MOTION_BLOCKING, (int) Math.floor(x + dx), (int) Math.floor(z + dz)));
+        for (int dx = -3; dx <= 3; dx += 3) for (int dz = -3; dz <= 3; dz += 3) top = Math.max(top, level.getHeight(type, (int) Math.floor(x + dx), (int) Math.floor(z + dz)));
         return top;
     }
+
+    /** How far a camera may be pushed up by trees alone before it is simply flying over a wood. */
+    private static final double OVER_TREES = 8.0;
 
     /**
      * A camera position lifted clear of the ground: never inside a hill or a tree, and with the line of
      * sight to what it looks at free of the terrain between (sampled every four blocks). The camera
      * only ever goes up - the framing survives, the clipping does not.
      */
+    /**
+     * Lift the camera clear of what is in front of it.
+     *
+     * <p>This used to measure everything against {@code MOTION_BLOCKING}, which counts leaves. Over
+     * a wood that meant two things at once: the camera's floor became the top of the canopy, and
+     * every tree between it and its subject counted as the view being blocked, so it climbed until
+     * it ran out of ceiling. A tornado filmed over a jungle came back as sixteen seconds of leaves
+     * at treetop height, and that shot had to be cut from the trailer.</p>
+     *
+     * <p>The ground is what the camera must not fly into; a tree is weather. So the floor is bare
+     * ground plus {@link #CLEARANCE}, raised to just over the canopy only while the canopy is low
+     * enough to be worth clearing ({@link #OVER_TREES}); and the line of sight is tested against
+     * bare ground alone. Over a tall wood the camera now flies through the tops instead of above
+     * them, which looks like a camera and not like a satellite.</p>
+     */
     private static Vec3 clear(ServerLevel level, Vec3 cam, Vec3 look) {
-        double y = Math.max(cam.y, roof(level, cam.x, cam.z) + CLEARANCE);
+        double ground = roof(level, cam.x, cam.z);
+        double trees = canopy(level, cam.x, cam.z);
+        double floor = ground + CLEARANCE;
+        if (trees > ground) floor = Math.max(floor, Math.min(trees + 1.5, ground + CLEARANCE + OVER_TREES));
+        double y = Math.max(cam.y, floor);
         double ceiling = y + 26;      // a shot framed from ten blocks up is not saved by moving to ninety
         for (int lift = 0; lift < 60 && y < ceiling; lift++) {
             Vec3 at = new Vec3(cam.x, y, cam.z);
@@ -473,7 +504,7 @@ public final class Cinematics {
             boolean blocked = false;
             for (double s = 3; s < len - 6 && !blocked; s += 2) {
                 Vec3 p = at.add(d.scale(s / len));
-                if (level.getHeight(Heightmap.Types.MOTION_BLOCKING, (int) Math.floor(p.x), (int) Math.floor(p.z)) > p.y + 1) blocked = true;
+                if (level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(p.x), (int) Math.floor(p.z)) > p.y + 1) blocked = true;
             }
             if (!blocked) return at;
             y += LIFT;

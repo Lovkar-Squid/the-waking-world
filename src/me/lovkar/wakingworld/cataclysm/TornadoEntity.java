@@ -122,6 +122,11 @@ public final class TornadoEntity extends Entity {
             if (this.tickCount % 6 == 0 && me.lovkar.wakingworld.WakingConfig.terrainDamage()) {
                 Aftermath.swathe(level, getX(), getZ(), radius() * 1.25, this.random);
             }
+            // and the field it crossed. A flattened crop is worth more than another acre of
+            // coarse dirt, because somebody planted it.
+            if (this.tickCount % 10 == 0 && me.lovkar.wakingworld.WakingConfig.blight()) {
+                Aftermath.blight(level, blockPosition(), radius() * 1.6, 0.5, this.random);
+            }
         }
         // the roar is 4.5 s long: started every 4 it runs unbroken, started every half second it
         // would be nine copies of itself playing at once

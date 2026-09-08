@@ -41,7 +41,7 @@ public final class Volcano extends SavedData {
     public static final String NAME = "wakingworld_volcano";
     private static final Factory<Volcano> FACTORY = new Factory<>(Volcano::new, Volcano::load, null);
 
-    private enum Phase { IDLE, WARNING, RISING, SETTLING }
+    private enum Phase { IDLE, WARNING, RISING, SETTLING, COOLING }
 
     private Phase phase = Phase.IDLE;
     private int phaseTicks;
@@ -51,6 +51,12 @@ public final class Volcano extends SavedData {
     private int courses;             // how many there will be
     private int baseR;               // the radius of the foot
     private int nextPulse;
+    /** How far up the flow has set. Everything below this is rock again; the crater is left glowing. */
+    private int cooledTo;
+    /** Which eighth of the cone this pulse looks at; the sweep goes round and round. */
+    private transient int coolSlice;
+    private transient int cooledBlocks;
+    private static final int COOL_SLICES = 8;
     private transient int voice;      // ticks until the rumble is started again
     /** The bearing the lava runs down, in radians. Chosen once so the flow does not wander. */
     private float spill;
@@ -152,6 +158,43 @@ public final class Volcano extends SavedData {
             case SETTLING -> {
                 phaseTicks -= 20;
                 smoke(level);
+                if (phaseTicks <= 0) {
+                    phase = Phase.COOLING;
+                    cooledTo = baseY - 1;
+                    phaseTicks = Math.max(60, WakingConfig.volcanoCoolMinutes() * 60) * 20;
+                    for (ServerPlayer p : level.players()) {
+                        p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.volcano.over").withStyle(ChatFormatting.GRAY));
+                    }
+                    Survived.near(level, Omen.Kind.VOLCANO, new net.minecraft.world.phys.Vec3(cx, baseY, cz));
+                    WakingWorld.LOGGER.info("cataclysm: the mountain is finished at {} {} {}; it is cooling", cx, baseY + courses, cz);
+                    setDirty();
+                }
+            }
+            // The flow crusts over from the toe up while the vent is still bright, which is what a
+            // real one does and what tells a player at a distance that it is over. The crater pool
+            // is never reached: a volcano with no lava in it at all is only a hill.
+            case COOLING -> {
+                phaseTicks -= 20;
+                smoke(level);
+                int rim = baseY + courses;
+                int pool = rim - 4;                              // crown() lays the pool at rim-3 and rim-2
+                int total = Math.max(60, WakingConfig.volcanoCoolMinutes() * 60) * 20;
+                float done = 1.0F - Math.max(0, phaseTicks) / (float) total;
+                // The whole flank is in play from the first minute; what changes is how readily a
+                // block sets. Creeping a ceiling up from the foot was the obvious design and the
+                // wrong one - for most of the cooling it swept solid rock, because the lava is up
+                // near the crater and only reaches the foot later, by flowing.
+                double chance = 0.05 + 0.55 * done;
+                cooledTo = pool;
+                int setBlocks = Aftermath.cool(level, cx, cz, outerAt(0.0) + 2, baseY - 1,
+                        pool, coolSlice, COOL_SLICES, chance, level.random);
+                coolSlice = (coolSlice + 1) % COOL_SLICES;
+                cooledBlocks += setBlocks;
+                if (setBlocks > 0) {
+                    Cataclysms.puff(level, net.minecraft.core.particles.ParticleTypes.LARGE_SMOKE,
+                            cx, cooledTo + 1.5, cz, 20, outerAt(0.0) * 0.5, 1.0, outerAt(0.0) * 0.5, 0.02);
+                }
+                setDirty();
                 if (phaseTicks <= 0) end(level);
             }
         }
@@ -387,12 +430,10 @@ public final class Volcano extends SavedData {
         phase = Phase.IDLE;
         phaseTicks = 0;
         course = 0;
+        cooledTo = 0;
         setDirty();
-        for (ServerPlayer p : level.players()) {
-            p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.volcano.over").withStyle(ChatFormatting.GRAY));
-        }
-        Survived.near(level, Omen.Kind.VOLCANO, new net.minecraft.world.phys.Vec3(cx, baseY, cz));
-        WakingWorld.LOGGER.info("cataclysm: the mountain is finished at {} {} {}", cx, baseY + courses, cz);
+        WakingWorld.LOGGER.info("cataclysm: the flow at {} {} has set ({} blocks turned to rock)", cx, cz, cooledBlocks);
+        cooledBlocks = 0;
     }
 
     /** Ash and smoke drifting over anyone near enough to be under it. */
@@ -551,6 +592,7 @@ public final class Volcano extends SavedData {
         v.courses = tag.getInt("Courses");
         v.baseR = tag.getInt("Foot");
         v.nextPulse = tag.getInt("Next");
+        v.cooledTo = tag.getInt("CooledTo");
         v.riseSeconds = tag.getInt("RiseSeconds");
         v.spill = tag.getFloat("Spill");
         return v;
@@ -568,6 +610,7 @@ public final class Volcano extends SavedData {
         tag.putInt("Courses", courses);
         tag.putInt("Foot", baseR);
         tag.putInt("Next", nextPulse);
+        tag.putInt("CooledTo", cooledTo);
         tag.putInt("RiseSeconds", riseSeconds);
         tag.putFloat("Spill", spill);
         return tag;
