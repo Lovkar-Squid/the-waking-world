@@ -119,7 +119,15 @@ public final class GeminiLetters {
                 }
             }
             if (res.statusCode() / 100 != 2) {
-                WakingWorld.LOGGER.warn("Gemini letter: HTTP {} {}", res.statusCode(), res.body().length() > 300 ? res.body().substring(0, 300) : res.body());
+                // 429 and 503 are not a fault in anything: Google's model is busy and will not be in a
+                // minute. Saying so plainly matters, because a warning with a wall of JSON in it reads
+                // as the mod being broken when what actually happened is that the letter came from the
+                // templates - which is the designed answer and is indistinguishable in the game.
+                if (res.statusCode() == 429 || res.statusCode() == 503) {
+                    WakingWorld.LOGGER.info("Gemini letter: the model is busy right now (HTTP {}); this letter is written from the templates instead. Nothing is wrong.", res.statusCode());
+                } else {
+                    WakingWorld.LOGGER.warn("Gemini letter: HTTP {} {}", res.statusCode(), res.body().length() > 300 ? res.body().substring(0, 300) : res.body());
+                }
                 lastFailure = System.currentTimeMillis();
                 return new Result(null, false);
             }

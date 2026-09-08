@@ -256,6 +256,7 @@
   "cataclysm.wakingworld.omen.volcano": "The ground is warm underfoot, and the birds have stopped.",
   "cataclysm.wakingworld.settled": "The ground has settled. An Hourglass of Restoration can put back what it did.",
   "cataclysm.wakingworld.tornado.warning": "The air has gone still and green. Something is coming down out of it.",
+  "cataclysm.wakingworld.volcano.cooling": "The mountain has stopped growing. The rock is still cooling - the ground will settle in a while.",
   "cataclysm.wakingworld.volcano.over": "The mountain has stopped growing.",
   "cataclysm.wakingworld.volcano.warning": "The ground is shaking, and somewhere close it has started to smoke.",
   "commands.wakingworld.bad_variant": "Unknown colossus variant '%s' (terrain, stone, earth, sandstone, ice, prismarine, moss, titan)",

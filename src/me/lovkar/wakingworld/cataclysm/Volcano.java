@@ -178,6 +178,12 @@ public final class Volcano extends SavedData {
                     }
                     Survived.near(level, Omen.Kind.VOLCANO, new net.minecraft.world.phys.Vec3(cx, baseY, cz));
                     WakingWorld.LOGGER.info("cataclysm: the mountain is finished at {} {} {}; it is cooling", cx, baseY + courses, cz);
+                    // several minutes of cooling follow this, and it used to say nothing at all: the
+                    // silence between "it has stopped moving" and the hourglass working read as the
+                    // hourglass being broken. Two lines, some minutes apart, are the whole difference.
+                    for (ServerPlayer p : level.players()) {
+                        p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.volcano.cooling").withStyle(ChatFormatting.GOLD));
+                    }
                     setDirty();
                 }
             }

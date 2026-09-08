@@ -117,12 +117,18 @@ public class KingdomStructure extends Structure {
     }
 
     /**
-     * Nudge a coordinate so a town of this size fits within one square of the named-land grid, with
-     * room to spare. A square too small to hold a town at all simply gets it in the middle.
+     * Nudge a coordinate so a town fits within one square of the named-land grid, with room to spare.
+     * A square too small to hold a town at all simply gets it in the middle.
+     *
+     * <p>The margin is the <b>town's</b> radius, not the keep's. It was {@code KeepPiece.REACH} (27),
+     * which is only the castle in the middle of it, so the nudge dutifully kept the keep inside the
+     * square while the wall, the moat and half the houses - everything out to
+     * {@code KingdomWallPiece.REACH} (70) - hung over the border, which is exactly what a player
+     * sees on the chart. Wrong constant, right idea.</p>
      */
     private static int inSquare(int v) {
         int size = me.lovkar.wakingworld.WakingConfig.landSize();
-        int margin = KeepPiece.REACH + 4;
+        int margin = KingdomWallPiece.REACH + 4;   // the whole town, moat and all
         int inside = Math.floorMod(v, size);
         int base = v - inside;
         if (size < margin * 2 + 1) return base + size / 2;
