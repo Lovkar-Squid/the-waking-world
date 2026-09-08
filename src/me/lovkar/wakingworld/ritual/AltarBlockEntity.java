@@ -216,6 +216,12 @@ public class AltarBlockEntity extends BlockEntity {
 
     /** The horn was sounded over the altar. */
     public void blow(ServerPlayer player) {
+        // the parts of the mod: an altar of a part that is switched off answers, but it does not open
+        if (!me.lovkar.wakingworld.WakingConfig.colossi()
+                || ("titan".equals(kind) && !me.lovkar.wakingworld.WakingConfig.titan())) {
+            player.displayClientMessage(Component.translatable("altar.wakingworld.off").withStyle(ChatFormatting.GRAY), true);
+            return;
+        }
         if (Rites.lesser(kind)) {
             // a lesser altar only answers the great one in the middle
             player.displayClientMessage(Component.translatable(complete() ? "altar.wakingworld.lesser_lit" : "altar.wakingworld.lesser", describe(missing())).withStyle(ChatFormatting.GRAY), true);

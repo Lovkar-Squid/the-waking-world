@@ -19,6 +19,7 @@ public class VaultStructure extends Structure {
 
     @Override
     protected Optional<GenerationStub> findGenerationPoint(GenerationContext context) {
+        if (!me.lovkar.wakingworld.WakingConfig.colossi()) return Optional.empty(); // the vaults hold the rites' offerings; with no rite there is nothing to keep
         ChunkPos chunk = context.chunkPos();
         int x = chunk.getMiddleBlockX(), z = chunk.getMiddleBlockZ();
         if (!Terrain.biomesOk(context, x, z, 0)) return Optional.empty(); // the biome first: it is the cheapest question

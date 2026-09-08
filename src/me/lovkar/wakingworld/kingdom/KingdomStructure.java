@@ -98,6 +98,7 @@ public class KingdomStructure extends Structure {
 
     @Override
     protected Optional<GenerationStub> findGenerationPoint(GenerationContext context) {
+        if (!me.lovkar.wakingworld.WakingConfig.kingdoms()) return Optional.empty(); // the towns are switched off
         ChunkPos chunk = context.chunkPos();
         int x = chunk.getMiddleBlockX(), z = chunk.getMiddleBlockZ();
         int y = kingdomSite(context, x, z);

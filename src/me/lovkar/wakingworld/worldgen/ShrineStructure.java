@@ -33,6 +33,7 @@ public class ShrineStructure extends Structure {
 
     @Override
     protected Optional<GenerationStub> findGenerationPoint(GenerationContext context) {
+        if (!me.lovkar.wakingworld.WakingConfig.colossi()) return Optional.empty(); // the giants are switched off: no sleeper, so no shrine over one
         ChunkPos chunk = context.chunkPos();
         int x = chunk.getMiddleBlockX(), z = chunk.getMiddleBlockZ();
         if (!Terrain.biomesOk(context, x, z, 0)) return Optional.empty(); // the biome first: it is the cheapest question

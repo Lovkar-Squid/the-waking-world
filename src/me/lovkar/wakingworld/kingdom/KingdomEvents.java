@@ -29,6 +29,7 @@ public final class KingdomEvents {
 
     /** Once a second: empty thrones get their successors. */
     public static void onLevelTick(net.neoforged.neoforge.event.tick.LevelTickEvent.Post event) {
+        if (!me.lovkar.wakingworld.WakingConfig.kingdoms()) return;
         if (event.getLevel() instanceof ServerLevel level && level.getGameTime() % 20 == 7) Kingdoms.tickSuccessions(level);
     }
 

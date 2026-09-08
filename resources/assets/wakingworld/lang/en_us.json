@@ -194,6 +194,7 @@
   "altar.wakingworld.ready": "Every offering is laid. Sound the horn.",
   "altar.wakingworld.ready_unlit": "The altar is ready, but the lesser altars round it still want: %s",
   "altar.wakingworld.running": "The rite is already under way.",
+  "altar.wakingworld.off": "The stone is cold. Nothing sleeps under it any more.",
   "altar.wakingworld.unlit": "The great altar does not hear the horn until the six lesser altars burn. They still want: %s",
   "altar.wakingworld.wants": "The altar wants: %s",
   "atlas.wakingworld.empty": "You have walked nowhere with a name yet.",

@@ -28,6 +28,7 @@ public class TitanArenaStructure extends Structure {
 
     @Override
     protected Optional<GenerationStub> findGenerationPoint(GenerationContext context) {
+        if (!me.lovkar.wakingworld.WakingConfig.titan()) return Optional.empty(); // no Titan, no arena
         ChunkPos chunk = context.chunkPos();
         int x = chunk.getMiddleBlockX(), z = chunk.getMiddleBlockZ();
         // it wants the body of an island under it: the centre and four points 24 blocks out must all be land

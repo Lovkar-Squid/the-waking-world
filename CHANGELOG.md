@@ -79,7 +79,18 @@ the supporter perks switched off.
 - The blood moon breathes: the wash is stronger and has a slow pulse in it, and there are embers in the
   air all night, so it is a thing happening in the world and not a colour on the glass.
 
+- **`[features]`: the parts of the mod, one switch each.** `colossi`, `titan`, `cataclysms`, `kingdoms`,
+  `ruins`, `namedLands`, at the top of `wakingworld-server.toml`. A part switched off is not there:
+  its structures never find a spot, its rolls never come up, an altar of a switched-off part answers
+  but does not open, and its wanderers do not spawn on their own. Only the giants, only the cataclysms,
+  or everything but the kingdoms - and the rest of the mod carries on without it. The `/wakingworld`
+  commands still work either way, so an operator can still show somebody a volcano on a world that
+  never rolls one.
+
 ### Changed
+- **`namedLands` moved** from `[lands]` to `[features]`, and `greeting` from `[cataclysms]` (where it
+  never belonged) to a new `[story]`. A config from an earlier alpha loses those two settings and
+  takes their defaults; nothing else moved.
 - **The supporter perks are switched off.** Every class is still here and nothing about them changed,
   but `SupporterList.ENABLED` is false: `/wwpatreon` is not registered, no list is fetched, no account
   is looked up, and the Hall of Wakers page does not render. The mod now talks to no outside service.
@@ -88,6 +99,7 @@ the supporter perks switched off.
   mods' biomes as well.
 
 ### Fixed
+- The greeting sat in the `[cataclysms]` section of the config, which is not what it is.
 - A land could be given a name a neighbour already had; clashes are re-rolled now.
 - A meteor could fall into a chunk that was not ticking and never land.
 - The volcano switch turned off a cone that was already going up, not just the opening of new ones -

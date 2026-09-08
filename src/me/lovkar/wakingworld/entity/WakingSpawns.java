@@ -40,9 +40,19 @@ public final class WakingSpawns {
         return type == MobSpawnType.NATURAL || type == MobSpawnType.CHUNK_GENERATION;
     }
 
+    /**
+     * The three wanderers are the old people's dead, and belong to the ruins: with that part of the
+     * mod switched off they never turn up on their own. Spawners, eggs and commands still work -
+     * a spawner in a dungeon that is already standing goes on doing its job.
+     */
+    private static boolean wanted(MobSpawnType type) {
+        return !natural(type) || me.lovkar.wakingworld.WakingConfig.ruins();
+    }
+
     /** Thralls: by night, in the dark, and only within a ruin or a hamlet - the dead of the old people keep to their walls. */
     private static <T extends Monster> boolean thrall(EntityType<T> type, ServerLevelAccessor level, MobSpawnType spawnType, BlockPos pos, RandomSource random) {
         if (!natural(spawnType)) return true;
+        if (!wanted(spawnType)) return false;
         if (!level.getLevel().isNight() || !Monster.checkMonsterSpawnRules(type, level, spawnType, pos, random)) return false;
         StructureStart ruin = level.getLevel().structureManager().getStructureWithPieceAt(pos, RUINS);
         return ruin.isValid();
@@ -51,12 +61,14 @@ public final class WakingSpawns {
     /** Wraiths: under the open night sky of the deserts and badlands (the biome list picks the lands), in the dark. */
     private static <T extends Monster> boolean wraith(EntityType<T> type, ServerLevelAccessor level, MobSpawnType spawnType, BlockPos pos, RandomSource random) {
         if (!natural(spawnType)) return true;
+        if (!wanted(spawnType)) return false;
         return level.getLevel().isNight() && level.canSeeSky(pos) && Monster.checkMonsterSpawnRules(type, level, spawnType, pos, random);
     }
 
     /** Keepers: in the water of swamps and rivers, by night, in the dark. */
     private static <T extends Monster> boolean keeper(EntityType<T> type, ServerLevelAccessor level, MobSpawnType spawnType, BlockPos pos, RandomSource random) {
         if (!natural(spawnType)) return true;
+        if (!wanted(spawnType)) return false;
         // as the drowned do: water under and around it, dark, and not in peace (a sturdy floor is not asked for in the water)
         if (!level.getFluidState(pos.below()).is(FluidTags.WATER) || !level.getFluidState(pos).is(FluidTags.WATER)) return false;
         return level.getLevel().isNight() && level.getDifficulty() != net.minecraft.world.Difficulty.PEACEFUL && Monster.isDarkEnoughToSpawn(level, pos, random);

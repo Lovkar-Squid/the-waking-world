@@ -161,7 +161,7 @@ public class WakingWorld {
             container.registerConfig(ModConfig.Type.CLIENT, WakingConfig.CLIENT_SPEC);
             WakingWorldClient.init(modBus, container);
         }
-        LOGGER.info("The Waking World 0.2.0-alpha.12 - the world is waking. /wakingworld for the tools.");
+        LOGGER.info("The Waking World 0.2.0-alpha.13 - the world is waking. /wakingworld for the tools.");
     }
 
     /** Nobody sneaks out of a colossus' fist: a dismount is refused while it holds you (it lets go when it throws). */

@@ -47,6 +47,7 @@ public class ReliquaryStructure extends Structure {
 
     @Override
     protected Optional<GenerationStub> findGenerationPoint(GenerationContext context) {
+        if (!me.lovkar.wakingworld.WakingConfig.titan()) return Optional.empty(); // the Sigil is only ever wanted by the Titan's altar
         ChunkPos chunk = context.chunkPos();
         int x = chunk.getMiddleBlockX(), z = chunk.getMiddleBlockZ();
         if (nearArena(context, 8)) return Optional.empty(); // the arena is 52 wide, the spire 10; eight chunks keeps the spire off its rim and out of its view

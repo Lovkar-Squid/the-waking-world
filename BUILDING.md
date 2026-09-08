@@ -6,8 +6,9 @@ them in the repo) and packs `wakingworld-<version>.jar` from the classes plus `r
 
 - `libs/`: the Minecraft 1.21.1 client jar (`mc-client.jar`), `neoforge-21.1.x-universal.jar`,
   `neoforge-21.1.x-client.jar`, `gson.jar`, `slf4j-api.jar`, `annotations.jar` (JetBrains), the NeoForge
-  event bus (`bus-*.jar`) and loader (`loader-*.jar`) jars - all out of a NeoForge 21.1 installation's
-  `libraries/` folder.
+  event bus (`bus-*.jar`) and loader (`loader-*.jar`) jars, and NightConfig (`core-*.jar`, `toml-*.jar`,
+  from `libraries/com/electronwill/night-config/`) for the config check - all out of a NeoForge 21.1
+  installation's `libraries/` folder.
 - `clibs/`: guava, fastutil, commons-lang3, datafixerupper, joml, brigadier.
 - `tlibs/`: vanilla's own runtime libraries (netty, log4j, commons-io, authlib, ...) from Maven Central and
   libraries.minecraft.net; `netty-buffer` and `netty-common` are on the compile classpath for the network
@@ -23,6 +24,12 @@ JDK 21. The version lives in `resources/META-INF/neoforge.mods.toml` (and the st
 `./test.sh` (run by `build.sh` when `tlibs/` exists) boots the vanilla registries without a game and builds
 every preset body with real block states - it catches static-initialisation order bugs, palette wire-format
 regressions and shape errors in a few seconds and prints `OK`.
+
+It then builds the config spec for real (`tools/java/ConfigCheck.java`) and prints every setting's path in
+both files. That is where an unbalanced `push`/`pop`, a duplicate key or a default outside its own range
+shows up - none of which say anything until a world is loaded - and it asserts that every part of the mod
+is under `[features]` and lives in exactly one place. It wants NightConfig and the loader jar in `libs/`
+and says so and skips itself when they are missing.
 
 ## Tools
 

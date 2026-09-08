@@ -34,6 +34,7 @@ public class DungeonStructure extends Structure {
 
     @Override
     protected Optional<GenerationStub> findGenerationPoint(GenerationContext context) {
+        if (!me.lovkar.wakingworld.WakingConfig.ruins()) return Optional.empty(); // the forges and cisterns are the old people's work
         ChunkPos chunk = context.chunkPos();
         int x = chunk.getMiddleBlockX(), z = chunk.getMiddleBlockZ();
         boolean forge = "forge".equals(kind);

@@ -67,11 +67,49 @@ public final class WakingConfig {
     private static final ModConfigSpec.BooleanValue BLIGHT;
     private static final ModConfigSpec.BooleanValue GREETING;
     private static final ModConfigSpec.BooleanValue NAMED_LANDS;
+    private static final ModConfigSpec.BooleanValue F_COLOSSI;
+    private static final ModConfigSpec.BooleanValue F_TITAN;
+    private static final ModConfigSpec.BooleanValue F_CATACLYSMS;
+    private static final ModConfigSpec.BooleanValue F_KINGDOMS;
+    private static final ModConfigSpec.BooleanValue F_RUINS;
     private static final ModConfigSpec.IntValue LAND_SIZE;
     private static final ModConfigSpec.BooleanValue GEMINI_LANDS;
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
+        b.comment("The parts of the mod. Switch one off and it is not there at all: nothing of it generates,",
+                        "nothing of it runs, and the rest of the mod carries on without it. Take only the giants,",
+                        "or only the cataclysms, or everything but the kingdoms.",
+                        "In a new world a part switched off was never there at all. In a world that has already",
+                        "been played, what it built is already standing and stays: nothing new of it is placed,",
+                        "nothing of it begins again, and the buildings and people already in the world go on as they were.",
+                        "Everything below this section is the finer grain: which of the five cataclysms, how big a crater.")
+                .push("features");
+        F_COLOSSI = b.comment("The giants: the six shrines that hold them, the Sleeper's Vaults the offerings lie in,",
+                        "the rites that wake them, the fight, the hourglass that puts the ground back.",
+                        "Off: no shrine and no vault generates, an altar stays quiet, and nothing rises.",
+                        "The /wakingworld summon commands still work, so an operator can still show somebody.")
+                .define("colossi", true);
+        F_TITAN = b.comment("The seventh and last of them, in the End: the void reliquaries, the arena and the Titan itself.",
+                        "Off with colossi on: the six sleepers are still in the world, the ending is not.",
+                        "This does nothing with colossi off - there is no rite to finish.")
+                .define("titan", true);
+        F_CATACLYSMS = b.comment("The five: the Falling Sky, the Rising Mountain, the Blood Moon, the Wandering Column,",
+                        "the Turning Ground - with their omens, the unrest a giant leaves behind, and the blight.",
+                        "Off: the weather is Minecraft's again. The /wakingworld commands still work.")
+                .define("cataclysms", true);
+        F_KINGDOMS = b.comment("The living towns: their kings, guards, townsfolk and traders, the permits and the treasury.",
+                        "Off: no kingdom generates and none of its people are in the world.")
+                .define("kingdoms", true);
+        F_RUINS = b.comment("The dead world you walk through: the ruins, the empty hamlets, the ember forges and the",
+                        "drowned cisterns, the Dead Letters in them, and the thralls, wraiths and keepers that wander.",
+                        "Off: the country is empty of the old people. The vaults stay - they belong to the giants.")
+                .define("ruins", true);
+        NAMED_LANDS = b.comment("The Named Lands: the world is divided into squares, and each one is named the first time somebody walks into it.",
+                        "The name is shown once, as a title card, and then lives in /wakingworld lands and on the Wayfarer's Chart.",
+                        "Off: the Chart is blank, and a land is just ground again.")
+                .define("namedLands", true);
+        b.pop();
         b.push("colossi");
         TERRAIN_DAMAGE = b.comment("Stomps, slams, landings and thrown boulders tear craters into the ground and fling the blocks around.",
                 "Off: only particles, the world stays as it was.").define("terrainDamage", true);
@@ -187,16 +225,16 @@ public final class WakingConfig {
         VOLCANO_COOL_MINUTES = b.comment("How long the flow takes to set into rock after the mountain is finished.",
                 "It crusts over from the bottom up; the crater pool is left glowing for good.")
                 .defineInRange("volcanoCoolMinutes", 8, 1, 240);
-        GREETING = b.comment("Say once, the first time somebody joins, what this mod is and where to read the rest.",
-                "Off: they find out on their own, which for the first few days looks like nothing happening.")
-                .define("greeting", true);
         BLIGHT = b.comment("A cataclysm flattens what is growing where it passes: crops, flowers, saplings, and",
                 "the farmland under them in patches. It never breaks a block a player laid.",
                 "Off: fields are the one thing in the world a cataclysm walks straight over.").define("blight", true);
         b.pop();
+        b.push("story");
+        GREETING = b.comment("Say once, the first time somebody joins, what this mod is and where to read the rest.",
+                "Off: they find out on their own, which for the first few days looks like nothing happening.")
+                .define("greeting", true);
+        b.pop();
         b.push("lands");
-        NAMED_LANDS = b.comment("The Named Lands: the world is divided into squares, and each one is named the first time somebody walks into it.",
-                "The name is shown once, as a title card, and then lives in /wakingworld lands.").define("namedLands", true);
         LAND_SIZE = b.comment("How wide a named land is, in blocks. Smaller means more names and more title cards.")
                 .defineInRange("landSize", 384, 96, 4096);
         GEMINI_LANDS = b.comment("Let Gemini name the lands from what is actually on the ground there (needs geminiApiKey).",
@@ -238,6 +276,35 @@ public final class WakingConfig {
         CLIENT_SPEC = b.build();
     }
 
+    // ---- the parts of the mod ---------------------------------------------------------------
+    // A part switched off is not there: its structures never find a spot, its ticks return at once,
+    // and everything under it answers as though it had been switched off one by one.
+
+    /** The giants: shrines, vaults, rites, the fight, the hourglass. */
+    public static boolean colossi() {
+        return loaded() && F_COLOSSI.get();
+    }
+
+    /** The Titan in the End: reliquaries, arena, the last rite. Needs {@link #colossi()}. */
+    public static boolean titan() {
+        return colossi() && F_TITAN.get();
+    }
+
+    /** The five, their omens, the unrest and the blight. */
+    public static boolean cataclysms() {
+        return loaded() && F_CATACLYSMS.get();
+    }
+
+    /** The living towns and their people. */
+    public static boolean kingdoms() {
+        return loaded() && F_KINGDOMS.get();
+    }
+
+    /** The ruins, the hamlets, the two dungeons, the Dead Letters and the wanderers. */
+    public static boolean ruins() {
+        return loaded() && F_RUINS.get();
+    }
+
     public static boolean namedLands() {
         return loaded() && NAMED_LANDS.get();
     }
@@ -251,7 +318,7 @@ public final class WakingConfig {
     }
 
     public static boolean tornadoes() {
-        return loaded() && TORNADOES.get();
+        return cataclysms() && TORNADOES.get();
     }
 
     public static double tornadoChance() {
@@ -267,7 +334,7 @@ public final class WakingConfig {
     }
 
     public static boolean earthquakes() {
-        return loaded() && EARTHQUAKES.get();
+        return cataclysms() && EARTHQUAKES.get();
     }
 
     public static double earthquakeChance() {
@@ -279,7 +346,7 @@ public final class WakingConfig {
     }
 
     public static boolean omens() {
-        return loaded() && OMENS.get();
+        return cataclysms() && OMENS.get();
     }
 
     public static int omenSeconds() {
@@ -291,7 +358,7 @@ public final class WakingConfig {
     }
 
     public static boolean unrest() {
-        return loaded() && UNREST.get();
+        return cataclysms() && colossi() && UNREST.get();
     }
 
     public static int unrestDays() {
@@ -303,11 +370,11 @@ public final class WakingConfig {
     }
 
     public static double answerChance() {
-        return loaded() ? ANSWER_CHANCE.get() : 0.25;
+        return cataclysms() && colossi() ? ANSWER_CHANCE.get() : 0.0;
     }
 
     public static boolean bloodMoonColossi() {
-        return loaded() && MOON_COLOSSI.get();
+        return cataclysms() && colossi() && MOON_COLOSSI.get();
     }
 
     public static int volcanoCoolMinutes() {
@@ -315,7 +382,7 @@ public final class WakingConfig {
     }
 
     public static boolean blight() {
-        return loaded() && BLIGHT.get();
+        return cataclysms() && BLIGHT.get();
     }
 
     public static boolean greeting() {
@@ -323,7 +390,7 @@ public final class WakingConfig {
     }
 
     public static boolean bloodMoons() {
-        return loaded() && BLOOD_MOONS.get();
+        return cataclysms() && BLOOD_MOONS.get();
     }
 
     public static double bloodMoonChance() {
@@ -343,7 +410,7 @@ public final class WakingConfig {
     }
 
     public static boolean volcanoes() {
-        return loaded() && VOLCANOES.get();
+        return cataclysms() && VOLCANOES.get();
     }
 
     public static double volcanoChance() {
@@ -367,7 +434,7 @@ public final class WakingConfig {
     }
 
     public static boolean meteorShowers() {
-        return loaded() && METEOR_SHOWERS.get();
+        return cataclysms() && METEOR_SHOWERS.get();
     }
 
     public static double meteorChance() {
