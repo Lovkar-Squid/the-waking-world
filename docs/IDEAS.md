@@ -12,33 +12,62 @@ saying so rather than being quietly deleted.
 
 > "Kraljestvo se lahko nadgrajuje, veča, širi, in tako dalje (tudi glede na to kako interactaš
 > z njim)" — a kingdom can be upgraded, grow and spread, partly according to how you deal with it.
+>
+> Clarified the same day: *a mixture of MineColonies and The Village Fights Back*, applied to the
+> kingdoms this mod already has.
 
-Today a kingdom is a fixed thing: walls, a keep, a king who holds audience and is succeeded, guards
-and townsfolk who trade (`kingdom/`, `KingdomData` holds anger, permits, the throne and a
-treasury). It is the same size on the day you find it as on the day you leave.
+### What each of those two actually is
 
-What the idea is really about: the mod already tracks how a player has treated a kingdom — anger,
-permits, the treasury, whether the king was helped or robbed — and none of that has a visible
-consequence in the world. A kingdom that visibly grows because of you is the same feedback loop
-[[Unrest]] gave the cataclysms: the world answering what you did to it, in a language you can see
-from a hilltop.
+**MineColonies** is a colony the *player* runs: you place the buildings, you assign the jobs, you
+supply the materials, and the settlement levels up because you built it up. The pleasure is
+management.
 
-Worth thinking about before anyone writes code:
+**[The Village Fights Back](https://modrinth.com/mod/the-village-fights-back)** is the opposite:
+you do nothing. A "Village Brain Node" runs an emerald economy, the village evolves through four
+stages, every villager fights, walls and gates go up on their own, golem factories and barracks
+appear as they are needed, settlers are sent out to expand, and the whole thing tracks the player's
+reputation. The pleasure is watching something live without you.
 
-- **Tiers rather than continuous growth.** A hamlet → a walled town → a keep with outbuildings →
-  a city. Each tier is a structure variant, so the growth is a placement rather than a simulation,
-  and a kingdom that grew looks built rather than accreted.
-- **What makes it grow.** Trade volume through its traders, favours done for the king, a colossus
-  killed in its country, tribute paid. What makes it shrink or refuse you: anger, robbery, a
-  colossus you woke on its doorstep.
-- **The obvious risk is that it becomes a chore.** Nobody should have to grind a village. The
-  growth should follow from what a player was doing anyway, and be noticed rather than pursued.
-- **The second risk is block edits.** Growing a town means placing structures into terrain a
-  player may have built on. Whatever is placed must never overwrite player blocks; the ruin and
-  hamlet code already has to solve this and should be read first.
-- **The cheap version, if the full one is too much**: no new buildings at all, but the kingdom's
-  population, guard count, trade stock and the king's own words change with its standing. That is
-  most of the feeling for a tenth of the work, and it is a good first tier to ship.
+Note it is on **NeoForge 1.21.1** as well — the same loader and version as this mod. That is worth
+knowing twice over: people will run the two together, and building the same feature would be doing
+work somebody has already done better.
 
-Fits naturally with the 0.3 headline being a sixth cataclysm, since one is world-scale and the
-other is human-scale and neither competes for the same code.
+### What that means for us
+
+The instinct is to take the growth from one and the autonomy from the other. The thing to be
+careful of is that "a village that builds itself up in tiers" is exactly what The Village Fights
+Back already is, on this exact version. Copying it is the one design in this file that is certain
+to be judged against a finished mod, and lost.
+
+What this mod has that neither of those does is a **relationship**. A kingdom here already has a
+king who grants an audience and is succeeded when he dies, guards, townsfolk who trade, permits,
+a treasury, and an anger that remembers being robbed — `kingdom/KingdomData` is holding all of it
+right now and none of it changes anything a player can see from a hilltop.
+
+So the growth should be **political rather than economic**. Not "it accumulated enough emeralds" but
+"it did well out of knowing you", and the reverse. That is a thing neither of the other two does,
+it uses state the mod already keeps, and it is the same loop [[Unrest]] gave the cataclysms: the
+world answering what you have been doing to it, in a language you can see.
+
+### The shape, if somebody builds it
+
+- **Tiers, not continuous growth.** A hamlet → a walled town → a keep with outbuildings → a city.
+  Each tier is a structure variant, so growing is a placement and not a simulation, and a kingdom
+  that grew looks built rather than accreted.
+- **What moves it up:** favours done for the king, tribute paid, trade volume through its traders,
+  a colossus killed in its country. **What moves it down or shuts you out:** anger, robbery, a
+  giant woken on its doorstep, letting a cataclysm find it.
+- **The cataclysm hook is the good one.** A kingdom in unquiet country has a *reason* to build
+  walls, and a kingdom that has just been through a tornado has a reason to be smaller. That makes
+  the two halves of 0.2 pay for a 0.3 feature instead of being finished with.
+- **Never overwrite a player's blocks.** Growing a town means placing structures into terrain
+  somebody may have built on. The ruin and hamlet code already has to solve this; read it first.
+- **Nobody should have to grind a village.** The growth must follow from what a player was doing
+  anyway, and be noticed rather than pursued.
+- **The cheap version, and a good first tier to ship:** no new buildings at all. The population,
+  the guard count, the traders' stock and the king's own words change with your standing. That is
+  most of the feeling for a tenth of the work, and it is the half that cannot collide with anything
+  another mod is doing.
+
+Fits naturally with the 0.3 headline being a sixth cataclysm: one is world-scale and the other is
+human-scale, and neither competes for the same code.
