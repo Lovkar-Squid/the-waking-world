@@ -1,0 +1,32 @@
+{
+  "display": {
+    "icon": {
+      "id": "wakingworld:land_atlas"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.chart.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.chart.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:root",
+  "criteria": {
+    "held": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "wakingworld:land_atlas"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

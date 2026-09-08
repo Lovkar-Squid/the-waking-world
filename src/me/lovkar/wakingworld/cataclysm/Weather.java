@@ -87,6 +87,7 @@ public final class Weather extends SavedData {
                 for (ServerPlayer p : level.players()) {
                     p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.earthquake.over").withStyle(ChatFormatting.GRAY));
                 }
+                Survived.near(level, Omen.Kind.EARTHQUAKE, new Vec3(qx, qy, qz));
                 WakingWorld.LOGGER.info("cataclysm: the ground settles");
             }
             setDirty();

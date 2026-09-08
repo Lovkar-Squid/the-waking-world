@@ -93,6 +93,13 @@ public final class Lands extends SavedData {
         if (!mine.add(k)) return;
         setDirty();
         announce(p, land);
+        me.lovkar.wakingworld.advancement.WakingTriggers.LAND_WALKED.get().trigger(p, mine.size());
+        // The chart is craftable from the first day and nothing in the game mentions it, so the
+        // one moment a player is certain to be thinking about the lands is the moment to say so.
+        if (mine.size() == 1) {
+            p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.chart.hint")
+                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+        }
     }
 
     /**

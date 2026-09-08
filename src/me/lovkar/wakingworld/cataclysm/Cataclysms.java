@@ -166,6 +166,7 @@ public final class Cataclysms extends SavedData {
     }
 
     private void end(ServerLevel level) {
+        boolean wasFalling = phase == Phase.FALLING;
         phase = Phase.IDLE;
         phaseTicks = 0;
         meteorsLeft = 0;
@@ -173,6 +174,9 @@ public final class Cataclysms extends SavedData {
         for (ServerPlayer p : level.players()) {
             p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.meteor.over").withStyle(ChatFormatting.GRAY));
         }
+        // only a shower that actually fell counts as lived through; one called off before the
+        // first star is not something anybody survived
+        if (wasFalling) Survived.everyone(level, Omen.Kind.METEOR);
     }
 
     /** One star, aimed at open ground near a player - never at their bed, never at the world spawn. */

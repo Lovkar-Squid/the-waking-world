@@ -32,6 +32,24 @@ public final class WakingTriggers {
     /** A rite was begun at an altar - {"kind": ...}. */
     public static final DeferredHolder<CriterionTrigger<?>, KindTrigger> RITE = TRIGGERS.register("rite", KindTrigger::new);
 
+    // ---- 0.2, the cataclysms ---------------------------------------------------------------
+
+    /**
+     * A cataclysm ended with the player still standing - {"kind": "volcano"|"tornado"|"earthquake"
+     * |"meteor"|"bloodmoon"}.
+     *
+     * <p>Five separate criteria on one advancement is how "live through all five" is remembered:
+     * vanilla keeps each criterion for ever once it is met, so nothing here has to store which of
+     * them a player has seen.</p>
+     */
+    public static final DeferredHolder<CriterionTrigger<?>, KindTrigger> SURVIVED = TRIGGERS.register("survived", KindTrigger::new);
+    /** A blow from the sky landed on a full suit of star iron - {"min": the damage it took away}. */
+    public static final DeferredHolder<CriterionTrigger<?>, ValueTrigger> SHELTERED = TRIGGERS.register("sheltered", ValueTrigger::new);
+    /** Walked into a named land - {"min": how many they have walked into now}. */
+    public static final DeferredHolder<CriterionTrigger<?>, ValueTrigger> LAND_WALKED = TRIGGERS.register("land_walked", ValueTrigger::new);
+    /** Stood inside a tornado and lived - {"min": ...} is seconds spent in it, not blocks. */
+    public static final DeferredHolder<CriterionTrigger<?>, ValueTrigger> IN_THE_EYE = TRIGGERS.register("in_the_eye", ValueTrigger::new);
+
     public static void register(IEventBus modBus) {
         TRIGGERS.register(modBus);
     }

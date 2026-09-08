@@ -1,0 +1,26 @@
+{
+  "display": {
+    "icon": {
+      "id": "minecraft:compass"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.far_wanderer.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.far_wanderer.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:chart",
+  "criteria": {
+    "walked": {
+      "trigger": "wakingworld:land_walked",
+      "conditions": {
+        "min": 12
+      }
+    }
+  }
+}

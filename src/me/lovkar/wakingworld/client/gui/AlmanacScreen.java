@@ -174,6 +174,47 @@ public class AlmanacScreen extends Screen {
                 .paragraph(t("key.2"), INK));
         // IX. the atlas of the lands walked
         atlas();
+        // X. what the world does back
+        cataclysms();
+    }
+
+    /**
+     * The chapter on the cataclysms, and on the one thing worth making out of them.
+     *
+     * <p>Everything in 0.2 happens to the player rather than being sought out by them, which makes
+     * it the content most likely to be misread as the mod misbehaving: a village flattened with no
+     * explanation is a bug report. So this says plainly what the five are, what each one leaves
+     * behind that is worth having, and that the warning is always there before any of them.</p>
+     *
+     * <p>Star Iron shares the chapter because it belongs to it: it comes out of a crater, and what
+     * it is good for is surviving the next one.</p>
+     */
+    private void cataclysms() {
+        PageLayout.Flow c = flow()
+                .paragraph(t("cataclysms.1"), INK)
+                .paragraph(t("cataclysms.2"), INK)
+                .heading(t("cataclysms.five"), HEAD)
+                .paragraph(t("cataclysms.meteor"), INK)
+                .paragraph(t("cataclysms.volcano"), INK)
+                .paragraph(t("cataclysms.tornado"), INK)
+                .paragraph(t("cataclysms.earthquake"), INK)
+                .paragraph(t("cataclysms.bloodmoon"), INK)
+                .heading(t("star.title"), HEAD)
+                .paragraph(t("star.1"), INK)
+                .items(t("star.stone"), CAPTION,
+                        of(me.lovkar.wakingworld.cataclysm.CataclysmBlocks.STARSTONE_ITEM.get()),
+                        of(WakingItems.STAR_IRON.get()))
+                .paragraph(t("star.2"), INK)
+                .items(t("star.suit"), CAPTION,
+                        of(WakingItems.STAR_IRON_HELMET.get()), of(WakingItems.STAR_IRON_CHESTPLATE.get()),
+                        of(WakingItems.STAR_IRON_LEGGINGS.get()), of(WakingItems.STAR_IRON_BOOTS.get()))
+                .paragraph(t("star.3"), INK)
+                .items(t("star.tools"), CAPTION,
+                        of(WakingItems.STAR_IRON_SWORD.get()), of(WakingItems.STAR_IRON_PICKAXE.get()),
+                        of(WakingItems.STAR_IRON_AXE.get()), of(WakingItems.STAR_IRON_SHOVEL.get()),
+                        of(WakingItems.STAR_IRON_HOE.get()))
+                .paragraph(t("star.4"), FADED);
+        add("cataclysms", of(me.lovkar.wakingworld.cataclysm.CataclysmBlocks.STARSTONE_ITEM.get()), c);
     }
 
     /**

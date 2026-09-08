@@ -1,0 +1,26 @@
+{
+  "display": {
+    "icon": {
+      "id": "wakingworld:star_iron_helmet"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.sheltered.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.sheltered.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:skyforged",
+  "criteria": {
+    "took_it": {
+      "trigger": "wakingworld:sheltered",
+      "conditions": {
+        "min": 6.0
+      }
+    }
+  }
+}

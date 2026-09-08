@@ -391,6 +391,7 @@ public final class Volcano extends SavedData {
         for (ServerPlayer p : level.players()) {
             p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.volcano.over").withStyle(ChatFormatting.GRAY));
         }
+        Survived.near(level, Omen.Kind.VOLCANO, new net.minecraft.world.phys.Vec3(cx, baseY, cz));
         WakingWorld.LOGGER.info("cataclysm: the mountain is finished at {} {} {}", cx, baseY + courses, cz);
     }
 

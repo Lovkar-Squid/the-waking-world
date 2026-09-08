@@ -172,6 +172,7 @@ public final class BloodMoon extends SavedData {
             p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.bloodmoon.over").withStyle(ChatFormatting.GOLD));
             reward(level, p);
         }
+        Survived.everyone(level, Omen.Kind.BLOOD_MOON);
         WakingWorld.LOGGER.info("cataclysm: the blood moon sets ({} left over went with it)", gone);
     }
 

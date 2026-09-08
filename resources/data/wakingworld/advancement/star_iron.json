@@ -1,0 +1,32 @@
+{
+  "display": {
+    "icon": {
+      "id": "wakingworld:star_iron"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.star_iron.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.star_iron.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:starstone",
+  "criteria": {
+    "held": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "wakingworld:star_iron"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

@@ -10,6 +10,7 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
@@ -57,6 +58,13 @@ public final class TornadoEntity extends Entity {
             Blocks.ENDER_CHEST, Blocks.SHULKER_BOX, Blocks.BEACON, Blocks.CONDUIT, Blocks.LODESTONE);
 
     private double headingX = 1, headingZ = 0;
+    /**
+     * How many seconds each player has stood inside the column.
+     *
+     * <p>Transient on purpose: this is one storm, and a tornado that outlives a restart has taken
+     * the reckoning with it. Nothing here is worth a line in the save file.</p>
+     */
+    private final java.util.Map<java.util.UUID, Integer> inside = new java.util.HashMap<>();
     private int life = 60 * 20;
     private int maxLife = 60 * 20;
 
@@ -95,6 +103,7 @@ public final class TornadoEntity extends Entity {
         life--;
         if (life <= 0) {
             level.playSound(null, getX(), getY(), getZ(), SoundEvents.WITHER_DEATH, SoundSource.WEATHER, 2.0F, 1.6F);
+            Survived.near(level, Omen.Kind.TORNADO, position());
             discard();
             return;
         }
@@ -104,6 +113,7 @@ public final class TornadoEntity extends Entity {
         this.entityData.set(DATA_AGE_FRACTION, s);
 
         walk(level);
+        if (this.tickCount % 20 == 0 && s > 0.3F) eye(level);
         if (s > 0.15F) {
             pull(level, s);
             if (this.tickCount % 4 == 0) lift(level, s);
@@ -269,6 +279,26 @@ public final class TornadoEntity extends Entity {
 
     private void clientTick() {
         // the client draws it; nothing to do but exist
+    }
+
+    /**
+     * Standing in it.
+     *
+     * <p>The column pulls hard enough that a player inside it is not there by accident, and it is
+     * survivable in the right armour - which makes it exactly the sort of thing worth a line on
+     * somebody's record. Counted a second at a time while they are inside, and never taken back:
+     * stepping out does not undo having been in.</p>
+     */
+    private void eye(ServerLevel level) {
+        double r = radius() * 0.9;
+        for (ServerPlayer p : level.players()) {
+            if (p.isSpectator() || !p.isAlive()) continue;
+            double dx = p.getX() - getX(), dz = p.getZ() - getZ();
+            if (dx * dx + dz * dz > r * r) continue;
+            if (p.getY() < getY() - 4 || p.getY() > getY() + 40) continue;
+            int secs = inside.merge(p.getUUID(), 1, Integer::sum);
+            me.lovkar.wakingworld.advancement.WakingTriggers.IN_THE_EYE.get().trigger(p, secs);
+        }
     }
 
     public double radius() {

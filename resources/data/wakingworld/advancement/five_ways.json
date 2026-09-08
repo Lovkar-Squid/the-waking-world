@@ -1,0 +1,67 @@
+{
+  "display": {
+    "icon": {
+      "id": "minecraft:magma_block"
+    },
+    "title": {
+      "translate": "advancement.wakingworld.five_ways.title"
+    },
+    "description": {
+      "translate": "advancement.wakingworld.five_ways.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "wakingworld:weathered",
+  "criteria": {
+    "volcano": {
+      "trigger": "wakingworld:survived",
+      "conditions": {
+        "kind": "volcano"
+      }
+    },
+    "tornado": {
+      "trigger": "wakingworld:survived",
+      "conditions": {
+        "kind": "tornado"
+      }
+    },
+    "earthquake": {
+      "trigger": "wakingworld:survived",
+      "conditions": {
+        "kind": "earthquake"
+      }
+    },
+    "meteor": {
+      "trigger": "wakingworld:survived",
+      "conditions": {
+        "kind": "meteor"
+      }
+    },
+    "bloodmoon": {
+      "trigger": "wakingworld:survived",
+      "conditions": {
+        "kind": "bloodmoon"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "volcano"
+    ],
+    [
+      "tornado"
+    ],
+    [
+      "earthquake"
+    ],
+    [
+      "meteor"
+    ],
+    [
+      "bloodmoon"
+    ]
+  ]
+}

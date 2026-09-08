@@ -108,7 +108,14 @@ public final class StarIron {
     public static void onHurt(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent event) {
         if (!fromTheSky(event.getSource())) return;
         float share = sheltered(event.getEntity());
-        if (share < 1.0F) event.setAmount(event.getAmount() * share);
+        if (share >= 1.0F) return;
+        float before = event.getAmount();
+        event.setAmount(before * share);
+        // The suit's whole point is invisible: a number that did not happen. Telling the record
+        // about it is the one moment the player can be shown what the metal is for.
+        if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer p) {
+            me.lovkar.wakingworld.advancement.WakingTriggers.SHELTERED.get().trigger(p, before - before * share);
+        }
     }
 
     public static void register(net.neoforged.bus.api.IEventBus modBus) {

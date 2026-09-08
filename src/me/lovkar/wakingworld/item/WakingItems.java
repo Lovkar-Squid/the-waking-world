@@ -86,7 +86,7 @@ public final class WakingItems {
 
     private static DeferredItem<net.minecraft.world.item.ArmorItem> armour(String piece, net.minecraft.world.item.ArmorItem.Type type) {
         return ITEMS.registerItem("star_iron_" + piece,
-                p -> new net.minecraft.world.item.ArmorItem(StarIron.armour(), type, p),
+                p -> new StarIronArmourItem(StarIron.armour(), type, p),
                 new Item.Properties().rarity(Rarity.RARE).fireResistant().durability(type.getDurability(40)));
     }
 
