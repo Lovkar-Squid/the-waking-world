@@ -45,6 +45,12 @@ public final class Kingdoms {
         KingdomData data = KingdomData.get(level);
         long now = level.getGameTime();
         for (KingdomData.Kingdom k : data.all()) {
+            // the first time anybody comes to a town, the wood its walls cut through is raked once
+            if (!k.tidied && !level.getPlayers(p -> p.distanceToSqr(k.center.getX() + 0.5, p.getY(), k.center.getZ() + 0.5) < 110 * 110).isEmpty()) {
+                k.tidied = true;
+                data.setDirty();
+                me.lovkar.wakingworld.worldgen.Tidy.begin(level, k.center, 62, 0, -8, 40);
+            }
             if (!k.kingDead || k.crownAt < 0 || now < k.crownAt || k.throne == null) continue;
             BlockPos seat = BlockPos.containing(k.throne);
             if (!level.isLoaded(seat)) continue;

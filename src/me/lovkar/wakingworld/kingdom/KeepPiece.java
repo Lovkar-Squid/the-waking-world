@@ -180,14 +180,23 @@ public class KeepPiece extends StructurePiece {
         int m = Math.max(ax, az);
         int cornerX = dx > 0 ? 21 : -21, cornerZ = dz > 0 ? 21 : -21;
         double cornerD = dist(dx, dz, cornerX, cornerZ);
+
+        // A canopy hangs well outside the trunk it grows from, so a tree taken out of the courtyard
+        // left its leaves floating over the town - which is what a kingdom looked like from the air.
+        // Leaves go for the whole of the piece's reach, whatever else this column is or is not.
+        // 48, not 36: the town is laid at one height but its ground is not level, so a tree standing
+        // on the high side of the bailey tops out well above the courtyard's own ceiling
+        KingdomWallPiece.delimb(level, pos, x, z, cy + 1);
+
         if (m > BAILEY + 2 && cornerD > 5.0) return;
 
         // the courtyard: everything above the ground goes, the ground is lawn with stone paths
         if (m <= BAILEY) {
+            // no early exit on the first gap: a tree is a trunk, then air, then a crown, and stopping
+            // at the air left the crown standing over the town with nothing under it
             for (int dy = 1; dy <= 36; dy++) {
                 pos.set(x, cy + dy, z);
                 if (!level.getBlockState(pos).isAir()) level.setBlock(pos, AIR, 2);
-                else if (dy > 10) break;
             }
             boolean path = (ax <= 1 && dz > HALL_Z1 && dz <= BAILEY)               // gate to the hall door
                     || (dz == 15 && ax <= 15)                                          // across the yard past the door

@@ -100,7 +100,13 @@ public class KingdomStructure extends Structure {
     protected Optional<GenerationStub> findGenerationPoint(GenerationContext context) {
         if (!me.lovkar.wakingworld.WakingConfig.kingdoms()) return Optional.empty(); // the towns are switched off
         ChunkPos chunk = context.chunkPos();
-        int x = chunk.getMiddleBlockX(), z = chunk.getMiddleBlockZ();
+        // Keep the whole town inside ONE square of the map. A land is a set of squares, so a town
+        // that sits inside a square is always inside a single named land and never straddles a
+        // border - which reads better now (a kingdom belongs somewhere) and matters a great deal
+        // for 0.3, where a kingdom holds land: a capital standing in two countries at once has no
+        // sensible answer to the question of which country it is the capital of.
+        int x = inSquare(chunk.getMiddleBlockX());
+        int z = inSquare(chunk.getMiddleBlockZ());
         int y = kingdomSite(context, x, z);
         if (y == Integer.MIN_VALUE) return Optional.empty();
         if (y < context.chunkGenerator().getSeaLevel() + 1) return Optional.empty();
@@ -108,6 +114,19 @@ public class KingdomStructure extends Structure {
         BlockPos origin = new BlockPos(x, y, z);
         RandomSource rng = context.random();
         return Optional.of(new GenerationStub(origin, builder -> layout(builder, origin, style, rng)));
+    }
+
+    /**
+     * Nudge a coordinate so a town of this size fits within one square of the named-land grid, with
+     * room to spare. A square too small to hold a town at all simply gets it in the middle.
+     */
+    private static int inSquare(int v) {
+        int size = me.lovkar.wakingworld.WakingConfig.landSize();
+        int margin = KeepPiece.REACH + 4;
+        int inside = Math.floorMod(v, size);
+        int base = v - inside;
+        if (size < margin * 2 + 1) return base + size / 2;
+        return base + Math.max(margin, Math.min(size - margin, inside));
     }
 
     /** Angles are in degrees, 0 = east (+x), 90 = south (+z); r is the distance from the middle. */

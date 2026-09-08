@@ -36,6 +36,8 @@ public class KingdomData extends SavedData {
         public net.minecraft.world.phys.Vec3 throne;
         public long crownAt = -1;
         public BoundingBox treasury;
+        /** Whether the wood round the walls has been raked once (floating leaves the walls cut). */
+        public boolean tidied;
 
         Kingdom(BlockPos center) {
             this.center = center;
@@ -154,6 +156,7 @@ public class KingdomData extends SavedData {
             CompoundTag t = new CompoundTag();
             t.putLong("Center", k.center.asLong());
             t.putBoolean("KingDead", k.kingDead);
+            t.putBoolean("Tidied", k.tidied);
             t.putInt("Generation", k.generation);
             t.putLong("CrownAt", k.crownAt);
             if (k.throne != null) {
@@ -190,6 +193,7 @@ public class KingdomData extends SavedData {
             CompoundTag t = list.getCompound(i);
             Kingdom k = new Kingdom(BlockPos.of(t.getLong("Center")));
             k.kingDead = t.getBoolean("KingDead");
+            k.tidied = t.getBoolean("Tidied");
             k.generation = t.getInt("Generation");
             k.crownAt = t.contains("CrownAt") ? t.getLong("CrownAt") : -1;
             if (t.contains("ThroneX")) k.throne = new net.minecraft.world.phys.Vec3(t.getDouble("ThroneX"), t.getDouble("ThroneY"), t.getDouble("ThroneZ"));

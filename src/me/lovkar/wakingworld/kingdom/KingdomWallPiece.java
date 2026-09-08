@@ -48,7 +48,10 @@ public class KingdomWallPiece extends StructurePiece {
     private final java.util.List<int[]> people;
 
     public KingdomWallPiece(BlockPos origin, long seed, java.util.List<int[]> people) {
-        super(WakingStructures.KINGDOM_WALL_PIECE.get(), 0, new BoundingBox(origin.getX() - REACH, origin.getY(), origin.getZ() - REACH, origin.getX() + REACH, origin.getY() + 30, origin.getZ() + REACH));
+        super(WakingStructures.KINGDOM_WALL_PIECE.get(), 0, // the box has to cover everything the piece EDITS, not only what it builds: the leaf band
+        // reaches nine blocks past REACH, and postProcess is only ever offered columns inside this
+        new BoundingBox(origin.getX() - REACH - 9, origin.getY(), origin.getZ() - REACH - 9,
+                origin.getX() + REACH + 9, origin.getY() + 50, origin.getZ() + REACH + 9));
         this.cx = origin.getX();
         this.cy = origin.getY();
         this.cz = origin.getZ();
@@ -205,26 +208,55 @@ public class KingdomWallPiece extends StructurePiece {
             for (int z = z0; z <= z1; z++) {
                 int dx = x - cx, dz = z - cz;
                 double r = Math.sqrt(dx * dx + dz * dz);
-                if (r > REACH + 0.5) continue;
+                // A canopy hangs several blocks past the trunk it grows from, so trees at the very
+                // edge of the town left their crowns floating just outside it. The outer band takes
+                // leaves and nothing else.
+                if (r > REACH + 8.5) continue;
+                if (r > REACH + 0.5) {
+                    delimb(level, pos, x, z, cy + 1);
+                    continue;
+                }
                 column(level, pos, random, x, z, dx, dz, r);
             }
         }
     }
 
+
+    /**
+     * Take every leaf out of one column, following a canopy as high as it actually goes.
+     *
+     * <p>A fixed ceiling was the last thing wrong here. The town is laid at one height but its
+     * ground is not level, so a tree standing on the high side of the bailey has its crown well
+     * above the courtyard's own ceiling - and a sweep that stopped at a fixed number left exactly
+     * those crowns hanging over the middle of the town. This one keeps climbing while it is still
+     * finding leaves, and stops soon after it stops finding them.</p>
+     */
+    static void delimb(WorldGenLevel level, BlockPos.MutableBlockPos pos, int x, int z, int fromY) {
+        int top = fromY + 40;
+        int cap = fromY + 120;
+        for (int y = fromY; y <= top && y <= cap; y++) {
+            pos.set(x, y, z);
+            if (level.getBlockState(pos).is(BlockTags.LEAVES)) {
+                level.setBlock(pos, AIR, 2);
+                top = Math.max(top, y + 14);
+            }
+        }
+    }
     private void column(WorldGenLevel level, BlockPos.MutableBlockPos pos, RandomSource random, int x, int z, int dx, int dz, double r) {
         // 1. the ground: inside the moat everything above the plateau goes (trees, hillocks); beyond it only the
         //    trees whose trunks stood inside (their canopies would hang in the air otherwise)
         boolean inner = r <= MOAT_OUT + 1.5;
-        for (int y = cy + 1; y <= cy + 40; y++) {
+        // No early exit at the first gap. A tree is a trunk, a gap, and then a crown: stopping at the
+        // gap took the trunk out from under the canopy and left the canopy hanging over the town,
+        // which is exactly the fault this loop's own comment says it is here to prevent.
+        for (int y = cy + 1; y <= cy + 48; y++) {
             pos.set(x, y, z);
             BlockState s = level.getBlockState(pos);
-            if (s.isAir()) {
-                if (y > cy + 12) break;
-                continue;
-            }
+            if (s.isAir()) continue;
             boolean plant = y == cy + 1 && (s.is(BlockTags.FLOWERS) || s.is(Blocks.SHORT_GRASS) || s.is(Blocks.TALL_GRASS) || s.is(Blocks.FERN));
             if (inner ? !plant : (s.is(BlockTags.LEAVES) || s.is(BlockTags.LOGS))) level.setBlock(pos, AIR, 2);
         }
+        delimb(level, pos, x, z, cy + 1);
         boolean road = onRoad(dx, dz, r);
         boolean bridge = onBridge(dx, dz, r);
         if (inner || road) {
