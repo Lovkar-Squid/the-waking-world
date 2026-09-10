@@ -9,12 +9,12 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
+import me.lovkar.wakingworld.WakingWorld;
+import me.lovkar.wakingworld.worldgen.Tidy;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 
-/**
- * The kingdom's name and temper. A kingdom is named from where it stands; an offence (a struck
- * guard, a robbed treasury, a hurt king) makes it angry with the offender for a while - the guards
- * turn, the traders refuse, the king will not speak - and the town is told.
- */
 public final class Kingdoms {
     private Kingdoms() {
     }
@@ -44,6 +44,8 @@ public final class Kingdoms {
     public static void tickSuccessions(ServerLevel level) {
         KingdomData data = KingdomData.get(level);
         long now = level.getGameTime();
+        KingdomGrowth.tick(level);
+        KingdomRepair.tick(level);
         for (KingdomData.Kingdom k : data.all()) {
             // the first time anybody comes to a town, the wood its walls cut through is raked once
             if (!k.tidied && !level.getPlayers(p -> p.distanceToSqr(k.center.getX() + 0.5, p.getY(), k.center.getZ() + 0.5) < 110 * 110).isEmpty()) {
@@ -100,6 +102,7 @@ public final class Kingdoms {
         boolean already = data.isAngry(level, center, player.getUUID());
         data.anger(level, center, player, ticks);
         if (!already) {
+            KingdomGrowth.favour(level, center, -8, reason);
             player.displayClientMessage(Component.translatable("kingdom.wakingworld.angry." + reason, name(center)).withStyle(ChatFormatting.RED), false);
             level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BELL_BLOCK, SoundSource.HOSTILE, 3.0F, 0.6F);
         }
@@ -113,6 +116,14 @@ public final class Kingdoms {
     public static boolean mayEnterTreasury(ServerLevel level, BlockPos center, Player player) {
         KingdomData data = KingdomData.get(level);
         return data.isPermitted(center, player.getUUID()) || data.isKingDead(center);
+    }
+
+    public static Block banner(BlockPos var0) {
+        return Blocks.CYAN_BANNER;
+    }
+
+    public static Block wallBanner(BlockPos var0) {
+        return Blocks.CYAN_WALL_BANNER;
     }
 
     public static void tell(ServerPlayer player, Component text) {

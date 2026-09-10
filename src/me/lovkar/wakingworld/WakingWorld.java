@@ -19,16 +19,46 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import me.lovkar.wakingworld.advancement.WakingTriggers;
+import me.lovkar.wakingworld.cataclysm.BloodMoon;
+import me.lovkar.wakingworld.cataclysm.CataclysmBlocks;
+import me.lovkar.wakingworld.cataclysm.Cataclysms;
+import me.lovkar.wakingworld.cataclysm.MeteorEntity;
+import me.lovkar.wakingworld.cataclysm.TornadoEntity;
+import me.lovkar.wakingworld.entity.DrownedKeeperEntity;
+import me.lovkar.wakingworld.entity.EmberWraithEntity;
+import me.lovkar.wakingworld.entity.RubbleEntity;
+import me.lovkar.wakingworld.entity.RuneSentinelEntity;
+import me.lovkar.wakingworld.entity.StoneThrallEntity;
+import me.lovkar.wakingworld.entity.VoidGuard;
+import me.lovkar.wakingworld.entity.WakingSpawns;
+import me.lovkar.wakingworld.item.HeartOfTheEndItem;
+import me.lovkar.wakingworld.item.WakingItems;
+import me.lovkar.wakingworld.kingdom.GuardEntity;
+import me.lovkar.wakingworld.kingdom.KingEntity;
+import me.lovkar.wakingworld.kingdom.KingdomBlocks;
+import me.lovkar.wakingworld.kingdom.KingdomBuild;
+import me.lovkar.wakingworld.kingdom.KingdomDressing;
+import me.lovkar.wakingworld.kingdom.KingdomEvents;
+import me.lovkar.wakingworld.kingdom.KingdomSiege;
+import me.lovkar.wakingworld.kingdom.TownsfolkEntity;
+import me.lovkar.wakingworld.land.Lands;
+import me.lovkar.wakingworld.mage.MageBlocks;
+import me.lovkar.wakingworld.mage.MageEntity;
+import me.lovkar.wakingworld.mage.WardStoneEntity;
+import me.lovkar.wakingworld.network.WakingNet;
+import me.lovkar.wakingworld.particle.WakingParticles;
+import me.lovkar.wakingworld.ritual.DragonEggGuard;
+import me.lovkar.wakingworld.ritual.WakingRitual;
+import me.lovkar.wakingworld.ruin.RuinLedger;
+import me.lovkar.wakingworld.story.Cinematics;
+import me.lovkar.wakingworld.story.Welcome;
+import me.lovkar.wakingworld.worldgen.Tidy;
+import me.lovkar.wakingworld.worldgen.WakingStructures;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EntityType.Builder;
+import net.neoforged.fml.config.ModConfig.Type;
 
-/**
- * The Waking World - the world has an old, forgotten history, and it is waking up.
- *
- * Phase 0 (this build): the Colossus - a giant built from the blocks of the land, rendered
- * as baked block geometry, walking on vanilla AI, hittable through Ender-Dragon-style parts.
- * Summon one with /wakingworld summon [variant] [height].
- *
- * Made by Lovkar & Claude for NeoForge 1.21.1.
- */
 @Mod(WakingWorld.MODID)
 public class WakingWorld {
     public static final String MODID = "wakingworld";
@@ -110,6 +140,16 @@ public class WakingWorld {
                     .clientTrackingRange(16)
                     .fireImmune()
                     .build("dark_mage"));
+    public static final DeferredHolder<EntityType<?>, EntityType<WardStoneEntity>> WARD_STONE = ENTITIES.register(
+        "ward_stone",
+        () -> Builder.of(WardStoneEntity::new, MobCategory.MISC)
+                .sized(0.9F, 0.9F)
+                .clientTrackingRange(10)
+                .updateInterval(1)
+                .fireImmune()
+                .noSummon()
+                .build("ward_stone")
+    );
 
     /** A falling star: the first of the Cataclysms. */
     public static final DeferredHolder<EntityType<?>, EntityType<me.lovkar.wakingworld.cataclysm.MeteorEntity>> METEOR = ENTITIES.register("meteor",
@@ -160,6 +200,9 @@ public class WakingWorld {
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.kingdom.KingdomEvents::onBreak);
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.kingdom.KingdomEvents::onLevelTick);
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.worldgen.Tidy::tick);
+        NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.kingdom.KingdomDressing::tick);  // the town grows into its tier
+        NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.kingdom.KingdomBuild::tick);     // the mason's queue
+        NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.kingdom.KingdomSiege::tick);     // the engines and their volleys
         if (me.lovkar.wakingworld.supporter.SupporterList.ENABLED) {     // parked while the Patreon is down
             NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.supporter.SupporterList::onServerStarted);
             NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.supporter.SupporterList::onServerTick);
@@ -172,7 +215,7 @@ public class WakingWorld {
             container.registerConfig(ModConfig.Type.CLIENT, WakingConfig.CLIENT_SPEC);
             WakingWorldClient.init(modBus, container);
         }
-        LOGGER.info("The Waking World 0.2.0-alpha.25 - the world is waking. /wakingworld for the tools.");
+        LOGGER.info("The Waking World 0.3.0-alpha.11 - the world is waking. /wakingworld for the tools.");
     }
 
     /** Nobody sneaks out of a colossus' fist: a dismount is refused while it holds you (it lets go when it throws). */

@@ -24,20 +24,26 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import me.lovkar.wakingworld.WakingSounds;
+import me.lovkar.wakingworld.advancement.ValueTrigger;
+import me.lovkar.wakingworld.advancement.WakingTriggers;
+import me.lovkar.wakingworld.ruin.Ruin;
+import net.minecraft.network.syncher.SynchedEntityData.Builder;
+import net.minecraft.server.level.TicketType;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.LightningBolt;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.levelgen.Heightmap.Types;
 
-/**
- * A tornado: a column of wind that walks the country.
- *
- * <p>It is an entity because it moves - it wanders across the map on a slowly turning heading,
- * pulling in whatever is loose. Anything alive inside its reach is dragged toward the middle and
- * lifted; blocks it can take from the top of the ground go up as falling blocks and come down
- * somewhere else. It does not eat bedrock, containers, or anything with an inventory in it, and it
- * will not take a block a player has put down inside a claim of light - what it lifts is the loose
- * skin of the world, not somebody's house.</p>
- *
- * <p>It dies of old age, and it never crosses the same ground twice for long: a tornado is meant to
- * be survived and then talked about, not to sit on a base until it is gone.</p>
- */
 public final class TornadoEntity extends Entity {
     /**
      * A self-expiring ticket the column drags along with it, so the ground it is walking over stays
@@ -256,6 +262,7 @@ public final class TornadoEntity extends Entity {
                     BlockPos.containing(getX() + dx, 0, getZ() + dz)).below();
             if (!loose(level, top)) continue;
             BlockState state = level.getBlockState(top);
+            Ruin.mark(level, top);
             level.removeBlock(top, false);
             FallingBlockEntity fb = FallingBlockEntity.fall(level, top, state);
             fb.setHurtsEntities(1.0F, 8);

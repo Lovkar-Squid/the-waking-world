@@ -11,8 +11,44 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
+import java.util.List;
+import java.util.UUID;
+import me.lovkar.wakingworld.WakingConfig;
+import me.lovkar.wakingworld.client.gui.AlmanacScreen;
+import me.lovkar.wakingworld.client.gui.AtlasScreen;
+import me.lovkar.wakingworld.client.gui.KingScreen;
+import me.lovkar.wakingworld.client.gui.LetterScreen;
+import me.lovkar.wakingworld.client.gui.MageScreen;
+import me.lovkar.wakingworld.client.gui.TradeScreen;
+import me.lovkar.wakingworld.client.particle.EmberParticle;
+import me.lovkar.wakingworld.client.particle.RingParticle;
+import me.lovkar.wakingworld.client.particle.RuneParticle;
+import me.lovkar.wakingworld.kingdom.KingEntity;
+import me.lovkar.wakingworld.kingdom.TownsfolkEntity;
+import me.lovkar.wakingworld.mage.MageBlocks;
+import me.lovkar.wakingworld.mage.MageEntity;
+import me.lovkar.wakingworld.network.WakingNet;
+import me.lovkar.wakingworld.particle.WakingParticles;
+import me.lovkar.wakingworld.ritual.WakingRitual;
+import me.lovkar.wakingworld.story.Cinematics;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.entity.FallingBlockRenderer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleType;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.trading.MerchantOffers;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent.RegisterLayerDefinitions;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent.RegisterRenderers;
+import net.neoforged.neoforge.client.gui.ConfigurationScreen;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent.Post;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent.Pre;
 
-/** Client-only registration. Loaded only when FMLEnvironment says we are a client. */
 public final class WakingWorldClient {
     private WakingWorldClient() {
     }
@@ -85,6 +121,11 @@ public final class WakingWorldClient {
             }
 
             @Override
+            public void openMage(me.lovkar.wakingworld.mage.MageEntity mage) {
+                net.minecraft.client.Minecraft.getInstance().setScreen(new me.lovkar.wakingworld.client.gui.MageScreen(mage));
+            }
+
+            @Override
             public void openTrade(me.lovkar.wakingworld.kingdom.TownsfolkEntity trader, net.minecraft.world.item.trading.MerchantOffers offers) {
                 net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
                 if (mc.screen instanceof me.lovkar.wakingworld.client.gui.TradeScreen open && open.trader() == trader) open.refresh(offers);
@@ -132,6 +173,7 @@ public final class WakingWorldClient {
         NeoForge.EVENT_BUS.addListener(BossMusic::clientTick);
         NeoForge.EVENT_BUS.addListener(BossMusic::onSelectMusic);
         NeoForge.EVENT_BUS.addListener(ColossusBossBar::onBossBar);
+        NeoForge.EVENT_BUS.addListener(MageBar::onBossBar);
         // the tick handler runs before other mods' (HIGHEST) so the crosshair target is gone before Jade & co
         // read it; the letterbox and fades draw after everyone else (LOWEST) so nothing sits on top of them
         NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.HIGHEST, Cinematic::tickPre);
@@ -173,6 +215,7 @@ public final class WakingWorldClient {
         event.registerEntityRenderer(WakingWorld.TORNADO.get(), TornadoRenderer::new);
         event.registerEntityRenderer(WakingWorld.RUBBLE.get(), net.minecraft.client.renderer.entity.FallingBlockRenderer::new);
         event.registerBlockEntityRenderer(me.lovkar.wakingworld.ritual.WakingRitual.ALTAR_ENTITY.get(), AltarRenderer::new);
+        event.registerBlockEntityRenderer(me.lovkar.wakingworld.mage.MageBlocks.RITE_STONE_ENTITY.get(), RiteStoneRenderer::new);
         event.registerEntityRenderer(WakingWorld.STONE_THRALL.get(), StoneThrallRenderer::new);
         event.registerEntityRenderer(WakingWorld.EMBER_WRAITH.get(), EmberWraithRenderer::new);
         event.registerEntityRenderer(WakingWorld.RUNE_SENTINEL.get(), RuneSentinelRenderer::new);
@@ -181,6 +224,7 @@ public final class WakingWorldClient {
         event.registerEntityRenderer(WakingWorld.TOWNSFOLK.get(), ctx -> new KingdomHumanRenderer<>(ctx, false));
         event.registerEntityRenderer(WakingWorld.KING.get(), ctx -> new KingdomHumanRenderer<>(ctx, true));
         event.registerEntityRenderer(WakingWorld.DARK_MAGE.get(), MageRenderer::new);
+        event.registerEntityRenderer(WakingWorld.WARD_STONE.get(), WardStoneRenderer::new);
     }
 
     private static void registerParticles(net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent event) {

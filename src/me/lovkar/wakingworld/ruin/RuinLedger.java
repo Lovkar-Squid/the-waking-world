@@ -16,7 +16,6 @@ import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -24,12 +23,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import me.lovkar.wakingworld.WakingWorld;
+import me.lovkar.wakingworld.entity.RubbleEntity;
+import net.minecraft.core.HolderLookup.Provider;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.item.FallingBlockEntity;
+import net.minecraft.world.level.levelgen.Heightmap.Types;
+import net.minecraft.world.level.saveddata.SavedData.Factory;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.tick.LevelTickEvent.Post;
 
-/**
- * The land's memory of its fights, one per level, saved with the world: a {@link FightRecord} per
- * colossus. An Hourglass of Restoration turned over near a finished fight puts everything back -
- * over a few seconds, far to near, block by block, the way it was before the giant came.
- */
 public final class RuinLedger extends SavedData {
     public static final String NAME = "wakingworld_ruins";
     /** Finished fights kept per level; the oldest go first. */
@@ -85,6 +88,18 @@ public final class RuinLedger extends SavedData {
             if (d <= bestD) { bestD = d; best = r; }
         }
         return best;
+    }
+
+    public List<FightRecord> finishedNear(BlockPos var1, double var2) {
+        ArrayList var4 = new ArrayList();
+
+        for (FightRecord var6 : this.records.values()) {
+            if (var6.finished && !var6.restoring() && !var6.before.isEmpty() && var6.distanceTo(var1) <= var2) {
+                var4.add(var6);
+            }
+        }
+
+        return var4;
     }
 
     /**

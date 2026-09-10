@@ -25,19 +25,16 @@ import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import java.util.List;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.Item.TooltipContext;
+import net.minecraft.world.level.block.state.BlockBehaviour.Properties;
+import net.minecraft.world.level.block.state.StateDefinition.Builder;
+import net.minecraft.world.level.block.state.properties.Property;
 
-/**
- * The Asking Stone: where a cataclysm is ordered.
- *
- * <p>It comes from the mage and from nowhere else - there is no recipe, and there is no second one
- * unless he gives you a second one. Set it down where you want the thing to happen, name which of
- * the five you are asking for (an empty hand turns it), and lay what he told you it costs. When the
- * last of the price is on it, it takes a little while, and then the sky or the ground answers.</p>
- *
- * <p>Put down and picked up freely: the price is the cost, not the walk. What it must never do is
- * work without him, which is why it is not craftable and why the stone remembers nothing about who
- * placed it - the gate is that you had to go and ask.</p>
- */
 public class RiteStone extends BaseEntityBlock {
     public static final MapCodec<RiteStone> CODEC = simpleCodec(RiteStone::new);
     public static final BooleanProperty LIT = BlockStateProperties.LIT;
@@ -86,7 +83,22 @@ public class RiteStone extends BaseEntityBlock {
 
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        return level.isClientSide ? null : createTickerHelper(type, MageBlocks.RITE_STONE_ENTITY.get(), RiteStoneEntity::serverTick);
+        return level.isClientSide
+                ? createTickerHelper(type, MageBlocks.RITE_STONE_ENTITY.get(), RiteStoneEntity::clientTick)
+                : createTickerHelper(type, MageBlocks.RITE_STONE_ENTITY.get(), RiteStoneEntity::serverTick);
+    }
+
+    public void setPlacedBy(Level var1, BlockPos var2, BlockState var3, LivingEntity var4, ItemStack var5) {
+        super.setPlacedBy(var1, var2, var3, var4, var5);
+        if (!var1.isClientSide && var4 instanceof Player var6) {
+            var6.displayClientMessage(Component.translatable("rite.wakingworld.placed").withStyle(ChatFormatting.LIGHT_PURPLE), false);
+        }
+    }
+
+    public void appendHoverText(ItemStack var1, TooltipContext var2, List<Component> var3, TooltipFlag var4) {
+        for (int var5 = 1; var5 <= 4; var5++) {
+            var3.add(Component.translatable("rite.wakingworld.tip." + var5).withStyle(var5 == 1 ? ChatFormatting.GRAY : ChatFormatting.DARK_GRAY));
+        }
     }
 
     /** An empty hand turns it to the next of the five. */
@@ -106,6 +118,8 @@ public class RiteStone extends BaseEntityBlock {
     @Override
     protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
                                               Player player, InteractionHand hand, BlockHitResult hit) {
+        // an empty hand is the Asking Stone's business (useWithoutItem), not an offering
+        if (stack.isEmpty()) return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         if (!(level.getBlockEntity(pos) instanceof RiteStoneEntity stone)) return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         if (level.isClientSide) return ItemInteractionResult.sidedSuccess(true);
         return stone.offer(player, hand, stack)

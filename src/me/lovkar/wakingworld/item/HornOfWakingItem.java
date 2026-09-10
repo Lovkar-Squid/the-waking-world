@@ -17,14 +17,21 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.Level;
-
 import java.util.List;
+import me.lovkar.wakingworld.WakingSounds;
+import me.lovkar.wakingworld.kingdom.KingdomSiege;
+import me.lovkar.wakingworld.particle.WakingParticles;
+import me.lovkar.wakingworld.ritual.AltarBlockEntity;
+import me.lovkar.wakingworld.supporter.SupporterCosmetics;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.item.Item.Properties;
+import net.minecraft.world.item.Item.TooltipContext;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 
-/**
- * The instrument of the rite: sound it (hold right-click for two seconds) over an altar whose
- * offerings are all laid down and the ceremony begins. Away from an altar it only carries - and
- * turns any colossus within earshot towards you. Found in the vaults. Not consumed.
- */
 public class HornOfWakingItem extends Item {
     public static final int BLOW_TICKS = 40;
 
@@ -46,6 +53,8 @@ public class HornOfWakingItem extends Item {
             // a supporter's horn sounds in the colour of their aura: a ring of light at their feet as the note begins
             int rgb = me.lovkar.wakingworld.supporter.SupporterCosmetics.auraColor(player.getUUID());
             if (rgb >= 0) ((ServerLevel) level).sendParticles(me.lovkar.wakingworld.particle.WakingParticles.ring(rgb, 0.8f), player.getX(), player.getY() + 0.05, player.getZ(), 0, 0, 0.12, 0, 1.0);
+            // the nearest kingdom with engines answers the horn with a volley at the giant
+            if (player instanceof ServerPlayer sp) KingdomSiege.callFor((ServerLevel) level, sp);
         }
         return InteractionResultHolder.consume(stack);
     }

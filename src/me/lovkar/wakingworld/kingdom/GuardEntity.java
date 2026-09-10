@@ -40,13 +40,14 @@ import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import me.lovkar.wakingworld.WakingSounds;
+import me.lovkar.wakingworld.supporter.SupporterCosmetics;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier.Builder;
+import net.minecraft.world.entity.projectile.AbstractArrow.Pickup;
+import net.minecraft.world.level.block.state.BlockState;
 
-/**
- * The kingdom's guards: archers on the walls, knights at the gates and in the keep, spearmen on the
- * roads. They keep the town clear of monsters and leave players alone - until the kingdom is angry
- * with one (the treasury robbed, the king struck, a guard or a trader attacked); then every guard
- * within reach turns on them for a day. They hold their posts and never wander far.
- */
 public class GuardEntity extends PathfinderMob implements RangedAttackMob {
     public static final int ARCHER = 0, KNIGHT = 1, SPEARMAN = 2;
     private static final EntityDataAccessor<Integer> DATA_KIND = SynchedEntityData.defineId(GuardEntity.class, EntityDataSerializers.INT);
@@ -142,12 +143,22 @@ public class GuardEntity extends PathfinderMob implements RangedAttackMob {
     }
 
     private boolean attackGoalsSet;
+    private static final double CHASE = 12.0;
 
     private void registerGoalsFor(int kind) {
         if (attackGoalsSet) return;
         attackGoalsSet = true;
         if (kind == ARCHER) goalSelector.addGoal(3, new RangedAttackGoal(this, 1.0, 30, 18.0F));
-        else goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.15, true));
+        else goalSelector.addGoal(3, new PostAttackGoal(this, 1.15));
+    }
+
+    boolean canChase(LivingEntity var1) {
+        if (!this.hasRestriction()) {
+            return true;
+        } else {
+            double var2 = (double)this.getRestrictRadius() + 12.0;
+            return var1.distanceToSqr(this.getRestrictCenter().getCenter()) <= var2 * var2;
+        }
     }
 
     @Override
@@ -182,7 +193,7 @@ public class GuardEntity extends PathfinderMob implements RangedAttackMob {
         super.customServerAiStep();
         LivingEntity target = getTarget();
         if (target instanceof Player player && tickCount % 20 == 0 && !angryAt(player) && !player.isCreative()) setTarget(null); // the anger has passed
-        if (target != null && !(target instanceof Player) && tickCount % 40 == 0 && !nearPost(target) && distanceToSqr(target) > 12 * 12) setTarget(null); // it has run off; back to the post
+        if (target != null && !(target instanceof Player) && tickCount % 40 == 0 && !canChase(target)) setTarget(null); // it has run off; back to the post
         setAggressive(getTarget() != null);
     }
 
@@ -297,5 +308,27 @@ public class GuardEntity extends PathfinderMob implements RangedAttackMob {
             return net.minecraft.world.InteractionResult.CONSUME;
         }
         return super.mobInteract(player, hand);
+    }
+
+    private static final class PostAttackGoal extends MeleeAttackGoal {
+        private final GuardEntity guard;
+
+        PostAttackGoal(GuardEntity var1, double var2) {
+            super(var1, var2, true);
+            this.guard = var1;
+        }
+
+        public boolean canContinueToUse() {
+            LivingEntity var1 = this.guard.getTarget();
+            if (var1 != null && var1.isAlive()) {
+                if (var1 instanceof Player var2 && (var2.isSpectator() || var2.isCreative())) {
+                    return false;
+                }
+
+                return this.guard.canChase(var1);
+            } else {
+                return false;
+            }
+        }
     }
 }

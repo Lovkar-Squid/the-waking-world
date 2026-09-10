@@ -37,18 +37,10 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
 import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.server.level.WorldGenRegion;
+import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
 
-/**
- * The castle at the kingdom's heart. A square bailey wall on a battered plinth, buttressed,
- * with a corbelled parapet, round corner towers under slate cones and a gatehouse with a
- * portcullis on the south; inside it the great hall - a long buttressed nave under a steep slate
- * gable, arched windows, two square turrets flanking the door, pillars, a hearth, long tables and
- * the throne on its dais at the far end - and behind the hall the donjon: a round tower on a
- * battered base, three floors (a guard room, the king's chamber, the library) under a machicolated
- * parapet and a cone, with the treasury dug beneath it behind an iron door. Stables, a forge,
- * barracks, a well and a fountain fill the courtyard. Drawn column by column so any chunk can be
- * generated on its own.
- */
 public class KeepPiece extends StructurePiece {
     public static final ResourceKey<LootTable> TREASURY = ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.fromNamespaceAndPath(WakingWorld.MODID, "chests/treasury"));
     public static final ResourceKey<LootTable> STORES = ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.fromNamespaceAndPath(WakingWorld.MODID, "chests/kingdom_house"));
@@ -462,7 +454,8 @@ public class KeepPiece extends StructurePiece {
             // between the pilasters, under the eave: corbels
             set(level, pos, x, 8, z, stairs(dx > 0 ? Direction.WEST : Direction.EAST, true));
         } else if (dz == HALL_Z1 + 1 && ax <= 2) {
-            set(level, pos, x, 1, z, stairs(Direction.NORTH, false)); // the step up to the door
+            set(level, pos, x, 0, z, ANDESITE); // the threshold is level with the floor: a step here was what the king tripped over
+            set(level, pos, x, 1, z, AIR);
         }
         // the roof: stairs on both slopes, a slab at the ridge, the eaves a block out from the walls
         if (ax <= HALL_HW + 1 && dz >= HALL_Z0 - 1 && dz <= HALL_Z1 + 1) {
@@ -527,9 +520,11 @@ public class KeepPiece extends StructurePiece {
             fill(level, pos, x, 1, 2, z, brick(x, 2, z));
             set(level, pos, x, 3, z, stairs(Direction.WEST, true));
         }
-        // the dais and the throne at the north end
+        // the dais and the throne at the north end: the step is one row further out, so the
+        // king walks up it rather than into it
+        if (dz == -1 && ax <= 4) set(level, pos, x, 1, z, stairs(Direction.NORTH, false));
         if (dz <= -2 && dz >= HALL_Z0 + 1 && ax <= 4) {
-            if (dz == -2) set(level, pos, x, 1, z, stairs(Direction.NORTH, false));
+            if (dz == -2) set(level, pos, x, 1, z, ANDESITE);
             else {
                 set(level, pos, x, 1, z, ANDESITE);
                 if (dz == -3) set(level, pos, x, 2, z, stairs(Direction.NORTH, false));
@@ -636,8 +631,9 @@ public class KeepPiece extends StructurePiece {
         if (lx == 3 && lz == 3) KingdomSpawns.guard(level, cx, cy, cz, x, cy + F0 + 1, z, GuardEntity.KNIGHT, 3);
         // the king's chamber: a canopied bed, carpets, chests, a table by the window
         if (Math.abs(lx) <= 2 && lz >= -3 && lz <= 1 && !(lx == 0 && lz == 0)) set(level, pos, x, F1 + 1, z, Blocks.BLUE_CARPET.defaultBlockState());
-        if (lx == 0 && lz == 2) set(level, pos, x, F1 + 1, z, Blocks.RED_BED.defaultBlockState().setValue(BedBlock.FACING, Direction.NORTH).setValue(BedBlock.PART, BedPart.FOOT));
-        if (lx == 0 && lz == 3) set(level, pos, x, F1 + 1, z, Blocks.RED_BED.defaultBlockState().setValue(BedBlock.FACING, Direction.NORTH).setValue(BedBlock.PART, BedPart.HEAD));
+        // FACING points foot -> head: the head lies at lz 3, so the bed faces south
+        if (lx == 0 && lz == 2) set(level, pos, x, F1 + 1, z, Blocks.RED_BED.defaultBlockState().setValue(BedBlock.FACING, Direction.SOUTH).setValue(BedBlock.PART, BedPart.FOOT));
+        if (lx == 0 && lz == 3) set(level, pos, x, F1 + 1, z, Blocks.RED_BED.defaultBlockState().setValue(BedBlock.FACING, Direction.SOUTH).setValue(BedBlock.PART, BedPart.HEAD));
         if (Math.abs(lx) == 1 && lz == 3) fill(level, pos, x, F1 + 1, F1 + 3, z, FENCE);
         if (Math.abs(lx) <= 1 && lz >= 2 && lz <= 3) set(level, pos, x, F1 + 4, z, Blocks.RED_WOOL.defaultBlockState());
         if (lx == 4 && lz == -2) {

@@ -7,12 +7,11 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
+import me.lovkar.wakingworld.WakingConfig;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock;
+import net.neoforged.neoforge.event.level.BlockEvent.BreakEvent;
+import net.neoforged.neoforge.event.tick.LevelTickEvent.Post;
 
-/**
- * The treasury is warded: open a chest in it, or break anything in it, without the king's leave
- * and the kingdom is angry with you for a day - the guards come running. The king's leave is a
- * Colossus Heart laid before him; a dead king guards nothing.
- */
 public final class KingdomEvents {
     private KingdomEvents() {
     }
@@ -30,7 +29,9 @@ public final class KingdomEvents {
     /** Once a second: empty thrones get their successors. */
     public static void onLevelTick(net.neoforged.neoforge.event.tick.LevelTickEvent.Post event) {
         if (!me.lovkar.wakingworld.WakingConfig.kingdoms()) return;
-        if (event.getLevel() instanceof ServerLevel level && level.getGameTime() % 20 == 7) Kingdoms.tickSuccessions(level);
+        if (!(event.getLevel() instanceof ServerLevel level)) return;
+        KingdomRepair.watch(level);                                        // every tick: the fire watch and the lava patrol
+        if (level.getGameTime() % 20 == 7) Kingdoms.tickSuccessions(level);
     }
 
     public static void onBreak(BlockEvent.BreakEvent event) {

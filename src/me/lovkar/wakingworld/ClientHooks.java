@@ -1,12 +1,16 @@
 package me.lovkar.wakingworld;
 
 import net.minecraft.world.phys.Vec3;
+import java.util.List;
+import java.util.UUID;
+import me.lovkar.wakingworld.kingdom.KingEntity;
+import me.lovkar.wakingworld.kingdom.TownsfolkEntity;
+import me.lovkar.wakingworld.mage.MageEntity;
+import me.lovkar.wakingworld.story.Cinematics;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.trading.MerchantOffers;
 
-/**
- * What common code may ask of the client without touching client classes: on a dedicated server
- * these stay the no-ops below, on a client WakingWorldClient installs the real thing (the camera
- * shake). Keeps client-only classes out of the server's class loader.
- */
 public interface ClientHooks {
     ClientHooks NONE = new ClientHooks() {
     };
@@ -51,6 +55,9 @@ public interface ClientHooks {
 
     /** An audience with a king. */
     default void openKing(me.lovkar.wakingworld.kingdom.KingEntity king) {
+    }
+
+    default void openMage(MageEntity var1) {
     }
 
     /** A trader's stall: their offers, in the kingdom's own screen. */

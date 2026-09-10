@@ -5,17 +5,19 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
-
 import java.util.Map;
 
-/**
- * The music - one battle theme per kind of colossus (looping, streamed), a short awakening piece
- * cut so its last hit lands the moment the giant is out of the ground, and a victory piece for
- * the collapse; composed by Lovkar (generated), cut and loop-matched in tools/music - the Horn's
- * voice, and the creatures' own sounds, synthesized in tools/sfx.
- */
 public final class WakingSounds {
     private WakingSounds() {
+    }
+
+    public static DeferredHolder<SoundEvent, SoundEvent> mageMusic(int var0) {
+        return switch (Math.max(1, Math.min(4, var0))) {
+            case 2 -> MUSIC_MAGE_2;
+            case 3 -> MUSIC_MAGE_3;
+            case 4 -> MUSIC_MAGE_4;
+            default -> MUSIC_MAGE_1;
+        };
     }
 
     public static final DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(Registries.SOUND_EVENT, WakingWorld.MODID);
@@ -39,6 +41,10 @@ public final class WakingSounds {
     public static final DeferredHolder<SoundEvent, SoundEvent> MUSIC_TITAN = music("titan");
     public static final DeferredHolder<SoundEvent, SoundEvent> MUSIC_TITAN_AWAKENING = music("titan_awakening");
     public static final DeferredHolder<SoundEvent, SoundEvent> MUSIC_TITAN_VICTORY = music("titan_victory");
+    public static final DeferredHolder<SoundEvent, SoundEvent> MUSIC_MAGE_1 = music("dark_mage_1");
+    public static final DeferredHolder<SoundEvent, SoundEvent> MUSIC_MAGE_2 = music("dark_mage_2");
+    public static final DeferredHolder<SoundEvent, SoundEvent> MUSIC_MAGE_3 = music("dark_mage_3");
+    public static final DeferredHolder<SoundEvent, SoundEvent> MUSIC_MAGE_4 = music("dark_mage_4");
 
     /** The same themes as the music discs play them: registered in the "record" category, so the jukebox slider applies. */
     public static final DeferredHolder<SoundEvent, SoundEvent> RECORD_STONE = record("stone");

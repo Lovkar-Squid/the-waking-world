@@ -24,16 +24,16 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import java.util.UUID;
+import me.lovkar.wakingworld.WakingConfig;
+import me.lovkar.wakingworld.WakingSounds;
+import me.lovkar.wakingworld.entity.ColossusEntity;
+import net.minecraft.network.syncher.SynchedEntityData.Builder;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.level.ClipContext.Block;
+import net.minecraft.world.level.ClipContext.Fluid;
+import net.minecraft.world.phys.HitResult.Type;
 
-/**
- * A falling star: a burning mass of stone that comes down out of the sky on a long slant, and
- * ends as a crater with a Starstone still glowing at the bottom of it.
- *
- * <p>It is not a vanilla projectile - it flies straight at a fixed speed so it can be aimed at a
- * place from hundreds of blocks up and still land there. Every tick it sweeps the line it just
- * crossed for ground; whatever it meets first is where it lands. The trail is drawn from the
- * server so everyone within sight sees the same streak, and the roar grows as it comes down.</p>
- */
 public class MeteorEntity extends Entity {
     /** A star screams once, not every tick of its fall. */
     private boolean screamed;
@@ -50,6 +50,11 @@ public class MeteorEntity extends Entity {
      * sky, so it arcs under gravity, and where it lands it leaves lava rather than a crater.
      */
     private boolean bomb;
+    private UUID ownScar;
+    private boolean ownsScar;
+    private UUID spared;
+    private int siegeTarget = -1;
+    private float siegeBlow;
 
     public MeteorEntity(EntityType<? extends MeteorEntity> type, Level level) {
         super(type, level);
@@ -95,6 +100,20 @@ public class MeteorEntity extends Entity {
         this.setYRot((float) (Math.toDegrees(Math.atan2(-this.getDeltaMovement().x, this.getDeltaMovement().z))));
     }
 
+    public void aimFrom(Vec3 var1, Vec3 var2, double var3, double var5, double var7) {
+        this.target = var1;
+        Vec3 var9 = new Vec3(var2.x, 0.0, var2.z);
+        if (var9.lengthSqr() < 1.0E-4) {
+            var9 = new Vec3(1.0, 0.0, 0.0);
+        }
+
+        var9 = var9.normalize();
+        Vec3 var10 = var1.add(var9.x * var5, var3, var9.z * var5);
+        this.setPos(var10.x, var10.y, var10.z);
+        this.setDeltaMovement(var1.subtract(var10).normalize().scale(var7));
+        this.setYRot((float)Math.toDegrees(Math.atan2(-this.getDeltaMovement().x, this.getDeltaMovement().z)));
+    }
+
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         builder.define(DATA_SIZE, (byte) 1);
@@ -116,7 +135,11 @@ public class MeteorEntity extends Entity {
                 return;
             }
             trail(server);
-            if (++life > 400 || this.getY() < this.level().getMinBuildHeight()) this.discard();
+            if (++life > 400 || this.getY() < this.level().getMinBuildHeight()) {
+                // a star that never lands closes the record it opened, or the Hourglass waits on it for ever
+                if (ownScar != null && ownsScar) { Scars.done(server, ownScar); ownScar = null; }
+                this.discard();
+            }
         }
         this.setPos(to.x, to.y, to.z);
         if (bomb) {
@@ -156,14 +179,36 @@ public class MeteorEntity extends Entity {
         }
     }
 
+    void ownScar(UUID var1) {
+        this.ownScar = var1;
+        this.ownsScar = true;
+    }
+
+    public void useScar(UUID var1) {
+        this.ownScar = var1;
+        this.ownsScar = false;
+    }
+
+    public void aimedAt(int var1, float var2) {
+        this.siegeTarget = var1;
+        this.siegeBlow = var2;
+    }
+
+    public void spare(Entity var1) {
+        this.spared = var1 == null ? null : var1.getUUID();
+    }
+
     // ---- landing ---------------------------------------------------------------------------
 
     private void impact(ServerLevel server, Vec3 at) {
-        Scars.writing(server, Cataclysms.scarOf(server));
+        // the cataclysm's open scar if there is one, else the record this lone star opened itself
+        UUID scar = Cataclysms.scarOf(server);
+        Scars.writing(server, scar != null ? scar : ownScar);
         try {
             land(server, at);
         } finally {
             Scars.close();
+            if (ownScar != null && ownsScar) { Scars.done(server, ownScar); ownScar = null; }
         }
     }
 
@@ -199,7 +244,9 @@ public class MeteorEntity extends Entity {
                     14, craterRadius * (0.4 + i * 0.22), 1.5, craterRadius * (0.4 + i * 0.22), 0.04);
         }
 
-        for (LivingEntity target : server.getEntitiesOfClass(LivingEntity.class, new AABB(at, at).inflate(craterRadius + 3), LivingEntity::isAlive)) {
+        // the one it was told to spare (the horn-blower who called the volley) walks away from it
+        for (LivingEntity target : server.getEntitiesOfClass(LivingEntity.class, new AABB(at, at).inflate(craterRadius + 3),
+                e -> e.isAlive() && !e.getUUID().equals(spared))) {
             double d = target.position().distanceTo(at);
             float dmg = (float) (damage * Math.max(0.2, 1.0 - d / (craterRadius + 4)));
             target.hurt(this.damageSources().explosion(this, null), dmg);
@@ -207,6 +254,8 @@ public class MeteorEntity extends Entity {
             target.push(push.x, push.y, push.z);
             target.hurtMarked = true;
         }
+        // a siege stone lands its whole worth on the giant it was thrown at, mercy window or not
+        if (siegeTarget >= 0 && server.getEntity(siegeTarget) instanceof ColossusEntity giant) giant.siegeStruck(server, at, siegeBlow);
 
         Crater.blast(server, at, craterRadius, 40 + 20 * s, 0.75, this.random);
         Starfall.dress(server, BlockPos.containing(at), craterRadius, s, carriesStar, this.random);

@@ -13,18 +13,20 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.ArrayDeque;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map.Entry;
+import java.util.function.Predicate;
+import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.core.HolderLookup.Provider;
+import net.minecraft.core.HolderLookup.RegistryLookup;
 
-/**
- * Everything one colossus did to the land: for every block it broke, flung, trampled or buried,
- * what stood there before it came - and every spot where a piece of it (or of the ground it
- * threw) came to rest. Enough to put the land back exactly as it was (see {@link RuinLedger}).
- */
 public final class FightRecord {
     /** No fight gets to remember more blocks than this. */
     public static final int CAP = 400_000;
@@ -48,6 +50,36 @@ public final class FightRecord {
         this.id = id;
         this.started = started;
         this.origin = origin;
+    }
+
+    public boolean done() {
+        return this.finished;
+    }
+
+    public Map<BlockPos, BlockState> takeWithin(BlockPos var1, double var2, int var4, int var5, int var6, Predicate<BlockPos> var7) {
+        LinkedHashMap var8 = new LinkedHashMap();
+        if (this.restoring != null) {
+            return var8;
+        } else {
+            double var9 = var2 * var2;
+            Iterator var11 = this.before.entrySet().iterator();
+
+            while (var11.hasNext() && var8.size() < var6) {
+                Entry var12 = (Entry)var11.next();
+                BlockPos var13 = BlockPos.of((Long)var12.getKey());
+                double var14 = (double)(var13.getX() - var1.getX());
+                double var16 = (double)(var13.getZ() - var1.getZ());
+                if (!(var14 * var14 + var16 * var16 > var9)) {
+                    int var18 = var13.getY() - var1.getY();
+                    if (var18 >= -var4 && var18 <= var5 && var7.test(var13)) {
+                        var8.put(var13, (BlockState)var12.getValue());
+                        var11.remove();
+                    }
+                }
+            }
+
+            return var8;
+        }
     }
 
     /** Rubble of this fight still in the air (it reports where it lands; restoration waits for it). */

@@ -12,22 +12,23 @@ import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
-
 import java.util.ArrayList;
 import java.util.List;
+import me.lovkar.wakingworld.supporter.SupporterCosmetics;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
-/**
- * An audience with the king: he sits in his alcove on the left (the living entity, turned to
- * follow the mouse), what he says is set on the parchment on the right, and the things one may
- * ask about are scrolls along the bottom - the kingdom, the sleepers, the letters, the vaults,
- * the Titan, the treasury, the news. What he knows of recent events comes from the chronicle.
- */
 public class KingScreen extends Screen {
     private static final ResourceLocation TEX = ResourceLocation.fromNamespaceAndPath(WakingWorld.MODID, "textures/gui/king.png");
     static final int W = 248, H = 190;
     static final int TEXT_X = 96, TEXT_W = 134, TEXT_Y = 38, TEXT_H = 96;
     static final int INK = 0x3A2A1C, HEAD = 0x6E2A18, FADED = 0x7A6A58, GOLD = 0xC89A3C;
-    private static final String[] TOPICS = {"kingdom", "sleepers", "letters", "vaults", "titan", "treasury", "news", "farewell"};
+    private static final String[] TOPICS = new String[]{"kingdom", "charge", "sleepers", "letters", "vaults", "titan", "treasury", "news", "farewell"};
+    private static final int BUTTON_W = 46;
 
     private final KingEntity king;
     private int left, top;
@@ -48,7 +49,7 @@ public class KingScreen extends Screen {
         top = (height - H) / 2;
         buttons.clear();
         for (int i = 0; i < TOPICS.length; i++) {
-            int x = left + 8 + (i % 4) * 58, y = top + 157 + (i / 4) * 16;
+            int x = left + 6 + (i % 5) * 48, y = top + 157 + (i / 5) * 16; // five to a row since "charge" joined the topics
             TopicButton b = new TopicButton(x, y, TOPICS[i]);
             buttons.add(b);
             addRenderableWidget(b);
@@ -77,6 +78,7 @@ public class KingScreen extends Screen {
                 else paragraphs(flow, "king.wakingworld.treasury");
             }
             case "news" -> news(flow);
+            case "charge" -> charge(flow);
             default -> paragraphs(flow, "king.wakingworld." + t);
         }
         pages = PageLayout.paginate(flow.elements(), TEXT_H);
@@ -84,11 +86,52 @@ public class KingScreen extends Screen {
         for (TopicButton b : buttons) b.selected = b.topic.equals(t);
     }
 
+    private FormattedCharSequence fit(Component var1, int var2) {
+        return this.font.width(var1) <= var2 ? var1.getVisualOrderText() : (FormattedCharSequence)this.font.split(var1.copy().append("..."), var2).get(0);
+    }
+
     private void paragraphs(PageLayout.Flow flow, String base) {
         for (int i = 1; i <= 6; i++) {
             String key = base + "." + i;
             if (!I18n.exists(key)) break;
             flow.paragraph(Component.translatable(key), INK);
+        }
+    }
+
+    private void charge(PageLayout.Flow var1) {
+        String var2 = this.king.charge();
+        if (var2.isEmpty()) {
+            var1.paragraph(Component.translatable("king.wakingworld.charge.none"), 3811868);
+        } else {
+            String[] var3 = var2.split(";", -1);
+            String var4 = var3[0];
+            if (var4.equals("mage")) {
+                var1.heading(Component.translatable("king.wakingworld.charge.mage.title"), 7219736);
+                this.paragraphs(var1, "king.wakingworld.charge.mage");
+            } else {
+                var1.heading(Component.translatable("king.wakingworld.charge.levy.title"), 7219736);
+                int var5 = 0;
+                int var6 = 0;
+
+                try {
+                    var5 = Integer.parseInt(var3[2]);
+                    var6 = Integer.parseInt(var3[3]);
+                } catch (RuntimeException var9) {
+                }
+
+                Item var7 = var3[1].isEmpty() ? null : (Item)BuiltInRegistries.ITEM.get(ResourceLocation.tryParse(var3[1]));
+                int var8 = Math.max(0, var5 - var6);
+                if (var7 != null) {
+                    var1.items(
+                        Component.translatable("king.wakingworld.charge.levy.want", new Object[]{var8, var7.getDescription()}),
+                        3811868,
+                        new ItemStack(var7, Math.min(64, Math.max(1, var8)))
+                    );
+                }
+
+                var1.paragraph(Component.translatable("king.wakingworld.charge.levy.progress", new Object[]{var6, var5}), 8022616);
+                this.paragraphs(var1, "king.wakingworld.charge.levy");
+            }
         }
     }
 
@@ -187,38 +230,43 @@ public class KingScreen extends Screen {
         return false;
     }
 
-    /** A scroll along the bottom: one thing to ask about. */
     private final class TopicButton extends AbstractWidget {
         final String topic;
         boolean selected;
 
-        TopicButton(int x, int y, String topic) {
-            super(x, y, 56, 14, Component.translatable("king.wakingworld.topic." + topic));
-            this.topic = topic;
+        TopicButton(int nullx, int nullxx, String nullxxx) {
+            super(nullx, nullxx, 46, 14, Component.translatable("king.wakingworld.topic." + nullxxx));
+            this.topic = nullxxx;
         }
 
-        @Override
-        protected void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-            int v = selected ? 228 : isHoveredOrFocused() ? 214 : 200;
-            g.blit(TEX, getX(), getY(), 0, v, 56, 14, 256, 256);
-            Component msg = getMessage();
-            int w = font.width(msg);
-            g.drawString(font, msg, getX() + (56 - w) / 2, getY() + 3, selected ? 0xFFFFFF : isHoveredOrFocused() ? HEAD : INK, false);
+        protected void renderWidget(GuiGraphics var1, int var2, int var3, float var4) {
+            int var5 = this.selected ? 228 : (this.isHoveredOrFocused() ? 214 : 200);
+            byte var6 = 23;
+            var1.blit(KingScreen.TEX, this.getX(), this.getY(), 0.0F, (float)var5, var6, 14, 256, 256);
+            var1.blit(KingScreen.TEX, this.getX() + var6, this.getY(), (float)(56 - (46 - var6)), (float)var5, 46 - var6, 14, 256, 256);
+            FormattedCharSequence var7 = KingScreen.this.fit(this.getMessage(), 42);
+            int var8 = KingScreen.this.font.width(var7);
+            var1.drawString(
+                KingScreen.this.font,
+                var7,
+                this.getX() + (46 - var8) / 2,
+                this.getY() + 3,
+                this.selected ? 16777215 : (this.isHoveredOrFocused() ? 7219736 : 3811868),
+                false
+            );
         }
 
-        @Override
-        public void onClick(double mouseX, double mouseY) {
-            minecraft.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(SoundEvents.BOOK_PAGE_TURN, 0.8F));
-            if (topic.equals("farewell")) {
-                onClose();
-                return;
+        public void onClick(double var1, double var3) {
+            KingScreen.this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.BOOK_PAGE_TURN, 0.8F));
+            if (this.topic.equals("farewell")) {
+                KingScreen.this.onClose();
+            } else {
+                KingScreen.this.show(this.topic);
             }
-            show(topic);
         }
 
-        @Override
-        protected void updateWidgetNarration(NarrationElementOutput output) {
-            defaultButtonNarrationText(output);
+        protected void updateWidgetNarration(NarrationElementOutput var1) {
+            this.defaultButtonNarrationText(var1);
         }
     }
 

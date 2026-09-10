@@ -45,16 +45,24 @@ import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.maps.MapDecorationTypes;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
-
 import java.util.Optional;
+import me.lovkar.wakingworld.WakingConfig;
+import me.lovkar.wakingworld.WakingSounds;
+import me.lovkar.wakingworld.network.WakingNet;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier.Builder;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.item.enchantment.ItemEnchantments.Mutable;
+import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureStart;
+import net.neoforged.neoforge.common.extensions.IEntityExtension;
 
-/**
- * The people of the kingdom: traders with the vanilla trading screen and wares of this mod's world.
- * The surveyor sells maps to the shrines and the vaults; the relic-monger deals in embers, runes
- * and letters at a price; the smith, the provisioner, the chandler and the scribe keep a town
- * running. They keep to their stalls and houses, run from the dead, and turn their backs on anyone
- * the kingdom is angry with.
- */
 public class TownsfolkEntity extends AbstractVillager {
     public static final int SURVEYOR = 0, RELIC_MONGER = 1, SMITH = 2, PROVISIONER = 3, CHANDLER = 4, SCRIBE = 5;
     public static final String[] PROFESSIONS = {"surveyor", "relic_monger", "smith", "provisioner", "chandler", "scribe"};
@@ -209,6 +217,104 @@ public class TownsfolkEntity extends AbstractVillager {
                 offers.add(new MerchantOffer(new ItemCost(Items.EMERALD, 30), enchantedBook(), 1, 20, 0.2F));
             }
         }
+        prosperity(offers);
+    }
+
+    private void prosperity(MerchantOffers var1) {
+        if (!this.center.equals(BlockPos.ZERO) && this.level() instanceof ServerLevel var2) {
+            if (WakingConfig.kingdoms()) {
+                int var4 = KingdomData.get(var2).kingdom(this.center).tier;
+                if (var4 >= 2) {
+                    switch (this.profession()) {
+                        case 0:
+                            if (var4 >= 2) {
+                                var1.add(new MerchantOffer(new ItemCost(Items.EMERALD, 4), new ItemStack(Items.SPYGLASS), 3, 6, 0.05F));
+                            }
+
+                            if (var4 >= 3) {
+                                var1.add(this.map(Letters.KINGDOMS, "item.wakingworld.map.kingdom", 11));
+                            }
+
+                            if (var4 >= 4) {
+                                var1.add(new MerchantOffer(new ItemCost(Items.EMERALD, 18), new ItemStack((ItemLike)WakingItems.LAND_ATLAS.get()), 1, 20, 0.1F));
+                            }
+                            break;
+                        case 1:
+                            if (var4 >= 2) {
+                                var1.add(
+                                    new MerchantOffer(new ItemCost(Items.EMERALD, 21), new ItemStack((ItemLike)WakingItems.SLEEPERS_EMBER.get()), 1, 22, 0.2F)
+                                );
+                            }
+
+                            if (var4 >= 3) {
+                                var1.add(
+                                    new MerchantOffer(new ItemCost(Items.EMERALD, 12), new ItemStack((ItemLike)WakingItems.STAR_IRON.get(), 2), 4, 10, 0.1F)
+                                );
+                            }
+
+                            if (var4 >= 4) {
+                                var1.add(
+                                    new MerchantOffer(new ItemCost(Items.EMERALD, 16), new ItemStack((ItemLike)WakingItems.SLEEPERS_EMBER.get()), 2, 25, 0.2F)
+                                );
+                            }
+                            break;
+                        case 2:
+                            if (var4 >= 2) {
+                                var1.add(new MerchantOffer(new ItemCost(Items.EMERALD, 14), new ItemStack(Items.DIAMOND_SWORD), 3, 8, 0.05F));
+                            }
+
+                            if (var4 >= 3) {
+                                var1.add(new MerchantOffer(new ItemCost(Items.EMERALD, 11), new ItemStack(Items.DIAMOND_CHESTPLATE), 2, 12, 0.05F));
+                            }
+
+                            if (var4 >= 4) {
+                                var1.add(
+                                    new MerchantOffer(new ItemCost(Items.EMERALD, 24), new ItemStack((ItemLike)WakingItems.STAR_IRON_SWORD.get()), 1, 25, 0.2F)
+                                );
+                            }
+                            break;
+                        case 3:
+                            if (var4 >= 2) {
+                                var1.add(new MerchantOffer(new ItemCost(Items.EMERALD, 5), new ItemStack(Items.GOLDEN_APPLE), 4, 6, 0.05F));
+                            }
+
+                            if (var4 >= 3) {
+                                var1.add(new MerchantOffer(new ItemCost(Items.EMERALD, 2), new ItemStack(Items.COOKED_BEEF, 10), 12, 3, 0.05F));
+                            }
+
+                            if (var4 >= 4) {
+                                var1.add(new MerchantOffer(new ItemCost(Items.EMERALD, 34), new ItemStack(Items.ENCHANTED_GOLDEN_APPLE), 1, 30, 0.2F));
+                            }
+                            break;
+                        case 4:
+                            if (var4 >= 2) {
+                                var1.add(new MerchantOffer(new ItemCost(Items.EMERALD, 2), new ItemStack(Items.LANTERN, 6), 12, 2, 0.05F));
+                            }
+
+                            if (var4 >= 3) {
+                                var1.add(new MerchantOffer(new ItemCost(Items.EMERALD, 3), new ItemStack(Items.GLOWSTONE, 4), 10, 3, 0.05F));
+                            }
+
+                            if (var4 >= 4) {
+                                var1.add(new MerchantOffer(new ItemCost(Items.EMERALD, 5), new ItemStack(Items.SHROOMLIGHT, 4), 6, 6, 0.05F));
+                            }
+                            break;
+                        default:
+                            if (var4 >= 2) {
+                                var1.add(new MerchantOffer(new ItemCost(Items.EMERALD, 4), new ItemStack(Items.BOOKSHELF, 3), 10, 3, 0.05F));
+                            }
+
+                            if (var4 >= 3) {
+                                var1.add(new MerchantOffer(new ItemCost(Items.EMERALD, 22), this.enchantedBook(), 1, 22, 0.2F));
+                            }
+
+                            if (var4 >= 4) {
+                                var1.add(new MerchantOffer(new ItemCost(Items.EMERALD, 26), new ItemStack((ItemLike)WakingItems.ALMANAC.get()), 1, 25, 0.1F));
+                            }
+                    }
+                }
+            }
+        }
     }
 
     private int[] shuffledRunes() {
@@ -259,6 +365,7 @@ public class TownsfolkEntity extends AbstractVillager {
 
     @Override
     protected void rewardTradeXp(MerchantOffer offer) {
+        if (level() instanceof ServerLevel server) KingdomGrowth.traded(server, center()); // every trade is a little standing
         if (offer.shouldRewardExp()) {
             int xp = 3 + random.nextInt(4);
             level().addFreshEntity(new ExperienceOrb(level(), getX(), getY() + 0.5, getZ(), xp));

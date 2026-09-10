@@ -14,16 +14,12 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.SelectMusicEvent;
+import me.lovkar.wakingworld.WakingWorld;
+import me.lovkar.wakingworld.mage.MageEntity;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.resources.sounds.SoundInstance.Attenuation;
+import net.neoforged.neoforge.client.event.ClientTickEvent.Post;
 
-/**
- * The music director. Every client tick it looks for the nearest colossus and decides what should
- * be playing: the awakening piece while one rises (its last hit lands as the giant clears the
- * ground), that kind's battle theme while it lives and the player is within a few body lengths,
- * the victory piece when it falls. Themes loop seamlessly (streamed, so nothing big sits in
- * memory) and cross-fade into each other; vanilla's own music is told to stay quiet the whole
- * time and for a while after. Everything plays on the MUSIC channel, so the game's music slider
- * governs it; the client config can switch it off.
- */
 public final class BossMusic {
     private enum State { NONE, WAKING, BATTLE, VICTORY, AFTER }
 
@@ -38,6 +34,7 @@ public final class BossMusic {
     private static Object lastLevel;
     /** The last thing said about the music, so the log carries a change and not a stream. */
     private static String said = "";
+    private static int mageStage;
 
     private BossMusic() {
     }
@@ -64,6 +61,7 @@ public final class BossMusic {
             if (theme != null) { theme.fadeOutAndStop(20); theme = null; }
             if (sting != null) { sting.fadeOutAndStop(20); sting = null; }
             boss = null;
+            mageStage = 0;
             state = State.NONE;
             themeKind = "";
         }
@@ -72,6 +70,8 @@ public final class BossMusic {
             if (state == State.BATTLE || state == State.WAKING) fadeOut();
             return;
         }
+        // the dark mage's fight has its own four tracks; while he holds the floor the giants wait
+        if (mageTick(mc, player)) return;
         ColossusEntity nearest = null;
         double nearestD = Double.MAX_VALUE;
         for (Entity e : mc.level.entitiesForRendering()) {
@@ -139,6 +139,55 @@ public final class BossMusic {
                     afterTicks = 20 * 45; // a while of nothing before vanilla's music is allowed back
                 }
             }
+        }
+    }
+
+    private static boolean mageTick(Minecraft var0, Player var1) {
+        MageEntity var2 = null;
+        double var3 = Double.MAX_VALUE;
+
+        for (Entity var6 : var0.level.entitiesForRendering()) {
+            if (var6 instanceof MageEntity) {
+                MageEntity var7 = (MageEntity)var6;
+                if (!var7.isRemoved() && var7.roused() && var7.kept() == 0) {
+                    double var8 = (double)var7.distanceTo(var1);
+                    if (var8 < var3) {
+                        var3 = var8;
+                        var2 = var7;
+                    }
+                }
+            }
+        }
+
+        boolean var10 = var2 != null && var2.isAlive() && var3 < (mageStage > 0 ? 78.0 : 62.0);
+        if (!var10) {
+            if (mageStage > 0) {
+                mageStage = 0;
+                fadeOut();
+            }
+
+            return false;
+        } else {
+            int var11 = Math.max(1, Math.min(4, var2.stage()));
+            if (mageStage != var11) {
+                if (theme != null) {
+                    theme.fadeOutAndStop(mageStage == 0 ? 40 : 20);
+                }
+
+                SoundEvent var12 = available((SoundEvent)WakingSounds.mageMusic(var11).get(), (SoundEvent)WakingSounds.MUSIC_STONE.get());
+                theme = start(var12, true, 0.0F);
+                theme.fadeTo(1.0F, mageStage == 0 ? 60 : 24);
+                mageStage = var11;
+                themeKind = "mage" + var11;
+                state = BossMusic.State.BATTLE;
+                boss = null;
+                say("the mage, face " + var11 + " (" + var12.getLocation() + ")");
+            } else if (theme == null && --themeRetry <= 0) {
+                themeRetry = 100;
+                mageStage = 0;
+            }
+
+            return true;
         }
     }
 
@@ -212,6 +261,7 @@ public final class BossMusic {
         if (theme != null) { theme.cut(); theme = null; }
         if (sting != null) { sting.cut(); sting = null; }
         boss = null;
+        mageStage = 0;
         state = State.NONE;
         themeKind = "";
         themeRetry = 0;

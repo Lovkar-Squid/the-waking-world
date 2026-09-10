@@ -23,17 +23,26 @@ import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import net.minecraft.core.Registry;
+import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.RandomizableContainer;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.BannerBlock;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.WallBannerBlock;
+import net.minecraft.world.level.block.entity.BannerBlockEntity;
+import net.minecraft.world.level.block.entity.BannerPatterns;
+import net.minecraft.world.level.block.entity.BannerPatternLayers.Builder;
+import net.minecraft.world.level.levelgen.Heightmap.Types;
+import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
 
-/**
- * The kingdom's ring: the ground made level and green, a moat with bridges at the gates, a curtain
- * wall of stone brick on a battered plinth with buttresses, arrow slits, a corbelled parapet and
- * merlons, eight towers on the ring - round ones under slate cones and octagonal ones with open
- * battlements and a banner pole, turn and turn about - two barbican gatehouses with twin towers
- * under slate pyramids, a portcullis, murder holes and a chamber over the arch, the roads (two to
- * the keep, one ring, the spokes), lamp posts - and the guards on it all: archers on every tower,
- * knights at the gates, spearmen on the ring road. Drawn column by column so any chunk can be
- * generated on its own; the structure's terrain adaptation fills the ground under the whole ring.
- */
 public class KingdomWallPiece extends StructurePiece {
     public static final int RADIUS = 56;
     public static final int WALL_H = 9, TOWER_H = 16, TOWER_R = 4;
@@ -41,6 +50,9 @@ public class KingdomWallPiece extends StructurePiece {
     /** The moat, outside the wall: the water between these radii, the banks a block either side. */
     static final double MOAT_IN = 59.5, MOAT_OUT = 62.5;
     static final int REACH = 70;
+    private static final int FOOTING = 40;
+    private static final double SKIRT_IN = 64.0;
+    private static final double SKIRT_OUT = 78.5;
 
     private final int cx, cy, cz;
     private final long seed;
@@ -214,9 +226,11 @@ public class KingdomWallPiece extends StructurePiece {
                 if (r > REACH + 8.5) continue;
                 if (r > REACH + 0.5) {
                     delimb(level, pos, x, z, cy + 1);
+                    skirt(level, pos, x, z, dx, dz, r);
                     continue;
                 }
                 column(level, pos, random, x, z, dx, dz, r);
+                if (r > SKIRT_IN) skirt(level, pos, x, z, dx, dz, r);
             }
         }
     }
@@ -239,6 +253,53 @@ public class KingdomWallPiece extends StructurePiece {
             if (level.getBlockState(pos).is(BlockTags.LEAVES)) {
                 level.setBlock(pos, AIR, 2);
                 top = Math.max(top, y + 14);
+            }
+        }
+    }
+
+    private void skirt(WorldGenLevel var1, MutableBlockPos var2, int var3, int var4, int var5, int var6, double var7) {
+        double var9 = var7 - 64.0;
+        if (!(var9 <= 0.0)) {
+            boolean var11 = onRoad(var5, var6, var7) || onBridge(var5, var6, var7);
+            int var12 = var11 ? 0 : (int)Math.round(var9 * (0.7 + 0.09 * var9));
+            int var13 = var1.getHeight(Types.OCEAN_FLOOR_WG, var3, var4) - 1;
+            int var14 = this.cy - var12;
+            int var15 = this.cy + var12;
+            if (var13 < var14 || var13 > var15) {
+                int var16 = var13 < var14 ? var14 : var15;
+
+                for (int var17 = this.cy + 48; var17 > var16; var17--) {
+                    var2.set(var3, var17, var4);
+                    BlockState var18 = var1.getBlockState(var2);
+                    if (!var18.isAir() && !var18.is(Blocks.WATER)) {
+                        var1.setBlock(var2, AIR, 2);
+                    }
+                }
+
+                boolean var20 = false;
+                var2.set(var3, var16 + 1, var4);
+                if (var1.getBlockState(var2).is(Blocks.WATER)) {
+                    var20 = true;
+                }
+
+                for (int var21 = var16; var21 > var16 - 40 && var21 > var1.getMinBuildHeight() + 1; var21--) {
+                    var2.set(var3, var21, var4);
+                    BlockState var19 = var1.getBlockState(var2);
+                    if (!var19.isAir() && !var19.is(Blocks.WATER)) {
+                        if (var21 == var16) {
+                            var1.setBlock(var2, var20 ? Blocks.DIRT.defaultBlockState() : Blocks.GRASS_BLOCK.defaultBlockState(), 2);
+                        }
+                        break;
+                    }
+
+                    var1.setBlock(
+                        var2,
+                        var21 == var16 && !var20
+                            ? Blocks.GRASS_BLOCK.defaultBlockState()
+                            : (var21 > var16 - 4 ? Blocks.DIRT.defaultBlockState() : Blocks.STONE.defaultBlockState()),
+                        2
+                    );
+                }
             }
         }
     }
@@ -278,11 +339,19 @@ public class KingdomWallPiece extends StructurePiece {
                 }
             }
             if (road) clearPlant(level, pos.set(x, cy + 1, z));
-            for (int y = cy - 1; y >= cy - 4; y--) {
+            // the footing: four courses of dirt under the town, and below that stone down through any
+            // hollow (a ravine, a cave mouth, a lake) until the ground itself is met
+            for (int y = cy - 1; y >= cy - FOOTING; y--) {
                 pos.set(x, y, z);
                 BlockState s = level.getBlockState(pos);
                 boolean keepWater = y == cy - 1 && r > MOAT_IN && r <= MOAT_OUT;
-                if (!keepWater && (s.isAir() || s.is(Blocks.WATER) || s.is(Blocks.GRASS_BLOCK) || s.is(BlockTags.LEAVES) || s.is(BlockTags.LOGS))) level.setBlock(pos, Blocks.DIRT.defaultBlockState(), 2);
+                if (keepWater) continue;
+                boolean hollow = s.isAir() || s.is(Blocks.WATER) || s.is(Blocks.GRASS_BLOCK) || s.is(BlockTags.LEAVES) || s.is(BlockTags.LOGS);
+                if (!hollow) {
+                    if (y < cy - 4) break;       // solid ground reached below the dirt courses
+                    continue;
+                }
+                level.setBlock(pos, y > cy - 4 ? Blocks.DIRT.defaultBlockState() : Blocks.STONE.defaultBlockState(), 2);
             }
         }
         if (bridge) {

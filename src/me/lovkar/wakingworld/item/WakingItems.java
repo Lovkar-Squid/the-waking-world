@@ -11,17 +11,32 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
-
 import java.util.List;
 import java.util.Map;
+import me.lovkar.wakingworld.cataclysm.CataclysmBlocks;
+import me.lovkar.wakingworld.kingdom.KingdomBlocks;
+import me.lovkar.wakingworld.land.LandAtlasItem;
+import me.lovkar.wakingworld.mage.MageBlocks;
+import me.lovkar.wakingworld.ritual.WakingRitual;
+import me.lovkar.wakingworld.story.AlmanacItem;
+import me.lovkar.wakingworld.story.DeadLetterItem;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.AxeItem;
+import net.minecraft.world.item.HoeItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.PickaxeItem;
+import net.minecraft.world.item.ShovelItem;
+import net.minecraft.world.item.SwordItem;
+import net.minecraft.world.item.ArmorItem.Type;
+import net.minecraft.world.item.CreativeModeTab.Row;
+import net.minecraft.world.item.Item.Properties;
+import net.minecraft.world.level.ItemLike;
+import net.neoforged.neoforge.common.DeferredSpawnEggItem;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister.Items;
 
-/**
- * What a colossus leaves behind, and what wakes one. The Heart drops from every colossus (a
- * crafting material and a trophy that glows in the hand); each kind also drops its Sigil; the
- * six Sigils and a Heart make the Key that wakes the Titan in the End. The Hammer is a heavy
- * weapon forged from a Heart that slams the ground; the Horn of Waking calls the land's own
- * colossus up out of the ground wherever it is blown.
- */
 public final class WakingItems {
     private WakingItems() {
     }
@@ -44,6 +59,9 @@ public final class WakingItems {
             new Item.Properties().rarity(Rarity.EPIC).fireResistant().durability(1561).attributes(ColossusHammerItem.attributes()));
     public static final DeferredItem<HornOfWakingItem> HORN_OF_WAKING = ITEMS.registerItem("horn_of_waking", HornOfWakingItem::new,
             new Item.Properties().rarity(Rarity.RARE).stacksTo(1));
+    public static final DeferredItem<SignalHornItem> SIGNAL_HORN = ITEMS.registerItem(
+        "signal_horn", SignalHornItem::new, new Properties().rarity(Rarity.RARE).stacksTo(1)
+    );
     public static final DeferredItem<TitanKeyItem> TITAN_KEY = ITEMS.registerItem("titan_key", TitanKeyItem::new,
             new Item.Properties().rarity(Rarity.EPIC).stacksTo(1).fireResistant());
     public static final DeferredItem<HourglassItem> HOURGLASS = ITEMS.registerItem("hourglass_of_restoration", HourglassItem::new,
@@ -97,6 +115,12 @@ public final class WakingItems {
     /** The rite's fuel - only the vaults have them. */
     public static final DeferredItem<StormRodItem> STORM_ROD = ITEMS.registerItem("storm_rod", StormRodItem::new,
             new Item.Properties());
+    public static final DeferredItem<MirrorItem> MAGE_MIRROR = ITEMS.registerItem(
+        "mage_mirror", MirrorItem::new, new Properties().stacksTo(1).rarity(Rarity.RARE)
+    );
+    public static final DeferredItem<PocketMageItem> POCKET_MAGE = ITEMS.registerItem(
+        "pocket_mage", PocketMageItem::new, new Properties().stacksTo(1).rarity(Rarity.EPIC).fireResistant()
+    );
 
     public static final DeferredItem<Item> SLEEPERS_EMBER = ITEMS.registerItem("sleepers_ember",
             p -> new LoreItem(p, "item.wakingworld.sleepers_ember.tooltip", true), new Item.Properties().rarity(Rarity.RARE).fireResistant());
@@ -164,43 +188,62 @@ public final class WakingItems {
 
     /** The mod's own creative tab. */
     public static final DeferredRegister<CreativeModeTab> TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, WakingWorld.MODID);
-    public static final net.neoforged.neoforge.registries.DeferredHolder<CreativeModeTab, CreativeModeTab> TAB = TABS.register("wakingworld",
-            () -> CreativeModeTab.builder(CreativeModeTab.Row.TOP, 0)
-                    .title(net.minecraft.network.chat.Component.translatable("itemGroup.wakingworld"))
-                    .icon(() -> new net.minecraft.world.item.ItemStack(COLOSSUS_HEART.get()))
-                    .displayItems((params, out) -> {
-                        out.accept(ALMANAC.get());
-                        out.accept(LAND_ATLAS.get());
-                        out.accept(DEAD_LETTER.get());
-                        out.accept(COLOSSUS_HEART.get());
-                        for (DeferredItem<Item> sg : sigils()) out.accept(sg.get());
-                        out.accept(VOID_SIGIL.get());
-                        out.accept(COLOSSUS_HAMMER.get());
-                        out.accept(HORN_OF_WAKING.get());
-                        out.accept(TITAN_KEY.get());
-                        out.accept(HOURGLASS.get());
-                        out.accept(HEART_OF_THE_END.get());
-                        out.accept(SLEEPERS_EMBER.get());
-                        out.accept(STAR_IRON.get());
-                        out.accept(me.lovkar.wakingworld.cataclysm.CataclysmBlocks.STARSTONE_ITEM.get());
-                        out.accept(STAR_IRON_SWORD.get());
-                        out.accept(STAR_IRON_PICKAXE.get());
-                        out.accept(STAR_IRON_AXE.get());
-                        out.accept(STAR_IRON_SHOVEL.get());
-                        out.accept(STAR_IRON_HOE.get());
-                        for (DeferredItem<net.minecraft.world.item.ArmorItem> a : starIronArmour()) out.accept(a.get());
-                        for (DeferredItem<Item> r : runes()) out.accept(r.get());
-                        for (DeferredItem<Item> d : discs()) out.accept(d.get());
-                        out.accept(me.lovkar.wakingworld.ritual.WakingRitual.ALTAR_ITEM.get());
-                        out.accept(me.lovkar.wakingworld.kingdom.KingdomBlocks.THRONE_ITEM.get());
-                        out.accept(me.lovkar.wakingworld.mage.MageBlocks.RITE_STONE_ITEM.get());
-                        out.accept(STORM_ROD.get());
-                        out.accept(STONE_THRALL_EGG.get());
-                        out.accept(EMBER_WRAITH_EGG.get());
-                        out.accept(RUNE_SENTINEL_EGG.get());
-                        out.accept(DROWNED_KEEPER_EGG.get());
-                    })
-                    .build());
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TAB = TABS.register(
+        "wakingworld",
+        () -> CreativeModeTab.builder(Row.TOP, 0)
+                .title(Component.translatable("itemGroup.wakingworld"))
+                .icon(() -> new ItemStack((ItemLike)COLOSSUS_HEART.get()))
+                .displayItems((var0, var1) -> {
+                    var1.accept((ItemLike)ALMANAC.get());
+                    var1.accept((ItemLike)LAND_ATLAS.get());
+                    var1.accept((ItemLike)DEAD_LETTER.get());
+                    var1.accept((ItemLike)COLOSSUS_HEART.get());
+
+                    for (DeferredItem var3 : sigils()) {
+                        var1.accept((ItemLike)var3.get());
+                    }
+
+                    var1.accept((ItemLike)VOID_SIGIL.get());
+                    var1.accept((ItemLike)COLOSSUS_HAMMER.get());
+                    var1.accept((ItemLike)HORN_OF_WAKING.get());
+                    var1.accept((ItemLike)SIGNAL_HORN.get());
+                    var1.accept((ItemLike)TITAN_KEY.get());
+                    var1.accept((ItemLike)HOURGLASS.get());
+                    var1.accept((ItemLike)HEART_OF_THE_END.get());
+                    var1.accept((ItemLike)SLEEPERS_EMBER.get());
+                    var1.accept((ItemLike)STAR_IRON.get());
+                    var1.accept((ItemLike)CataclysmBlocks.STARSTONE_ITEM.get());
+                    var1.accept((ItemLike)STAR_IRON_SWORD.get());
+                    var1.accept((ItemLike)STAR_IRON_PICKAXE.get());
+                    var1.accept((ItemLike)STAR_IRON_AXE.get());
+                    var1.accept((ItemLike)STAR_IRON_SHOVEL.get());
+                    var1.accept((ItemLike)STAR_IRON_HOE.get());
+
+                    for (DeferredItem var7 : starIronArmour()) {
+                        var1.accept((ItemLike)var7.get());
+                    }
+
+                    for (DeferredItem var8 : runes()) {
+                        var1.accept((ItemLike)var8.get());
+                    }
+
+                    for (DeferredItem var9 : discs()) {
+                        var1.accept((ItemLike)var9.get());
+                    }
+
+                    var1.accept((ItemLike)WakingRitual.ALTAR_ITEM.get());
+                    var1.accept((ItemLike)KingdomBlocks.THRONE_ITEM.get());
+                    var1.accept((ItemLike)MageBlocks.RITE_STONE_ITEM.get());
+                    var1.accept((ItemLike)STORM_ROD.get());
+                    var1.accept((ItemLike)MAGE_MIRROR.get());
+                    var1.accept((ItemLike)POCKET_MAGE.get());
+                    var1.accept((ItemLike)STONE_THRALL_EGG.get());
+                    var1.accept((ItemLike)EMBER_WRAITH_EGG.get());
+                    var1.accept((ItemLike)RUNE_SENTINEL_EGG.get());
+                    var1.accept((ItemLike)DROWNED_KEEPER_EGG.get());
+                })
+                .build()
+    );
 
     private static final Map<String, DeferredItem<Item>> SIGILS = Map.of(
             "stone", SIGIL_STONE, "earth", SIGIL_EARTH, "sandstone", SIGIL_SANDSTONE,
@@ -247,6 +290,7 @@ public final class WakingItems {
             for (DeferredItem<Item> r : runes()) event.accept(r);
         } else if (event.getTabKey() == tab("tools_and_utilities")) {
             event.accept(HORN_OF_WAKING);
+            event.accept(SIGNAL_HORN);
             event.accept(TITAN_KEY);
             event.accept(HOURGLASS);
             event.accept(HEART_OF_THE_END);

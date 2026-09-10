@@ -8,7 +8,7 @@ VERSION=$(sed -n 's/^version="\(.*\)"/\1/p' resources/META-INF/neoforge.mods.tom
 OUT="wakingworld-${VERSION}.jar"
 CP="stubs:$(ls libs/mc-client.jar libs/neoforge-*-universal.jar libs/neoforge-*-client.jar libs/gson.jar libs/slf4j-api.jar libs/annotations.jar libs/bus-*.jar libs/loader-*.jar clibs/*.jar tlibs/netty-buffer-*.jar tlibs/netty-common-*.jar tlibs/authlib-*.jar tlibs/lwjgl-3*.jar tlibs/lwjgl-openal-*.jar | tr '\n' ':')"
 rm -rf build2 && mkdir -p build2
-javac -encoding UTF-8 --release 21 -proc:none -Xlint:-options -nowarn -cp "$CP" -d build2 $(find src -name '*.java')
+javac -g -encoding UTF-8 --release 21 -proc:none -Xlint:-options -nowarn -cp "$CP" -d build2 $(find src -name '*.java')
 rm -rf build && mv build2 build
 rm -f "$OUT"
 jar cf "$OUT" -C build . -C resources .

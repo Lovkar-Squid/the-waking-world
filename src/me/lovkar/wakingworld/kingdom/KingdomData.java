@@ -8,16 +8,18 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.saveddata.SavedData;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.Map.Entry;
+import net.minecraft.core.HolderLookup.Provider;
+import net.minecraft.world.level.saveddata.SavedData.Factory;
+import net.minecraft.world.phys.Vec3;
 
-/**
- * What every kingdom remembers: who it is angry with (and until when), whether its king still
- * lives, whom the king has given the freedom of the treasury, and where the treasury is. Keyed by
- * the kingdom's centre. Guards and townsfolk carry their kingdom's centre and ask here.
- */
 public class KingdomData extends SavedData {
     public static final String NAME = "wakingworld_kingdoms";
     private static final Factory<KingdomData> FACTORY = new Factory<>(KingdomData::new, KingdomData::load, null);
@@ -27,20 +29,34 @@ public class KingdomData extends SavedData {
     public static final class Kingdom {
         public final BlockPos center;
         public final Map<UUID, Long> angryUntil = new HashMap<>();
-        public final java.util.Set<UUID> permitted = new java.util.HashSet<>();
-        /** No king on the throne right now (a successor is on the way, or none could be found yet). */
+        public final Set<UUID> permitted = new HashSet<>();
         public boolean kingDead;
-        /** How many kings have followed the first; names the current one. */
         public int generation;
-        /** Where the throne is (the seat's exact spot), and the game time when the next king is crowned. */
-        public net.minecraft.world.phys.Vec3 throne;
-        public long crownAt = -1;
+        public Vec3 throne;
+        public long crownAt = -1L;
         public BoundingBox treasury;
-        /** Whether the wood round the walls has been raked once (floating leaves the walls cut). */
         public boolean tidied;
+        public int standing;
+        public int tier = 1;
+        public int dressed = 1;
+        public long reviewedAt = -1L;
+        public final Set<Long> claims = new LinkedHashSet<>();
+        public boolean rebuilding;
+        public int watchX = Integer.MIN_VALUE;
+        public long watchUntil;
+        public final Set<Long> works = new LinkedHashSet<>();
+        public String chargeKind = "";
+        public String chargeItem = "";
+        public int chargeCount;
+        public int chargeGot;
+        public long chargeAt;
+        public int chargesPaid;
+        public long knownTower;
+        public int wallArcs;
+        public final Set<Long> catapults = new LinkedHashSet<>();
 
-        Kingdom(BlockPos center) {
-            this.center = center;
+        Kingdom(BlockPos var1) {
+            this.center = var1;
         }
     }
 
@@ -140,6 +156,33 @@ public class KingdomData extends SavedData {
         return k == null ? 0 : k.generation;
     }
 
+    public int moveStanding(BlockPos var1, int var2) {
+        KingdomData.Kingdom var3 = this.kingdom(var1);
+        var3.standing = Math.max(-100, Math.min(100, var3.standing + var2));
+        this.setDirty();
+        return var3.standing;
+    }
+
+    public int standing(BlockPos var1) {
+        KingdomData.Kingdom var2 = this.kingdoms.get(var1.asLong());
+        return var2 == null ? 0 : var2.standing;
+    }
+
+    public int tier(BlockPos var1) {
+        KingdomData.Kingdom var2 = this.kingdoms.get(var1.asLong());
+        return var2 == null ? 1 : var2.tier;
+    }
+
+    public static int tierFor(int var0, int var1) {
+        int var2 = var0 >= 80 ? 4 : (var0 >= 45 ? 3 : (var0 >= 15 ? 2 : 1));
+        int var3 = var0 >= 72 ? 4 : (var0 >= 37 ? 3 : (var0 >= 7 ? 2 : 1));
+        if (var2 > var1) {
+            return var1 + 1;
+        } else {
+            return var3 < var1 ? var1 - 1 : var1;
+        }
+    }
+
     public java.util.Collection<Kingdom> all() {
         return kingdoms.values();
     }
@@ -159,6 +202,21 @@ public class KingdomData extends SavedData {
             t.putBoolean("Tidied", k.tidied);
             t.putInt("Generation", k.generation);
             t.putLong("CrownAt", k.crownAt);
+            t.putInt("Standing", k.standing);
+            t.putInt("Tier", k.tier);
+            t.putInt("Dressed", k.dressed);
+            t.putLong("ReviewedAt", k.reviewedAt);
+            t.putString("ChargeKind", k.chargeKind);
+            t.putString("ChargeItem", k.chargeItem);
+            t.putInt("ChargeCount", k.chargeCount);
+            t.putInt("ChargeGot", k.chargeGot);
+            t.putLong("ChargeAt", k.chargeAt);
+            t.putInt("ChargesPaid", k.chargesPaid);
+            t.putLong("KnownTower", k.knownTower);
+            t.putInt("WallArcs", k.wallArcs);
+            if (!k.catapults.isEmpty()) t.putLongArray("Catapults", longs(k.catapults));
+            if (!k.works.isEmpty()) t.putLongArray("Works", longs(k.works));
+            if (!k.claims.isEmpty()) t.putLongArray("Claims", longs(k.claims));
             if (k.throne != null) {
                 t.putDouble("ThroneX", k.throne.x);
                 t.putDouble("ThroneY", k.throne.y);
@@ -186,6 +244,13 @@ public class KingdomData extends SavedData {
         return tag;
     }
 
+    private static long[] longs(java.util.Collection<Long> c) {
+        long[] out = new long[c.size()];
+        int i = 0;
+        for (long v : c) out[i++] = v;
+        return out;
+    }
+
     private static KingdomData load(CompoundTag tag, HolderLookup.Provider registries) {
         KingdomData d = new KingdomData();
         ListTag list = tag.getList("Kingdoms", 10);
@@ -196,6 +261,21 @@ public class KingdomData extends SavedData {
             k.tidied = t.getBoolean("Tidied");
             k.generation = t.getInt("Generation");
             k.crownAt = t.contains("CrownAt") ? t.getLong("CrownAt") : -1;
+            k.standing = t.getInt("Standing");
+            k.tier = Math.max(1, t.contains("Tier") ? t.getInt("Tier") : 1);
+            k.dressed = Math.max(1, t.contains("Dressed") ? t.getInt("Dressed") : 1);
+            k.reviewedAt = t.contains("ReviewedAt") ? t.getLong("ReviewedAt") : -1;
+            k.chargeKind = t.getString("ChargeKind");
+            k.chargeItem = t.getString("ChargeItem");
+            k.chargeCount = t.getInt("ChargeCount");
+            k.chargeGot = t.getInt("ChargeGot");
+            k.chargeAt = t.getLong("ChargeAt");
+            k.chargesPaid = t.getInt("ChargesPaid");
+            k.knownTower = t.getLong("KnownTower");
+            k.wallArcs = t.getInt("WallArcs");
+            for (long c : t.getLongArray("Catapults")) k.catapults.add(c);
+            for (long c : t.getLongArray("Claims")) k.claims.add(c);
+            for (long c : t.getLongArray("Works")) k.works.add(c);
             if (t.contains("ThroneX")) k.throne = new net.minecraft.world.phys.Vec3(t.getDouble("ThroneX"), t.getDouble("ThroneY"), t.getDouble("ThroneZ"));
             if (t.contains("Treasury")) {
                 int[] b = t.getIntArray("Treasury");

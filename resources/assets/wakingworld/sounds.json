@@ -631,6 +631,42 @@
       }
     ]
   },
+  "music.colossus.dark_mage_1": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "wakingworld:music/dark_mage_1",
+        "stream": true
+      }
+    ]
+  },
+  "music.colossus.dark_mage_2": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "wakingworld:music/dark_mage_2",
+        "stream": true
+      }
+    ]
+  },
+  "music.colossus.dark_mage_3": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "wakingworld:music/dark_mage_3",
+        "stream": true
+      }
+    ]
+  },
+  "music.colossus.dark_mage_4": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "wakingworld:music/dark_mage_4",
+        "stream": true
+      }
+    ]
+  },
   "music.colossus.earth": {
     "category": "music",
     "sounds": [

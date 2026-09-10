@@ -14,10 +14,24 @@ them in the repo) and packs `wakingworld-<version>.jar` from the classes plus `r
   libraries.minecraft.net; `netty-buffer` and `netty-common` are on the compile classpath for the network
   payloads, the rest is only for the headless check.
 - `stubs/`: tiny stand-ins for `net.neoforged.api.distmarker.Dist`/`OnlyIn` (the real classes ship with
-  the loader at runtime, but not in these jars) and a few private nested types NeoForge opens up.
+  the loader at runtime, but not in these jars) and, for the private nested types NeoForge opens up with
+  an access transformer (`ParticleEngine$SpriteParticleRegistration`, `BlockEntityType$BlockEntitySupplier`),
+  **patched copies of the real class files** made by `tools/java/open_nested.py`:
+
+      python3 tools/java/open_nested.py libs/mc-client.jar stubs \
+          'net/minecraft/client/particle/ParticleEngine$SpriteParticleRegistration' \
+          'net/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier'
+
+  A stub holding only the nested class does not work: javac reads the access flags from the OUTER class's
+  InnerClasses attribute, so the outer class file is what has to be patched. `stubs/` goes first on the
+  classpath.
 
 JDK 21. The version lives in `resources/META-INF/neoforge.mods.toml` (and the startup log line in
 `WakingWorld.java`). `NOTEST=1 ./build.sh` skips the headless check.
+
+`javac -g`: the classes carry their local-variable tables since 0.3.0-alpha.12. That costs a few percent
+of jar size and buys a decompile that keeps every variable name - which is what a lost source tree is
+recovered from (see `docs/RECOVERY-0.3.md`). Do not take it out.
 
 ## Headless checks
 

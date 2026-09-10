@@ -22,23 +22,12 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
 import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.levelgen.Heightmap.Types;
+import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
 
-/**
- * The tower itself: a round black keep with a witch-hat spire, drawn column by column.
- *
- * <p>Five levels stacked on one spiral - a cellar he has not opened in years, the hall you come in
- * at, a study walled in books, and at the top the chamber where he actually is, with a balcony that
- * hangs off the front of the building. Above that a cone of dark tile with a ring of little spikes
- * round its foot, and a light on the point that you can see from a long way off at night, which is
- * the whole reason the tower is this tall: it has to be findable by accident.</p>
- *
- * <p><b>It builds itself into whatever ground it lands on.</b> Every wall column carries its own
- * foundation down to rock, so on the flat it stands on a plinth and on a mountainside the uphill
- * half is simply inside the hill - no terrain flattening, no floating, and the same code for both.
- * The vegetation inside a nine-block radius is cleared (trunks and leaves only, never the ground),
- * so a wood gets a small clearing round it rather than a tower with a spruce growing through the
- * study.</p>
- */
 public class MageTowerPiece extends LocalPiece {
     public static final ResourceKey<LootTable> LOOT = ResourceKey.create(Registries.LOOT_TABLE,
             ResourceLocation.fromNamespaceAndPath(WakingWorld.MODID, "chests/mage_tower"));
@@ -145,7 +134,10 @@ public class MageTowerPiece extends LocalPiece {
     private static boolean well(double d, double a, int dy) {
         for (int f : FLOORS) {
             if (dy != f) continue;
-            return d >= STAIR_LO && d <= STAIR_HI && arc(a, stepAngle(f) - 45) <= 32;
+            // the well is the quarter-turn of stair ahead of the landing, a little wider than the treads
+            if (d < 3.0 || d > 5.4) return false;
+            long turn = Math.floorMod(Math.round(stepAngle(f) - a), 360L);
+            return turn >= 22 && turn <= 88;
         }
         return false;
     }

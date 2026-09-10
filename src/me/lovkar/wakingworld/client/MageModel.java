@@ -14,25 +14,8 @@ import net.minecraft.client.model.geom.builders.PartDefinition;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
-/**
- * The mage, built rather than skinned.
- *
- * <p>He could have been a humanoid model in a robe texture like the kingdom's people, and he would
- * have been forgettable. He is the only person in the mod you can choose to fight, so he is worth
- * the geometry: a deep hood with nothing in it but two lights, a mantle across the shoulders, sleeves
- * that widen into cuffs so the hands read as hands from across a room, a robe that falls into a hem
- * wide enough to hide that he has no feet, a cloak that swings, a staff with a crystal that turns on
- * its own above the head of it, and a rune stone that orbits his free hand and never stops.</p>
- *
- * <p>Two things carry the whole performance. The <b>cast</b> value comes down from the server as he
- * winds up a spell: the arms come up, the staff drops level, the crystal spins faster and the cloak
- * lifts - so a player can see a spell coming and get out of the way, which is what makes the fight
- * a fight rather than a damage race. And the <b>hover</b>: he is never quite still, because a thing
- * that is never quite still is alive.</p>
- */
 public class MageModel extends HierarchicalModel<MageEntity> {
-    public static final ModelLayerLocation LAYER =
-            new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(WakingWorld.MODID, "dark_mage"), "main");
+    public static final ModelLayerLocation LAYER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath("wakingworld", "dark_mage"), "main");
 
     private final ModelPart root, head, body, mantle, skirt, hem, cloak, rightArm, leftArm, staff, crystal, orb;
 
@@ -143,5 +126,51 @@ public class MageModel extends HierarchicalModel<MageEntity> {
         orb.y = 7.0F + Mth.sin(age * 0.11F) * 1.1F - cast * 3.0F;
         orb.yRot = t * 1.7F;
         orb.xRot = t * 1.1F;
+        faces(mage, age, breath, sway);
+    }
+
+    private void faces(MageEntity var1, float var2, float var3, float var4) {
+        int var5 = Math.max(1, Math.min(4, var1.stage()));
+        float var6 = var1.changing();
+        float var7 = var1.shrinking();
+        float var8 = var5 <= 1 ? 0.0F : (float)(var5 - 1) / 3.0F;
+        float var9 = var6 > 0.0F ? Mth.sin(var6 * (float) Math.PI) : 0.0F;
+        float var10 = Math.min(1.6F, var8 + var9 * 0.9F);
+        float var11 = 1.0F - var7;
+        float var12 = var5 == 1 && var6 <= 0.0F ? 0.06F : 0.0F;
+        this.body.xRot += var12;
+        this.body.y = -var10 * 0.8F * var11;
+        this.head.y = -(var10 * 3.6F + Mth.sin(var2 * 0.037F) * var10 * 1.2F) * var11;
+        this.head.x = Mth.cos(var2 * 0.019F) * var10 * 0.9F * var11;
+        this.head.xRot += var5 == 1 && var6 <= 0.0F ? 0.07F : -var10 * 0.34F;
+        this.head.zRot = Mth.sin(var2 * 0.023F) * var10 * 0.16F;
+        this.mantle.y = -0.5F - var10 * 1.6F * var11;
+        this.mantle.zRot = Mth.sin(var2 * 0.041F) * var10 * 0.2F;
+        this.mantle.yRot = var2 * 0.012F * var10;
+        this.skirt.y = 12.5F + var10 * 2.4F * var11;
+        this.skirt.xRot = this.skirt.xRot + Mth.sin(var2 * 0.028F) * var10 * 0.1F;
+        this.hem.y = 6.5F + var10 * 4.0F * var11;
+        this.hem.xRot = this.hem.xRot + Mth.cos(var2 * 0.033F) * var10 * 0.16F;
+        this.hem.zRot = this.hem.zRot + Mth.sin(var2 * 0.026F) * var10 * 0.14F;
+        this.cloak.xRot = this.cloak.xRot + var10 * 0.32F + Mth.sin(var2 * 0.048F) * var10 * 0.18F;
+        float var13 = var10 * 3.4F * var11;
+        this.rightArm.x = -5.5F * var11 - var13;
+        this.leftArm.x = 5.5F * var11 + var13;
+        this.rightArm.y = 1.5F - var10 * 1.2F + Mth.sin(var2 * 0.043F) * var10 * 1.6F;
+        this.leftArm.y = 1.5F - var10 * 1.2F + Mth.sin(var2 * 0.037F + 2.1F) * var10 * 1.6F;
+        this.rightArm.zRot = this.rightArm.zRot + var10 * 0.62F + Mth.sin(var2 * 0.035F) * var10 * 0.22F;
+        this.leftArm.zRot = this.leftArm.zRot - (var10 * 0.62F + Mth.sin(var2 * 0.031F + 1.3F) * var10 * 0.22F);
+        this.rightArm.xRot -= var10 * 0.3F;
+        this.leftArm.xRot -= var10 * 0.24F;
+        this.rightArm.yRot = Mth.sin(var2 * 0.024F) * var10 * 0.5F;
+        this.leftArm.yRot = -Mth.sin(var2 * 0.021F) * var10 * 0.5F;
+        this.staff.z = -2.4F - var10 * 3.0F * var11;
+        this.staff.y = 9.5F - var10 * 2.0F * var11;
+        this.staff.zRot = this.staff.zRot + var10 * 0.5F + Mth.sin(var2 * 0.052F) * var10 * 0.3F;
+        this.staff.yRot = var2 * 0.03F * var10;
+        float var14 = 1.0F + var10 * 1.4F;
+        this.orb.x = (6.5F + Mth.cos(var2 * (0.06F + var10 * 0.09F)) * 2.6F * var14 + var10 * 2.0F) * var11;
+        this.orb.z = (-3.0F + Mth.sin(var2 * (0.06F + var10 * 0.09F)) * 2.6F * var14) * var11;
+        this.orb.y = (7.0F - var10 * 6.0F + Mth.sin(var2 * 0.11F) * 1.1F * var14) * var11;
     }
 }

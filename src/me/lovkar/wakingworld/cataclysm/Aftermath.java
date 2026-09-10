@@ -9,19 +9,10 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
+import me.lovkar.wakingworld.ruin.Ruin;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.world.level.levelgen.Heightmap.Types;
 
-/**
- * What a cataclysm leaves behind.
- *
- * <p>Everything in this package used to be over the moment it stopped: the mountain stood there, the
- * crater sat there, and the rest of the country looked exactly as it had an hour before. A player
- * who missed the event had no way of knowing one had happened. These are the marks - ash downwind of
- * a vent, ground burnt round a strike, a swathe of snapped and stripped country where a tornado
- * walked - and they are what somebody finds days later and goes to look at.</p>
- *
- * <p>All of it is written thinly and at random, one block in a handful rather than a solid carpet:
- * the point is a country that looks as though something happened to it, not a country replaced.</p>
- */
 public final class Aftermath {
     private Aftermath() {
     }
@@ -249,6 +240,7 @@ public final class Aftermath {
                 BlockState state = level.getBlockState(on);
                 if (state.is(BlockTags.CROPS) || state.is(Blocks.MELON) || state.is(Blocks.PUMPKIN)
                         || state.is(Blocks.SUGAR_CANE) || state.is(BlockTags.FLOWERS) || state.is(BlockTags.SAPLINGS)) {
+                    Ruin.mark(level, on);
                     level.destroyBlock(on, false);
                     hit++;
                     continue;

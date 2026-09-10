@@ -19,20 +19,20 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
-
 import java.util.Comparator;
 import java.util.List;
+import java.util.Iterator;
+import java.util.UUID;
+import me.lovkar.wakingworld.particle.WakingParticles;
+import me.lovkar.wakingworld.story.Chronicle;
+import me.lovkar.wakingworld.story.Cinematics;
+import net.minecraft.core.HolderLookup.Provider;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.levelgen.Heightmap.Types;
+import net.minecraft.world.level.saveddata.SavedData.Factory;
+import net.neoforged.neoforge.event.tick.LevelTickEvent.Post;
 
-/**
- * The Cataclysms: the world does not only wake, it answers. This is the scheduler - one per level,
- * saved with the world - and the first of them, the meteor shower.
- *
- * <p><b>The Falling Sky.</b> On a rare night the sky turns and the stars come down. Half a minute
- * of warning (a rumble you feel more than hear, a word in the chat), then two to four minutes of
- * stars falling around whoever is out in the open: each one a burning mass that tears a crater,
- * scorches the ground and leaves its Starstone glowing at the bottom. It never aims at a bed or at
- * the world spawn, and it can be switched off entirely in the config.</p>
- */
 public final class Cataclysms extends SavedData {
     public static final String NAME = "wakingworld_cataclysms";
     private static final Factory<Cataclysms> FACTORY = new Factory<>(Cataclysms::new, Cataclysms::load, null);
@@ -67,6 +67,24 @@ public final class Cataclysms extends SavedData {
         Volcano.onLevelTick(level);
         BloodMoon.onLevelTick(level);
         Weather.onLevelTick(level);
+    }
+
+    public static void ring(ServerLevel var0, int var1, float var2, double var3, double var5, double var7) {
+        ring(var0, var1, var2, var3, var5, var7, 0.45);
+    }
+
+    public static void ring(ServerLevel var0, int var1, float var2, double var3, double var5, double var7, double var9) {
+        puff(var0, WakingParticles.ring(var1, var2 / 3.0F), var3, var5, var7, 0, 0.0, var9, 0.0, 1.0);
+    }
+
+    public static void runes(ServerLevel var0, int var1, float var2, double var3, double var5, double var7, int var9, double var10, double var12, double var14) {
+        puff(var0, WakingParticles.rune(var1, var2), var3, var5, var7, var9, var10, var12, var14, 0.02);
+    }
+
+    public static void embers(
+        ServerLevel var0, int var1, float var2, double var3, double var5, double var7, int var9, double var10, double var12, double var14, double var16
+    ) {
+        puff(var0, WakingParticles.ember(var1, var2), var3, var5, var7, var9, var10, var12, var14, var16);
     }
 
     /**
@@ -278,6 +296,8 @@ public final class Cataclysms extends SavedData {
     public static MeteorEntity fall(ServerLevel level, Vec3 at, int size, boolean carriesStar) {
         hold(level, at);
         MeteorEntity meteor = new MeteorEntity(WakingWorld.METEOR.get(), level);
+        // a lone star (nobody else's scar open) writes its own record, so the crater is remembered
+        if (scarOf(level) == null) meteor.ownScar(Scars.begin(level, BlockPos.containing(at), "a falling star"));
         meteor.setSize(size);
         meteor.setCarriesStar(carriesStar);
         meteor.aimAt(at, 110 + level.random.nextInt(40), 20 + level.random.nextInt(24), 2.6 + size * 0.3);

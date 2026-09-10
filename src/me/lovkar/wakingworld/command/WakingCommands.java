@@ -11,6 +11,8 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -18,117 +20,658 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.UUID;
+import java.util.Map.Entry;
+import java.util.function.Predicate;
+import me.lovkar.wakingworld.cataclysm.BloodMoon;
+import me.lovkar.wakingworld.cataclysm.Cataclysms;
+import me.lovkar.wakingworld.cataclysm.TornadoEntity;
+import me.lovkar.wakingworld.cataclysm.Unrest;
+import me.lovkar.wakingworld.cataclysm.Volcano;
+import me.lovkar.wakingworld.cataclysm.Weather;
+import me.lovkar.wakingworld.entity.RubbleEntity;
+import me.lovkar.wakingworld.kingdom.KingdomBuild;
+import me.lovkar.wakingworld.kingdom.KingdomData;
+import me.lovkar.wakingworld.kingdom.KingdomExpansion;
+import me.lovkar.wakingworld.kingdom.KingdomGrowth;
+import me.lovkar.wakingworld.kingdom.KingdomRepair;
+import me.lovkar.wakingworld.kingdom.KingdomSiege;
+import me.lovkar.wakingworld.kingdom.KingdomStructure;
+import me.lovkar.wakingworld.kingdom.Kingdoms;
+import me.lovkar.wakingworld.land.Lands;
+import me.lovkar.wakingworld.ritual.AltarBlockEntity;
+import me.lovkar.wakingworld.ruin.FightRecord;
+import me.lovkar.wakingworld.ruin.RuinLedger;
+import me.lovkar.wakingworld.story.Cinematics;
+import me.lovkar.wakingworld.story.GeminiLetters;
+import me.lovkar.wakingworld.story.Letters;
+import me.lovkar.wakingworld.supporter.SupporterCosmetics;
+import me.lovkar.wakingworld.worldgen.Terrain;
+import me.lovkar.wakingworld.worldgen.Tidy;
+import net.minecraft.ChatFormatting;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.Filterable;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.component.WrittenBookContent;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.entity.EntityTypeTest;
+import net.minecraft.world.level.levelgen.Heightmap.Types;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.Structure.GenerationContext;
 
-/**
- * /wakingworld summon [variant] [height] [instant] - a colossus rises out of the ground in front of the caller
- * (6 s of awakening; "instant" skips it).
- * /wakingworld kill - removes every colossus in the caller's dimension.
- * Development commands; the real giants will come out of the ground at their shrines.
- */
 public final class WakingCommands {
     private WakingCommands() {
     }
 
-    public static void register(RegisterCommandsEvent event) {
-        CommandDispatcher<CommandSourceStack> d = event.getDispatcher();
-        d.register(Commands.literal("wakingworld")
-                .requires(s -> s.hasPermission(2))
-                .then(Commands.literal("summon")
-                        .executes(ctx -> summon(ctx, "terrain", ColossusEntity.DEFAULT_HEIGHT, false))
-                        .then(Commands.argument("variant", StringArgumentType.word())
-                                .suggests((ctx, builder) -> {
-                                    List<String> names = new ArrayList<>(Palette.presetNames());
-                                    names.add(0, "terrain");
-                                    return SharedSuggestionProvider.suggest(names, builder);
-                                })
-                                .executes(ctx -> summon(ctx, StringArgumentType.getString(ctx, "variant"), ColossusEntity.DEFAULT_HEIGHT, false))
-                                .then(Commands.argument("height", IntegerArgumentType.integer(8, 96))
-                                        .executes(ctx -> summon(ctx, StringArgumentType.getString(ctx, "variant"),
-                                                IntegerArgumentType.getInteger(ctx, "height"), false))
-                                        .then(Commands.literal("instant")
-                                                .executes(ctx -> summon(ctx, StringArgumentType.getString(ctx, "variant"),
-                                                        IntegerArgumentType.getInteger(ctx, "height"), true))))))
-                .then(Commands.literal("kill").executes(WakingCommands::killAll))
-                .then(Commands.literal("meteor").executes(ctx -> meteor(ctx, null, 2))
-                        .then(Commands.argument("at", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
-                                .executes(ctx -> meteor(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"), 2))
-                                .then(Commands.argument("size", IntegerArgumentType.integer(1, 3))
-                                        .executes(ctx -> meteor(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"),
-                                                IntegerArgumentType.getInteger(ctx, "size"))))))
-                .then(Commands.literal("shower").executes(WakingCommands::shower))
-                .then(Commands.literal("unrest").executes(WakingCommands::unrest)
-                        .then(Commands.literal("stir").executes(ctx -> stir(ctx, 1.0))))
-                .then(Commands.literal("lands").executes(WakingCommands::lands)
-                        .then(Commands.literal("name").executes(ctx -> nameLand(ctx, null))
-                                .then(Commands.argument("at", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
-                                        .executes(ctx -> nameLand(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"))))))
-                .then(Commands.literal("tornado").executes(ctx -> tornado(ctx, null, 0))
-                        .then(Commands.argument("at", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
-                                .executes(ctx -> tornado(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"), 0))
-                                .then(Commands.argument("seconds", com.mojang.brigadier.arguments.IntegerArgumentType.integer(5, 1200))
-                                        .executes(ctx -> tornado(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"),
-                                                com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "seconds"))))))
-                .then(Commands.literal("earthquake").executes(ctx -> earthquake(ctx, null))
-                        .then(Commands.argument("at", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
-                                .executes(ctx -> earthquake(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at")))))
-                .then(Commands.literal("bloodmoon")
-                        .then(Commands.literal("on").executes(ctx -> bloodMoon(ctx, true)))
-                        .then(Commands.literal("off").executes(ctx -> bloodMoon(ctx, false)))
-                        .then(Commands.literal("wave").executes(ctx -> bloodWave(ctx, 6))
-                                .then(Commands.argument("count", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 40))
-                                        .executes(ctx -> bloodWave(ctx, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "count"))))))
-                .then(Commands.literal("volcano").executes(ctx -> volcano(ctx, null, 0, 0))
-                        .then(Commands.argument("at", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
-                                .executes(ctx -> volcano(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"), 0, 0))
-                                .then(Commands.argument("height", com.mojang.brigadier.arguments.IntegerArgumentType.integer(6, 120))
-                                        .executes(ctx -> volcano(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"),
-                                                com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "height"), 0))
-                                        .then(Commands.argument("foot", com.mojang.brigadier.arguments.IntegerArgumentType.integer(6, 48))
-                                                .executes(ctx -> volcano(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"),
-                                                        com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "height"),
-                                                        com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "foot")))
-                                                .then(Commands.argument("seconds", com.mojang.brigadier.arguments.IntegerArgumentType.integer(8, 600))
-                                                        .executes(ctx -> volcano(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getSpawnablePos(ctx, "at"),
-                                                                com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "height"),
-                                                                com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "foot"),
-                                                                com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "seconds"))))))))
-                .then(Commands.literal("restore").executes(WakingCommands::restore))
-                .then(Commands.literal("target").then(Commands.argument("who", net.minecraft.commands.arguments.EntityArgument.entity())
-                        .executes(ctx -> target(ctx, net.minecraft.commands.arguments.EntityArgument.getEntity(ctx, "who")))))
-                .then(Commands.literal("snapshot").then(Commands.argument("from", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
-                        .then(Commands.argument("to", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
-                                .executes(ctx -> snapshot(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getLoadedBlockPos(ctx, "from"),
-                                        net.minecraft.commands.arguments.coordinates.BlockPosArgument.getLoadedBlockPos(ctx, "to"))))))
-                .then(Commands.literal("diff").executes(WakingCommands::diff))
-                .then(Commands.literal("site").executes(ctx -> site(ctx, 70, 260))
-                        .then(Commands.argument("maxOut", IntegerArgumentType.integer(16, 2000))
-                                .executes(ctx -> site(ctx, 0, IntegerArgumentType.getInteger(ctx, "maxOut")))))
-                .then(Commands.literal("cine").then(Commands.argument("scene", com.mojang.brigadier.arguments.StringArgumentType.word())
-                        .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(new String[]{"shrine", "rite", "fight", "kingdom", "titan", "all",
-                                "lands", "tornado", "earthquake", "volcano", "meteor", "bloodmoon", "cataclysms", "stop"}, b))
-                        .executes(ctx -> cine(ctx, com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "scene"), me.lovkar.wakingworld.story.Cinematics.DEFAULT_RENDER_DISTANCE))
-                        .then(Commands.argument("renderDistance", IntegerArgumentType.integer(4, 24))
-                                .executes(ctx -> cine(ctx, com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "scene"), IntegerArgumentType.getInteger(ctx, "renderDistance"))))))
-                .then(Commands.literal("letter").executes(WakingCommands::letter)
-                        .then(Commands.literal("gemini").executes(WakingCommands::letterGemini)))
-                .then(Commands.literal("dump").then(Commands.argument("from", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
-                        .then(Commands.argument("to", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
-                                .executes(ctx -> dump(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getLoadedBlockPos(ctx, "from"),
-                                        net.minecraft.commands.arguments.coordinates.BlockPosArgument.getLoadedBlockPos(ctx, "to"))))))
-                .then(Commands.literal("rite").then(Commands.argument("altar", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
-                        .executes(ctx -> rite(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getLoadedBlockPos(ctx, "altar")))))
-                .then(Commands.literal("terrain").then(Commands.argument("at", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
-                        .executes(ctx -> terrain(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getBlockPos(ctx, "at")))))
-                .then(Commands.literal("tidy").executes(ctx -> tidy(ctx, 62))
-                        .then(Commands.argument("radius", com.mojang.brigadier.arguments.IntegerArgumentType.integer(8, 128))
-                                .executes(ctx -> tidy(ctx, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "radius")))))
-                .then(Commands.literal("kingdomscan").then(Commands.argument("at", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
-                        .then(Commands.argument("cells", IntegerArgumentType.integer(1, 40))
-                                .executes(ctx -> kingdomScan(ctx, net.minecraft.commands.arguments.coordinates.BlockPosArgument.getBlockPos(ctx, "at"), IntegerArgumentType.getInteger(ctx, "cells")))))));
+    public static void register(RegisterCommandsEvent var0) {
+        CommandDispatcher var1 = var0.getDispatcher();
+        var1.register(
+            (LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)Commands.literal(
+                                                                                                                    "wakingworld"
+                                                                                                                )
+                                                                                                                .requires(var0x -> var0x.hasPermission(2)))
+                                                                                                            .then(
+                                                                                                                ((LiteralArgumentBuilder)Commands.literal(
+                                                                                                                            "summon"
+                                                                                                                        )
+                                                                                                                        .executes(
+                                                                                                                            var0x -> summon(
+                                                                                                                                    var0x, "terrain", 40, false
+                                                                                                                                )
+                                                                                                                        ))
+                                                                                                                    .then(
+                                                                                                                        ((RequiredArgumentBuilder)Commands.argument(
+                                                                                                                                    "variant",
+                                                                                                                                    StringArgumentType.word()
+                                                                                                                                )
+                                                                                                                                .suggests((var0x, var1x) -> {
+                                                                                                                                    ArrayList var2 = new ArrayList<>(
+                                                                                                                                        Palette.presetNames()
+                                                                                                                                    );
+                                                                                                                                    var2.add(0, "terrain");
+                                                                                                                                    return SharedSuggestionProvider.suggest(
+                                                                                                                                        var2, var1x
+                                                                                                                                    );
+                                                                                                                                })
+                                                                                                                                .executes(
+                                                                                                                                    var0x -> summon(
+                                                                                                                                            var0x,
+                                                                                                                                            StringArgumentType.getString(
+                                                                                                                                                var0x,
+                                                                                                                                                "variant"
+                                                                                                                                            ),
+                                                                                                                                            40,
+                                                                                                                                            false
+                                                                                                                                        )
+                                                                                                                                ))
+                                                                                                                            .then(
+                                                                                                                                ((RequiredArgumentBuilder)Commands.argument(
+                                                                                                                                            "height",
+                                                                                                                                            IntegerArgumentType.integer(
+                                                                                                                                                8, 96
+                                                                                                                                            )
+                                                                                                                                        )
+                                                                                                                                        .executes(
+                                                                                                                                            var0x -> summon(
+                                                                                                                                                    var0x,
+                                                                                                                                                    StringArgumentType.getString(
+                                                                                                                                                        var0x,
+                                                                                                                                                        "variant"
+                                                                                                                                                    ),
+                                                                                                                                                    IntegerArgumentType.getInteger(
+                                                                                                                                                        var0x,
+                                                                                                                                                        "height"
+                                                                                                                                                    ),
+                                                                                                                                                    false
+                                                                                                                                                )
+                                                                                                                                        ))
+                                                                                                                                    .then(
+                                                                                                                                        Commands.literal(
+                                                                                                                                                "instant"
+                                                                                                                                            )
+                                                                                                                                            .executes(
+                                                                                                                                                var0x -> summon(
+                                                                                                                                                        var0x,
+                                                                                                                                                        StringArgumentType.getString(
+                                                                                                                                                            var0x,
+                                                                                                                                                            "variant"
+                                                                                                                                                        ),
+                                                                                                                                                        IntegerArgumentType.getInteger(
+                                                                                                                                                            var0x,
+                                                                                                                                                            "height"
+                                                                                                                                                        ),
+                                                                                                                                                        true
+                                                                                                                                                    )
+                                                                                                                                            )
+                                                                                                                                    )
+                                                                                                                            )
+                                                                                                                    )
+                                                                                                            ))
+                                                                                                        .then(
+                                                                                                            Commands.literal("kill")
+                                                                                                                .executes(WakingCommands::killAll)
+                                                                                                        ))
+                                                                                                    .then(
+                                                                                                        ((LiteralArgumentBuilder)Commands.literal("meteor")
+                                                                                                                .executes(var0x -> meteor(var0x, null, 2)))
+                                                                                                            .then(
+                                                                                                                ((RequiredArgumentBuilder)Commands.argument(
+                                                                                                                            "at", BlockPosArgument.blockPos()
+                                                                                                                        )
+                                                                                                                        .executes(
+                                                                                                                            var0x -> meteor(
+                                                                                                                                    var0x,
+                                                                                                                                    BlockPosArgument.getSpawnablePos(
+                                                                                                                                        var0x, "at"
+                                                                                                                                    ),
+                                                                                                                                    2
+                                                                                                                                )
+                                                                                                                        ))
+                                                                                                                    .then(
+                                                                                                                        Commands.argument(
+                                                                                                                                "size",
+                                                                                                                                IntegerArgumentType.integer(
+                                                                                                                                    1, 3
+                                                                                                                                )
+                                                                                                                            )
+                                                                                                                            .executes(
+                                                                                                                                var0x -> meteor(
+                                                                                                                                        var0x,
+                                                                                                                                        BlockPosArgument.getSpawnablePos(
+                                                                                                                                            var0x, "at"
+                                                                                                                                        ),
+                                                                                                                                        IntegerArgumentType.getInteger(
+                                                                                                                                            var0x, "size"
+                                                                                                                                        )
+                                                                                                                                    )
+                                                                                                                            )
+                                                                                                                    )
+                                                                                                            )
+                                                                                                    ))
+                                                                                                .then(
+                                                                                                    Commands.literal("shower").executes(WakingCommands::shower)
+                                                                                                ))
+                                                                                            .then(
+                                                                                                ((LiteralArgumentBuilder)Commands.literal("unrest")
+                                                                                                        .executes(WakingCommands::unrest))
+                                                                                                    .then(
+                                                                                                        Commands.literal("stir")
+                                                                                                            .executes(var0x -> stir(var0x, 1.0))
+                                                                                                    )
+                                                                                            ))
+                                                                                        .then(
+                                                                                            ((LiteralArgumentBuilder)Commands.literal("lands")
+                                                                                                    .executes(WakingCommands::lands))
+                                                                                                .then(
+                                                                                                    ((LiteralArgumentBuilder)Commands.literal("name")
+                                                                                                            .executes(var0x -> nameLand(var0x, null)))
+                                                                                                        .then(
+                                                                                                            Commands.argument("at", BlockPosArgument.blockPos())
+                                                                                                                .executes(
+                                                                                                                    var0x -> nameLand(
+                                                                                                                            var0x,
+                                                                                                                            BlockPosArgument.getSpawnablePos(
+                                                                                                                                var0x, "at"
+                                                                                                                            )
+                                                                                                                        )
+                                                                                                                )
+                                                                                                        )
+                                                                                                )
+                                                                                        ))
+                                                                                    .then(
+                                                                                        ((LiteralArgumentBuilder)Commands.literal("tornado")
+                                                                                                .executes(var0x -> tornado(var0x, null, 0)))
+                                                                                            .then(
+                                                                                                ((RequiredArgumentBuilder)Commands.argument(
+                                                                                                            "at", BlockPosArgument.blockPos()
+                                                                                                        )
+                                                                                                        .executes(
+                                                                                                            var0x -> tornado(
+                                                                                                                    var0x,
+                                                                                                                    BlockPosArgument.getSpawnablePos(
+                                                                                                                        var0x, "at"
+                                                                                                                    ),
+                                                                                                                    0
+                                                                                                                )
+                                                                                                        ))
+                                                                                                    .then(
+                                                                                                        Commands.argument(
+                                                                                                                "seconds", IntegerArgumentType.integer(5, 1200)
+                                                                                                            )
+                                                                                                            .executes(
+                                                                                                                var0x -> tornado(
+                                                                                                                        var0x,
+                                                                                                                        BlockPosArgument.getSpawnablePos(
+                                                                                                                            var0x, "at"
+                                                                                                                        ),
+                                                                                                                        IntegerArgumentType.getInteger(
+                                                                                                                            var0x, "seconds"
+                                                                                                                        )
+                                                                                                                    )
+                                                                                                            )
+                                                                                                    )
+                                                                                            )
+                                                                                    ))
+                                                                                .then(
+                                                                                    ((LiteralArgumentBuilder)Commands.literal("earthquake")
+                                                                                            .executes(var0x -> earthquake(var0x, null)))
+                                                                                        .then(
+                                                                                            Commands.argument("at", BlockPosArgument.blockPos())
+                                                                                                .executes(
+                                                                                                    var0x -> earthquake(
+                                                                                                            var0x,
+                                                                                                            BlockPosArgument.getSpawnablePos(var0x, "at")
+                                                                                                        )
+                                                                                                )
+                                                                                        )
+                                                                                ))
+                                                                            .then(
+                                                                                ((LiteralArgumentBuilder)((LiteralArgumentBuilder)Commands.literal("bloodmoon")
+                                                                                            .then(
+                                                                                                Commands.literal("on")
+                                                                                                    .executes(var0x -> bloodMoon(var0x, true))
+                                                                                            ))
+                                                                                        .then(
+                                                                                            Commands.literal("off").executes(var0x -> bloodMoon(var0x, false))
+                                                                                        ))
+                                                                                    .then(
+                                                                                        ((LiteralArgumentBuilder)Commands.literal("wave")
+                                                                                                .executes(var0x -> bloodWave(var0x, 6)))
+                                                                                            .then(
+                                                                                                Commands.argument("count", IntegerArgumentType.integer(1, 40))
+                                                                                                    .executes(
+                                                                                                        var0x -> bloodWave(
+                                                                                                                var0x,
+                                                                                                                IntegerArgumentType.getInteger(var0x, "count")
+                                                                                                            )
+                                                                                                    )
+                                                                                            )
+                                                                                    )
+                                                                            ))
+                                                                        .then(
+                                                                            ((LiteralArgumentBuilder)Commands.literal("volcano")
+                                                                                    .executes(var0x -> volcano(var0x, null, 0, 0)))
+                                                                                .then(
+                                                                                    ((RequiredArgumentBuilder)Commands.argument(
+                                                                                                "at", BlockPosArgument.blockPos()
+                                                                                            )
+                                                                                            .executes(
+                                                                                                var0x -> volcano(
+                                                                                                        var0x,
+                                                                                                        BlockPosArgument.getSpawnablePos(var0x, "at"),
+                                                                                                        0,
+                                                                                                        0
+                                                                                                    )
+                                                                                            ))
+                                                                                        .then(
+                                                                                            ((RequiredArgumentBuilder)Commands.argument(
+                                                                                                        "height", IntegerArgumentType.integer(6, 120)
+                                                                                                    )
+                                                                                                    .executes(
+                                                                                                        var0x -> volcano(
+                                                                                                                var0x,
+                                                                                                                BlockPosArgument.getSpawnablePos(var0x, "at"),
+                                                                                                                IntegerArgumentType.getInteger(var0x, "height"),
+                                                                                                                0
+                                                                                                            )
+                                                                                                    ))
+                                                                                                .then(
+                                                                                                    ((RequiredArgumentBuilder)Commands.argument(
+                                                                                                                "foot", IntegerArgumentType.integer(6, 48)
+                                                                                                            )
+                                                                                                            .executes(
+                                                                                                                var0x -> volcano(
+                                                                                                                        var0x,
+                                                                                                                        BlockPosArgument.getSpawnablePos(
+                                                                                                                            var0x, "at"
+                                                                                                                        ),
+                                                                                                                        IntegerArgumentType.getInteger(
+                                                                                                                            var0x, "height"
+                                                                                                                        ),
+                                                                                                                        IntegerArgumentType.getInteger(
+                                                                                                                            var0x, "foot"
+                                                                                                                        )
+                                                                                                                    )
+                                                                                                            ))
+                                                                                                        .then(
+                                                                                                            Commands.argument(
+                                                                                                                    "seconds",
+                                                                                                                    IntegerArgumentType.integer(8, 600)
+                                                                                                                )
+                                                                                                                .executes(
+                                                                                                                    var0x -> volcano(
+                                                                                                                            var0x,
+                                                                                                                            BlockPosArgument.getSpawnablePos(
+                                                                                                                                var0x, "at"
+                                                                                                                            ),
+                                                                                                                            IntegerArgumentType.getInteger(
+                                                                                                                                var0x, "height"
+                                                                                                                            ),
+                                                                                                                            IntegerArgumentType.getInteger(
+                                                                                                                                var0x, "foot"
+                                                                                                                            ),
+                                                                                                                            IntegerArgumentType.getInteger(
+                                                                                                                                var0x, "seconds"
+                                                                                                                            )
+                                                                                                                        )
+                                                                                                                )
+                                                                                                        )
+                                                                                                )
+                                                                                        )
+                                                                                )
+                                                                        ))
+                                                                    .then(Commands.literal("restore").executes(WakingCommands::restore)))
+                                                                .then(
+                                                                    Commands.literal("target")
+                                                                        .then(
+                                                                            Commands.argument("who", EntityArgument.entity())
+                                                                                .executes(var0x -> target(var0x, EntityArgument.getEntity(var0x, "who")))
+                                                                        )
+                                                                ))
+                                                            .then(
+                                                                Commands.literal("snapshot")
+                                                                    .then(
+                                                                        Commands.argument("from", BlockPosArgument.blockPos())
+                                                                            .then(
+                                                                                Commands.argument("to", BlockPosArgument.blockPos())
+                                                                                    .executes(
+                                                                                        var0x -> snapshot(
+                                                                                                var0x,
+                                                                                                BlockPosArgument.getLoadedBlockPos(var0x, "from"),
+                                                                                                BlockPosArgument.getLoadedBlockPos(var0x, "to")
+                                                                                            )
+                                                                                    )
+                                                                            )
+                                                                    )
+                                                            ))
+                                                        .then(Commands.literal("diff").executes(WakingCommands::diff)))
+                                                    .then(
+                                                        ((LiteralArgumentBuilder)Commands.literal("site").executes(var0x -> site(var0x, 70, 260)))
+                                                            .then(
+                                                                Commands.argument("maxOut", IntegerArgumentType.integer(16, 2000))
+                                                                    .executes(var0x -> site(var0x, 0, IntegerArgumentType.getInteger(var0x, "maxOut")))
+                                                            )
+                                                    ))
+                                                .then(
+                                                    Commands.literal("cine")
+                                                        .then(
+                                                            ((RequiredArgumentBuilder)Commands.argument("scene", StringArgumentType.word())
+                                                                    .suggests(
+                                                                        (var0x, var1x) -> SharedSuggestionProvider.suggest(
+                                                                                new String[]{
+                                                                                    "shrine",
+                                                                                    "rite",
+                                                                                    "fight",
+                                                                                    "kingdom",
+                                                                                    "titan",
+                                                                                    "all",
+                                                                                    "lands",
+                                                                                    "tornado",
+                                                                                    "earthquake",
+                                                                                    "volcano",
+                                                                                    "meteor",
+                                                                                    "bloodmoon",
+                                                                                    "cataclysms",
+                                                                                    "stop"
+                                                                                },
+                                                                                var1x
+                                                                            )
+                                                                    )
+                                                                    .executes(var0x -> cine(var0x, StringArgumentType.getString(var0x, "scene"), 24)))
+                                                                .then(
+                                                                    Commands.argument("renderDistance", IntegerArgumentType.integer(4, 24))
+                                                                        .executes(
+                                                                            var0x -> cine(
+                                                                                    var0x,
+                                                                                    StringArgumentType.getString(var0x, "scene"),
+                                                                                    IntegerArgumentType.getInteger(var0x, "renderDistance")
+                                                                                )
+                                                                        )
+                                                                )
+                                                        )
+                                                ))
+                                            .then(
+                                                ((LiteralArgumentBuilder)Commands.literal("letter").executes(WakingCommands::letter))
+                                                    .then(Commands.literal("gemini").executes(WakingCommands::letterGemini))
+                                            ))
+                                        .then(
+                                            Commands.literal("dump")
+                                                .then(
+                                                    Commands.argument("from", BlockPosArgument.blockPos())
+                                                        .then(
+                                                            Commands.argument("to", BlockPosArgument.blockPos())
+                                                                .executes(
+                                                                    var0x -> dump(
+                                                                            var0x,
+                                                                            BlockPosArgument.getLoadedBlockPos(var0x, "from"),
+                                                                            BlockPosArgument.getLoadedBlockPos(var0x, "to")
+                                                                        )
+                                                                )
+                                                        )
+                                                )
+                                        ))
+                                    .then(
+                                        Commands.literal("rite")
+                                            .then(
+                                                Commands.argument("altar", BlockPosArgument.blockPos())
+                                                    .executes(var0x -> rite(var0x, BlockPosArgument.getLoadedBlockPos(var0x, "altar")))
+                                            )
+                                    ))
+                                .then(
+                                    Commands.literal("terrain")
+                                        .then(
+                                            Commands.argument("at", BlockPosArgument.blockPos())
+                                                .executes(var0x -> terrain(var0x, BlockPosArgument.getBlockPos(var0x, "at")))
+                                        )
+                                ))
+                            .then(
+                                ((LiteralArgumentBuilder)Commands.literal("tidy").executes(var0x -> tidy(var0x, 62)))
+                                    .then(
+                                        Commands.argument("radius", IntegerArgumentType.integer(8, 128))
+                                            .executes(var0x -> tidy(var0x, IntegerArgumentType.getInteger(var0x, "radius")))
+                                    )
+                            ))
+                        .then(
+                            ((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)Commands.literal("kingdom")
+                                                .executes(var0x -> kingdomReport(var0x, null, null)))
+                                            .then(
+                                                Commands.literal("standing")
+                                                    .then(
+                                                        Commands.argument("value", IntegerArgumentType.integer(-100, 100))
+                                                            .executes(var0x -> kingdomReport(var0x, null, IntegerArgumentType.getInteger(var0x, "value")))
+                                                    )
+                                            ))
+                                        .then(Commands.literal("repair").executes(var0x -> kingdomRepair(var0x, null))))
+                                    .then(
+                                        ((LiteralArgumentBuilder)Commands.literal("build").executes(var0x -> kingdomBuild(var0x, 20000)))
+                                            .then(
+                                                Commands.argument("blocks", IntegerArgumentType.integer(1, 200000))
+                                                    .executes(var0x -> kingdomBuild(var0x, IntegerArgumentType.getInteger(var0x, "blocks")))
+                                            )
+                                    ))
+                                .then(
+                                    ((RequiredArgumentBuilder)((RequiredArgumentBuilder)((RequiredArgumentBuilder)Commands.argument(
+                                                        "at", BlockPosArgument.blockPos()
+                                                    )
+                                                    .executes(var0x -> kingdomReport(var0x, BlockPosArgument.getBlockPos(var0x, "at"), null)))
+                                                .then(
+                                                    Commands.literal("repair")
+                                                        .executes(var0x -> kingdomRepair(var0x, BlockPosArgument.getBlockPos(var0x, "at")))
+                                                ))
+                                            .then(Commands.literal("engine").executes(var0x -> kingdomEngine(var0x, BlockPosArgument.getBlockPos(var0x, "at")))))
+                                        .then(
+                                            Commands.literal("standing")
+                                                .then(
+                                                    Commands.argument("value", IntegerArgumentType.integer(-100, 100))
+                                                        .executes(
+                                                            var0x -> kingdomReport(
+                                                                    var0x,
+                                                                    BlockPosArgument.getBlockPos(var0x, "at"),
+                                                                    IntegerArgumentType.getInteger(var0x, "value")
+                                                                )
+                                                        )
+                                                )
+                                        )
+                                )
+                        ))
+                    .then(
+                        Commands.literal("bombard")
+                            .then(
+                                Commands.argument("at", BlockPosArgument.blockPos())
+                                    .executes(
+                                        var0x -> {
+                                            ServerLevel var1x = ((CommandSourceStack)var0x.getSource()).getLevel();
+                                            BlockPos var2 = BlockPosArgument.getBlockPos(var0x, "at");
+                                            boolean var3 = KingdomSiege.callAt(
+                                                var1x,
+                                                ((CommandSourceStack)var0x.getSource()).getEntity() instanceof ServerPlayer var4 ? var4 : null,
+                                                Vec3.atCenterOf(var2)
+                                            );
+                                            ((CommandSourceStack)var0x.getSource())
+                                                .sendSuccess(() -> Component.literal(var3 ? "the engines answer" : "nobody answers"), true);
+                                            return var3 ? 1 : 0;
+                                        }
+                                    )
+                            )
+                    ))
+                .then(
+                    Commands.literal("kingdomscan")
+                        .then(
+                            Commands.argument("at", BlockPosArgument.blockPos())
+                                .then(
+                                    Commands.argument("cells", IntegerArgumentType.integer(1, 40))
+                                        .executes(
+                                            var0x -> kingdomScan(
+                                                    var0x, BlockPosArgument.getBlockPos(var0x, "at"), IntegerArgumentType.getInteger(var0x, "cells")
+                                                )
+                                        )
+                                )
+                        )
+                )
+        );
+    }
+
+    private static int kingdomReport(CommandContext<CommandSourceStack> var0, BlockPos var1, Integer var2) {
+        ServerLevel var3 = ((CommandSourceStack)var0.getSource()).getLevel();
+        BlockPos var4 = var1 != null ? var1 : BlockPos.containing(((CommandSourceStack)var0.getSource()).getPosition());
+        KingdomData var5 = KingdomData.get(var3);
+        KingdomData.Kingdom var6 = var5.kingdomAt(var4);
+        if (var6 == null) {
+            double var7 = Double.MAX_VALUE;
+
+            for (KingdomData.Kingdom var10 : var5.all()) {
+                double var11 = var10.center.distSqr(var4);
+                if (var11 < var7) {
+                    var7 = var11;
+                    var6 = var10;
+                }
+            }
+        }
+
+        if (var6 == null) {
+            ((CommandSourceStack)var0.getSource()).sendFailure(Component.literal("no kingdom is known in this world yet"));
+            return 0;
+        } else {
+            if (var2 != null) {
+                BlockPos var13 = var6.center;
+                var5.moveStanding(var13, var2 - var6.standing);
+                List var8 = var3.getPlayers(var1x -> var1x.distanceToSqr((double)var13.getX() + 0.5, var1x.getY(), (double)var13.getZ() + 0.5) < 48400.0);
+                KingdomGrowth.review(var3, var5, var6, var8);
+                var6.reviewedAt = var3.getGameTime();
+                var5.setDirty();
+            }
+
+            List var14 = KingdomGrowth.heldNames(var3, var6);
+            KingdomData.Kingdom var15 = var6;
+            ((CommandSourceStack)var0.getSource())
+                .sendSuccess(
+                    () -> Component.literal(
+                            Kingdoms.name(var15.center)
+                                + " at "
+                                + var15.center.toShortString()
+                                + "  standing "
+                                + var15.standing
+                                + "  tier "
+                                + var15.tier
+                                + " (dressed "
+                                + var15.dressed
+                                + ")  king "
+                                + (var15.kingDead ? "dead" : Kingdoms.kingName(var15.center, var15.generation))
+                                + "  works "
+                                + var15.works.size()
+                                + "/"
+                                + KingdomExpansion.wanted(var15.tier)
+                                + "  holds "
+                                + (var14.isEmpty() ? "nothing named yet" : String.join(", ", var14))
+                        ),
+                    false
+                );
+            return 1;
+        }
+    }
+
+    private static int kingdomBuild(CommandContext<CommandSourceStack> var0, int var1) {
+        ServerLevel var2 = ((CommandSourceStack)var0.getSource()).getLevel();
+        int var3 = KingdomBuild.pending();
+        int var4 = KingdomBuild.drain(var2, var1);
+        int var5 = KingdomBuild.pending();
+        ((CommandSourceStack)var0.getSource())
+            .sendSuccess(() -> Component.literal("masons: laid " + var4 + " of " + var3 + " blocks, " + var5 + " still to go"), false);
+        return 1;
+    }
+
+    private static int kingdomEngine(CommandContext<CommandSourceStack> var0, BlockPos var1) {
+        ServerLevel var2 = ((CommandSourceStack)var0.getSource()).getLevel();
+        boolean var3 = KingdomExpansion.engine(var2, var1);
+        ((CommandSourceStack)var0.getSource())
+            .sendSuccess(() -> Component.literal(var3 ? "engine raised at " + var1.toShortString() : "no kingdom owns " + var1.toShortString()), true);
+        return var3 ? 1 : 0;
+    }
+
+    private static int kingdomRepair(CommandContext<CommandSourceStack> var0, BlockPos var1) {
+        ServerLevel var2 = ((CommandSourceStack)var0.getSource()).getLevel();
+        BlockPos var3 = var1 != null ? var1 : BlockPos.containing(((CommandSourceStack)var0.getSource()).getPosition());
+        KingdomData var4 = KingdomData.get(var2);
+        KingdomData.Kingdom var5 = var4.kingdomAt(var3);
+        if (var5 == null) {
+            double var6 = Double.MAX_VALUE;
+
+            for (KingdomData.Kingdom var9 : var4.all()) {
+                double var10 = var9.center.distSqr(var3);
+                if (var10 < var6) {
+                    var6 = var10;
+                    var5 = var9;
+                }
+            }
+        }
+
+        if (var5 == null) {
+            ((CommandSourceStack)var0.getSource()).sendFailure(Component.literal("no kingdom is known in this world yet"));
+            return 0;
+        } else {
+            int var12 = KingdomRepair.work(var2, var4, var5, List.of(), 4000);
+            int var7 = KingdomRepair.sweep(var2, var5);
+            KingdomData.Kingdom var13 = var5;
+            ((CommandSourceStack)var0.getSource())
+                .sendSuccess(() -> Component.literal(Kingdoms.name(var13.center) + ": put back " + var12 + " blocks, put out " + var7 + " fires"), false);
+            return 1;
+        }
     }
 
     /** Debug: tries the kingdom's site test on a grid of would-be cells round a point and counts why they fail. */

@@ -27,19 +27,22 @@ import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import me.lovkar.wakingworld.WakingSounds;
+import me.lovkar.wakingworld.item.PocketMageItem;
+import me.lovkar.wakingworld.story.Chronicle;
+import me.lovkar.wakingworld.story.Letters;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier.Builder;
+import net.minecraft.world.item.Item;
 
-/**
- * The king on his throne. He does not move; he talks (right-click opens the audience screen with
- * what he knows of the sleepers, the letters and the vaults), and he can be won over: a Colossus
- * Heart laid before him grants the freedom of the treasury. Strike him and the kingdom is angry
- * for two days; kill him and it never forgets.
- */
 public class KingEntity extends PathfinderMob {
     private static final EntityDataAccessor<Boolean> DATA_ANGRY = SynchedEntityData.defineId(KingEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_PERMITTED = SynchedEntityData.defineId(KingEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<String> DATA_KINGDOM = SynchedEntityData.defineId(KingEntity.class, EntityDataSerializers.STRING);
     /** What the king has heard lately, for the audience screen: {@code type;kind;paces;direction;daysAgo|...}. */
     private static final EntityDataAccessor<String> DATA_NEWS = SynchedEntityData.defineId(KingEntity.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<String> DATA_CHARGE = SynchedEntityData.defineId(KingEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Integer> DATA_GENERATION = SynchedEntityData.defineId(KingEntity.class, EntityDataSerializers.INT);
 
     private BlockPos center = BlockPos.ZERO;
@@ -69,6 +72,7 @@ public class KingEntity extends PathfinderMob {
         builder.define(DATA_PERMITTED, false);
         builder.define(DATA_KINGDOM, "");
         builder.define(DATA_NEWS, "");
+        builder.define(DATA_CHARGE, "");
         builder.define(DATA_GENERATION, 0);
     }
 
@@ -101,6 +105,10 @@ public class KingEntity extends PathfinderMob {
 
     public String kingName() {
         return Kingdoms.kingName(center, generation());
+    }
+
+    public String charge() {
+        return (String)this.entityData.get(DATA_CHARGE);
     }
 
     public String news() {
@@ -137,6 +145,9 @@ public class KingEntity extends PathfinderMob {
         if (level() instanceof ServerLevel server && tickCount % 20 == 0) {
             Player near = server.getNearestPlayer(this, 12);
             KingdomData data = KingdomData.get(server);
+            KingdomData.Kingdom kingdom = data.kingdom(center);
+            if (near != null) KingCharge.open(server, data, kingdom);     // a charge is only ever laid while somebody is here to hear it
+            entityData.set(DATA_CHARGE, KingCharge.describe(server, kingdom));
             entityData.set(DATA_ANGRY, near != null && data.isAngry(server, center, near.getUUID()));
             entityData.set(DATA_PERMITTED, near != null && data.isPermitted(center, near.getUUID()));
             if (near != null && tickCount % 100 == 0) entityData.set(DATA_NEWS, gatherNews(server));
@@ -156,17 +167,35 @@ public class KingEntity extends PathfinderMob {
             if (stack.is(WakingItems.COLOSSUS_HEART.get()) && !data.isPermitted(center, player.getUUID())) {
                 if (!player.isCreative()) stack.shrink(1);
                 data.permit(center, player.getUUID());
+                KingdomGrowth.favour(server, center, 25, "heart");
                 player.displayClientMessage(Component.translatable("entity.wakingworld.king.permit", kingdomName()).withStyle(ChatFormatting.GOLD), false);
                 server.playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_LEVELUP, SoundSource.NEUTRAL, 1.0F, 0.8F);
                 server.sendParticles(ParticleTypes.HAPPY_VILLAGER, getX(), getY() + 1.5, getZ(), 20, 0.6, 0.6, 0.6, 0.1);
                 entityData.set(DATA_PERMITTED, true);
                 return InteractionResult.CONSUME;
             }
+            KingdomData.Kingdom kingdom = data.kingdom(center);
+            KingCharge.open(server, data, kingdom);
+            // a jarred mage handed over goes to the gaol, and settles the charge if that was the charge
+            if (stack.is(WakingItems.POCKET_MAGE.get()) && player instanceof ServerPlayer sp) {
+                if (KingdomGaol.take(server, kingdom, sp, stack)) {
+                    KingCharge.mageSlain(server, PocketMageItem.towerOf(stack), sp);
+                    entityData.set(DATA_CHARGE, KingCharge.describe(server, kingdom));
+                    playSound(me.lovkar.wakingworld.WakingSounds.KING_GREET.get(), 1.0F, 1.0F);
+                }
+                return InteractionResult.CONSUME;
+            }
+            // whatever else is in the hand may be what the king asked for
+            if (player instanceof ServerPlayer sp && KingCharge.deliver(server, kingdom, sp, stack)) {
+                entityData.set(DATA_CHARGE, KingCharge.describe(server, kingdom));
+                return InteractionResult.CONSUME;
+            }
+            entityData.set(DATA_CHARGE, KingCharge.describe(server, kingdom));
             playSound(me.lovkar.wakingworld.WakingSounds.KING_GREET.get(), 1.0F, 1.0F); // the audience begins
             return InteractionResult.SUCCESS;
         }
-        // the client opens the audience - unless the hand holds the heart that buys the treasury (the server takes that)
-        if (!angryWithViewer() && !(stack.is(WakingItems.COLOSSUS_HEART.get()) && !viewerPermitted())) WakingWorld.hooks.openKing(this);
+        // the client opens the audience - unless the hand holds the heart that buys the treasury or a jarred mage (the server takes those)
+        if (!angryWithViewer() && !(stack.is(WakingItems.COLOSSUS_HEART.get()) && !viewerPermitted()) && !stack.is(WakingItems.POCKET_MAGE.get())) WakingWorld.hooks.openKing(this);
         return InteractionResult.SUCCESS;
     }
 

@@ -6,13 +6,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.item.FallingBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import me.lovkar.wakingworld.cataclysm.Scars;
+import net.minecraft.world.entity.EntityType;
 
-/**
- * The pen the fight record is written with. The colossus (and anything it throws) sets the
- * record before it changes the world and clears it afterwards; every place the mod breaks a block
- * calls {@link #mark} first, and every block it sends flying is a {@link RubbleEntity} that
- * remembers whose fight it belongs to and reports where it lands. Server thread only.
- */
 public final class Ruin {
     private Ruin() {
     }
@@ -36,9 +32,11 @@ public final class Ruin {
 
     /** Before a block is changed: remember what stood there (first time only). */
     public static void mark(ServerLevel level, BlockPos pos) {
-        if (active == null) return;
-        active.mark(level, pos);
-        if (ledger != null) ledger.setDirty();
+        if (active != null) {
+            active.mark(level, pos);
+            if (ledger != null) ledger.setDirty();
+        }
+        Scars.mark(level, pos);
     }
 
     /**

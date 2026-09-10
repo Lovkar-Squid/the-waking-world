@@ -13,12 +13,17 @@ import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import me.lovkar.wakingworld.WakingSounds;
+import me.lovkar.wakingworld.mage.MageEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier.Builder;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.level.block.state.BlockState;
 
-/**
- * A Rune Sentinel: a skeleton the old rites bound with runes to keep a door. Armoured in stone,
- * untroubled by daylight, and its arrows carry a spark of the rune - they burn a moment where
- * they land. Keeps the vaults' deeper rooms and the forges.
- */
 public class RuneSentinelEntity extends Skeleton {
     public RuneSentinelEntity(EntityType<? extends Skeleton> type, Level level) {
         super(type, level);
@@ -46,6 +51,20 @@ public class RuneSentinelEntity extends Skeleton {
         arrow.igniteForSeconds(3); // the rune's spark
         arrow.setBaseDamage(arrow.getBaseDamage() + 1.0);
         return arrow;
+    }
+
+    public void setTarget(LivingEntity var1) {
+        if (!(var1 instanceof MageEntity)) {
+            super.setTarget(var1);
+        }
+    }
+
+    public boolean isAlliedTo(Entity var1) {
+        return var1 instanceof MageEntity || var1 instanceof RuneSentinelEntity || super.isAlliedTo(var1);
+    }
+
+    public boolean hurt(DamageSource var1, float var2) {
+        return var1.getEntity() instanceof MageEntity ? false : super.hurt(var1, var2);
     }
 
     /** Daylight does not trouble it. */

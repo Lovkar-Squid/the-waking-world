@@ -54,7 +54,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.entity.PartEntity;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -64,16 +63,43 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.Map.Entry;
+import me.lovkar.wakingworld.advancement.KindTrigger;
+import me.lovkar.wakingworld.advancement.ValueTrigger;
+import me.lovkar.wakingworld.advancement.WakingTriggers;
+import me.lovkar.wakingworld.cataclysm.Unrest;
+import me.lovkar.wakingworld.item.WakingItems;
+import me.lovkar.wakingworld.kingdom.KingdomGrowth;
+import me.lovkar.wakingworld.particle.WakingParticles;
+import me.lovkar.wakingworld.ritual.AltarBlockEntity;
+import me.lovkar.wakingworld.ruin.FightRecord;
+import me.lovkar.wakingworld.ruin.Ruin;
+import me.lovkar.wakingworld.ruin.RuinLedger;
+import me.lovkar.wakingworld.story.Chronicle;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.world.BossEvent.BossBarColor;
+import net.minecraft.world.BossEvent.BossBarOverlay;
+import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.entity.LightningBolt;
+import net.minecraft.world.entity.Entity.MoveFunction;
+import net.minecraft.world.entity.Entity.RemovalReason;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier.Builder;
+import net.minecraft.world.entity.ai.control.BodyRotationControl;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.levelgen.Heightmap.Types;
 
-/**
- * A colossus: a giant built from the blocks of the land it slept in. Three synced values
- * (palette, seed, height) describe the whole body - both sides rebuild it deterministically
- * (see ColossusShapes). The entity's own collision box is a small footprint; 27 {@link ColossusPart}
- * hit boxes hug its torso, head and limbs. It walks straight at you through trees and loose ground
- * (trample), fights in three phases with ten different moves (see {@link ColossusCombatGoal}),
- * tears craters where it stomps and where its boulders land, its cores are the weak points, and
- * when it dies it collapses into the real blocks it was made of.
- */
 public class ColossusEntity extends Monster {
     private static final EntityDataAccessor<String> DATA_PALETTE =
             SynchedEntityData.defineId(ColossusEntity.class, EntityDataSerializers.STRING);
@@ -496,6 +522,7 @@ public class ColossusEntity extends Monster {
         tag.putByte("Cores", (byte) brokenCores());
         if (altarPos != null) tag.put("Altar", net.minecraft.nbt.NbtUtils.writeBlockPos(altarPos));
         waker().ifPresent(id -> tag.putUUID("Waker", id));
+        tag.putBoolean("Bombarded", bombarded);
     }
 
     @Override
@@ -508,6 +535,7 @@ public class ColossusEntity extends Monster {
         if (tag.contains("Cores")) this.entityData.set(DATA_CORES, tag.getByte("Cores"));
         altarPos = tag.contains("Altar") ? net.minecraft.nbt.NbtUtils.readBlockPos(tag, "Altar").orElse(null) : null;
         if (tag.hasUUID("Waker")) setWaker(tag.getUUID("Waker"));
+        bombarded = tag.getBoolean("Bombarded");
         refreshBossBar();
     }
 
@@ -1043,9 +1071,18 @@ public class ColossusEntity extends Monster {
 
     /** Where the ground was when the rise began: the crust above it is what bursts off the climbing body. */
     private double wakeBaseY = Double.NaN;
+    private boolean bombarded;
 
     public boolean isWaking() {
         return this.level().isClientSide ? this.clientWake > 0 : this.entityData.get(DATA_WAKE) > 0;
+    }
+
+    public boolean bombarded() {
+        return this.bombarded;
+    }
+
+    public void setBombarded(boolean var1) {
+        this.bombarded = var1;
     }
 
     public boolean isTitan() {
@@ -1695,6 +1732,43 @@ public class ColossusEntity extends Monster {
             server.playSound(null, at.x, at.y, at.z, SoundEvents.STONE_HIT, SoundSource.HOSTILE, 2.0F, 0.5F);
         }
         return this.hurt(source, amount * ARMOR_FACTOR);
+    }
+
+    public float coreHealth() {
+        return this.getMaxHealth() * 0.08F;
+    }
+
+    public void siegeStruck(ServerLevel var1, Vec3 var2, float var3) {
+        if (this.isAlive() && !(var3 <= 0.0F)) {
+            List var4 = this.body().hitBoxes();
+            ColossusPart var5 = null;
+            ColossusPart var6 = null;
+            double var7 = Double.MAX_VALUE;
+            double var9 = Double.MAX_VALUE;
+
+            for (int var11 = 0; var11 < this.parts.length; var11++) {
+                double var12 = this.parts[var11].getBoundingBox().getCenter().distanceToSqr(var2);
+                if (var12 < var9) {
+                    var9 = var12;
+                    var6 = this.parts[var11];
+                }
+
+                int var14 = var11 < var4.size() ? ((ColossusBody.HitBox)var4.get(var11)).core() : -1;
+                if (var14 >= 0 && !this.isCoreBroken(var14) && var12 < var7) {
+                    var7 = var12;
+                    var5 = this.parts[var11];
+                }
+            }
+
+            ColossusPart var15 = var5 != null ? var5 : var6;
+            if (var15 != null) {
+                this.invulnerableTime = 0;
+                this.hurtPart(var15, this.damageSources().explosion(null, null), var3);
+                Vec3 var16 = var15.getBoundingBox().getCenter();
+                var1.sendParticles(ParticleTypes.EXPLOSION_EMITTER, var16.x, var16.y, var16.z, 1, 0.0, 0.0, 0.0, 0.0);
+                var1.playSound(null, var16.x, var16.y, var16.z, (SoundEvent)SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 5.0F, 0.7F);
+            }
+        }
     }
 
     private void breakCore(ServerLevel server, int core, Vec3 at) {
@@ -2802,6 +2876,7 @@ public class ColossusEntity extends Monster {
         if (t == ColossusPose.DEATH_FINAL && !this.isRemoved()) {
             this.level().broadcastEntityEvent(this, EV_COLLAPSE);
             collapse(server);
+            KingdomGrowth.countryside(server, blockPosition(), isTitan() ? 30 : 15, "colossus");
             if (isTitan()) {
                 // the whole End hears the Titan go: the dragon's own death-cry, for everyone; and the first ring of lightning
                 Vec3 chest = partPoint(PartDef.Kind.TORSO, 0.5);

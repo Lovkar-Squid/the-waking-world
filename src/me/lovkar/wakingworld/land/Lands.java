@@ -14,24 +14,28 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Supplier;
+import me.lovkar.wakingworld.advancement.ValueTrigger;
+import me.lovkar.wakingworld.advancement.WakingTriggers;
+import me.lovkar.wakingworld.cataclysm.Unrest;
+import me.lovkar.wakingworld.network.WakingNet;
+import me.lovkar.wakingworld.story.Chronicle;
+import net.minecraft.core.HolderLookup.Provider;
+import net.minecraft.world.level.levelgen.Heightmap.Types;
+import net.minecraft.world.level.saveddata.SavedData.Factory;
+import net.neoforged.neoforge.event.tick.LevelTickEvent.Post;
 
-/**
- * The Named Lands: the world is divided into large squares, and each one is given a name the first
- * time somebody walks into it.
- *
- * <p>The name is written by Gemini when the server has a key ({@link GeminiLands}) from what the
- * ground actually is, and by {@link LandNames} from the same facts when it does not - so the
- * feature works the same either way, only better with a model. Once written a name never changes:
- * it is saved with the world, and everyone who crosses that line afterwards sees the same words.</p>
- *
- * <p>Crossing into one shows a title card, once per player per land. That is the whole of the
- * interruption; the rest of it lives in {@code /wakingworld lands} and in the Almanac.</p>
- */
 public final class Lands extends SavedData {
     public static final String NAME = "wakingworld_lands";
     private static final Factory<Lands> FACTORY = new Factory<>(Lands::new, Lands::load, null);
@@ -414,6 +418,18 @@ public final class Lands extends SavedData {
 
     public int count() {
         return lands.size();
+    }
+
+    public Lands.Land landAtCell(int var1, int var2) {
+        return this.owner.get(key(var1, var2));
+    }
+
+    public Lands.Land byCell(long var1) {
+        return this.lands.get(var1);
+    }
+
+    public Collection<Lands.Land> named() {
+        return this.lands.values();
     }
 
     // ---- pins -------------------------------------------------------------------------------

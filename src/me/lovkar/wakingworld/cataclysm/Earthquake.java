@@ -14,19 +14,15 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import me.lovkar.wakingworld.WakingSounds;
+import me.lovkar.wakingworld.ruin.Ruin;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.entity.item.FallingBlockEntity;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.levelgen.Heightmap.Types;
 
-/**
- * An earthquake: half a minute in which standing up is the problem.
- *
- * <p>It is not a scheduler of its own - the shower's tick starts it and it runs itself out. Three
- * things happen at once: the ground shakes hard enough to be felt through the screen and to knock
- * anything on its feet about, a handful of fissures open along one fault line, and loose blocks
- * (gravel, sand, anything already unsupported) come down.</p>
- *
- * <p>The fissures are the lasting part. Each is a narrow crack a few blocks deep along the fault,
- * never wider than three, and it stops the moment it meets anything a player built - a crack across
- * a field is a story, a crack through a bedroom is a bug report.</p>
- */
 public final class Earthquake {
     /** Which second of the shaking this is, so the loop is restarted and not stacked. */
     private static int beat;
@@ -137,6 +133,7 @@ public final class Earthquake {
                 // the top of it is thrown into the air rather than deleted: that is the whole
                 // difference between ground that cracked and ground that was always cracked
                 BlockState surface = level.getBlockState(top);
+                Ruin.mark(level, top);
                 level.removeBlock(top, false);
                 if (rnd.nextDouble() < 0.5) {
                     net.minecraft.world.entity.item.FallingBlockEntity fb =

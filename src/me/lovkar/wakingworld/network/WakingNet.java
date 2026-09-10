@@ -19,15 +19,22 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
-
 import java.util.Optional;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import me.lovkar.wakingworld.land.Lands;
+import me.lovkar.wakingworld.mage.MageEntity;
+import me.lovkar.wakingworld.story.Cinematics;
+import me.lovkar.wakingworld.story.DeadLetterItem;
+import me.lovkar.wakingworld.story.LetterVoices;
+import me.lovkar.wakingworld.supporter.SupporterCosmetics;
+import me.lovkar.wakingworld.supporter.SupporterList;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload.Type;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Player;
 
-/**
- * The kingdom's own trading, without the villagers' counter: the server sends a townsfolk's offers
- * ({@link OpenTrade}) and the client opens the mod's trade screen; a purchase comes back as
- * {@link Buy} - the server checks the offer is still there and the price is in the inventory, takes
- * it, hands over the wares and lets the trader take note; {@link Leave} ends the conversation.
- */
 public final class WakingNet {
     private WakingNet() {
     }
@@ -264,6 +271,13 @@ public final class WakingNet {
     }
 
     public static final int VOICE_CHUNK = 700_000;
+    public static final int ORDER_MEEK = 3;
+    public static final int ORDER_DEFEND = 4;
+    public static final int ORDER_GUARD = 5;
+    public static final int ORDER_MEND = 6;
+    public static final int ORDER_LAMP = 7;
+    public static final int ORDER_HAUL = 8;
+    public static final int ORDER_JAR = 9;
 
     /** Server -> client: open the Dead Letter in this hand (0 main, 1 off) - the server has checked its voice is not still being made. */
     public record OpenLetter(int hand) implements CustomPacketPayload {
@@ -285,6 +299,22 @@ public final class WakingNet {
         net.neoforged.neoforge.network.PacketDistributor.sendToServer(new PinAt(name, x, z, remove));
     }
 
+    private static void handleOrder(WakingNet.MageOrder var0, IPayloadContext var1) {
+        if (var1.player() instanceof ServerPlayer var2) {
+            if (var2.level().getEntity(var0.entityId()) instanceof MageEntity var5) {
+                if (var5.kept() == 1) {
+                    if (var5.owner() != null && var5.owner().equals(var2.getUUID())) {
+                        if (!(var2.distanceToSqr(var5) > 576.0)) {
+                            if (var0.what() >= 0 && var0.what() <= 9) {
+                                var5.commanded(var2, var0.what());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("1");
         registrar.playToServer(RequestVoice.TYPE, RequestVoice.CODEC, WakingNet::handleRequestVoice);
@@ -296,6 +326,7 @@ public final class WakingNet {
         registrar.playToClient(OpenTrade.TYPE, OpenTrade.CODEC, WakingNet::handleOpen);
         registrar.playToServer(Buy.TYPE, Buy.CODEC, WakingNet::handleBuy);
         registrar.playToServer(Leave.TYPE, Leave.CODEC, WakingNet::handleLeave);
+        registrar.playToServer(MageOrder.TYPE, MageOrder.CODEC, WakingNet::handleOrder);
         registrar.playToClient(CineSetup.TYPE, CineSetup.CODEC, (p, ctx) -> WakingWorld.hooks.cineSetup(p.renderDistance()));
         registrar.playToClient(CineStart.TYPE, CineStart.CODEC, (p, ctx) -> WakingWorld.hooks.cineStart(p.keys(), p.fadeIn(), p.fadeOut(), p.bossBar()));
         registrar.playToClient(CineStop.TYPE, CineStop.CODEC, (p, ctx) -> WakingWorld.hooks.cineStop());
@@ -471,6 +502,17 @@ public final class WakingNet {
                     left -= n;
                 }
             }
+        }
+    }
+
+    public static record MageOrder(int entityId, int what) implements CustomPacketPayload {
+        public static final Type<WakingNet.MageOrder> TYPE = new Type(WakingNet.id("mage_order"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, WakingNet.MageOrder> CODEC = StreamCodec.composite(
+            ByteBufCodecs.VAR_INT, WakingNet.MageOrder::entityId, ByteBufCodecs.VAR_INT, WakingNet.MageOrder::what, WakingNet.MageOrder::new
+        );
+
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
         }
     }
 }
