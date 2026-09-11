@@ -3,6 +3,30 @@
 All notable changes to The Waking World. The format follows [Keep a Changelog](https://keepachangelog.com/);
 versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-releases.
 
+## [0.3.0-alpha.15] - 2026-09-11 (unreleased)
+
+The suburb takes the ground as it finds it: trees felled, hillsides cut and terraced.
+
+### Added
+- **Trees round a plot are felled.** Every log within four blocks of the plot comes down with the
+  house, the road and the back lanes take down what stands over them, and when the masons finish a
+  sweep takes the leaves that have no tree left (`Tidy`, round the house and along a newly laid
+  road). The kingdom's own trees and hedges are persistent and are never touched.
+- **A house stands on any hillside up to twelve blocks of rise.** The floor is set at the level of
+  the road's (or the back lane's) edge in front of the door, so the door always meets the street;
+  uphill the plot is cut to that level and the cut is faced with the plinth stone - a low wall on top
+  where the face is tall; downhill the house stands on its plinth. The apron round the house is grass
+  again after the cut, the garden and the trees stand on the cut ground, the path to the road is
+  level with the floor. Plots used to be refused past four blocks of rise.
+- Ores at the surface (a mountainside is full of them) no longer count as "something built on the
+  plot" - they are natural ground for every plot and site test, and for the masons.
+
+### Fixed
+- A drawing (a house plan) is now cut first, from the top down, and built after, from the ground up.
+  Before, the farmland of a garden dug into a hillside would not stand under the stone that was
+  still to be cleared above it, and the crop above it had no farmland: hillside gardens came out as
+  bare stone. The masons also take the ground off a block that will not stand under it.
+
 ## [0.3.0-alpha.14] - 2026-09-11 (unreleased)
 
 The suburb gets its doors.

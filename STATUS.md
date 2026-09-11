@@ -1,6 +1,6 @@
 # The Waking World — where we are
 
-Written 9 Sep 2026 at **0.3.0-alpha.11**, brought up to date 11 Sep 2026 at **0.3.0-alpha.14**.
+Written 9 Sep 2026 at **0.3.0-alpha.11**, brought up to date 11 Sep 2026 at **0.3.0-alpha.15**.
 This is the handover: what exists, what was fixed and how it was proved, what is untested, and what
 is left. **Section 0 is new and comes first because it changes where the source is.**
 
@@ -135,6 +135,44 @@ have their doors too. Renders `promo\bts\eldermere_west_lane_doors.png`, `elderm
 **He should run `/wakingworld kingdom houses redo` once near Greyhaven** (and `kingdom build` if he
 does not want to watch the masons for six minutes).
 
+### alpha.15 — "da se še drevesa počistijo okoli pa da se ne glede na teren lahko lepo postavljajo"
+
+- **Trees.** `KingdomHouses.draw()` fells every log within `FELL = 4` of the plot (AIR courses where
+  logs stand at draw time, ground to +40); `road()`/`backLane()` fell what stands over a paved column
+  (`fellAbove`: logs to +40, leaves at head height). The leaves are the sweep's: the job's `done`
+  callback runs `Tidy.begin` round the house (radius hw+14, inner 0) and, when this house laid the
+  road, a 46-block sweep on the road's middle. Persistent leaves (the kingdom's own trees, hedges) are
+  never judged. Proved: three placed trees (fancy oak, spruce, oak) on a plot → no natural log left
+  in the fell box, "80 leaves had no tree left".
+- **Terrain.** `SLOPE` 4 → **12**. The floor level is the ground at the lane's edge in front of the
+  door (`column.relative(facing, LANE_STEPS + 1)`: lateral 1 = the road's edge for the front row,
+  16 = the back lane for the back row), so the door always meets the street. The plot box (`APRON = 2`
+  beyond the eaves, `YARD = 4` behind) is cut from the floor up to max(height, ground + 3); apron
+  columns that were cut get a grass top; the ring outside the box (sides and back, never the front)
+  gets the plinth stone from the floor to the ground where the ground is above the floor, and a
+  cobblestone wall on top where the face is 2+ (`terrace()`). The yard is drawn on a terrain that is
+  min(ground, floor − 1) inside the box, so the garden sits on the cut, not on the old hill. The lane
+  path is at floor level with dirt beneath. Downhill: `foot()` plinths to the ground as before.
+- **`KingdomHouses.ground()`** replaces `groundY` for the house frame: walks down from
+  MOTION_BLOCKING through air, leaves, logs, replaceables, snow, flowers, crops AND anything not
+  natural - so a house raised again (`houses redo`) is footed to the ground it stood on, not to its
+  own roof (after a restart the WG heightmap `groundY` uses is primed with the house in it).
+- **Ores are natural.** `KingdomExpansion.natural()` now takes the eight ore tags, bamboo, cactus,
+  sugar cane, lily pad, mangrove roots, dripstone, packed ice, magma. Surface coal ore was
+  "something built on the plot" - a mountain town lost plots to it.
+- **The mason, for drawings:** AIR courses first (top down), then blocks (bottom up); and a block
+  that will not stand because of the natural block above it (farmland under stone) gets that block
+  taken off (`KingdomBuild.lay`). Found because a hillside garden came out as bare stone: with
+  last-wins the crop replaced the AIR course above the farmland, farmland cannot stand under stone,
+  the crop cannot stand without farmland - both retried once and gave up. List plans (works, wall,
+  gaol) keep the old order, the gaol relies on "block, then air" at one position.
+- Not done: the same treatment for the works (`KingdomExpansion.clear` still wants ≤ 4/6 of rise).
+  Plots with 13–20 of rise (cliffs) are still refused - Eldermere's east/west back rows.
+
+*Proved on the rig:* plot 14 (refused "too uneven" since alpha.12) took a cottage; a west-road cottage
+on an 11-block hillside; `houses redo` on 28 houses (59 432 courses queued, 10 033 blocks changed) with
+no exception. Renders `promo\bts\eldermere_hillside_cottage.png`, `eldermere_terrace.png`.
+
 ### The rig, for kingdoms (new)
 
 - `/root/nfserver/wwrun.sh [keep]` - only the newest `wakingworld-*.jar`, normal world `wwworld`
@@ -251,7 +289,8 @@ into a scoreboard and is read afterwards with `scoreboard players get`.
 | alpha.11 | SHA256 `29d5293e5c4641596a40e3bebc66524df6d0dc5f57758d1f2ab31ad15945a4da`, 29 041 476 B. The jar the source was recovered from; in `mods\_old` |
 | alpha.12 | the suburb (section 0). SHA256 `785890ab…e704`, 29 205 866 B; in `mods\_old` |
 | alpha.13 | the engine that never came, and the stones that hang (section 0). SHA256 `2adaeeb6…be4a`, 29 206 393 B; in `mods\_old` |
-| **alpha.14** | **current** — the suburb gets its doors, `houses redo` (section 0). In `The Waking World Dev\mods` |
+| alpha.14 | the suburb gets its doors, `houses redo` (section 0). SHA256 `eb5761b2…dca9`, 29 209 534 B; in `mods\_old` |
+| **alpha.15** | **current** — trees felled, hillsides cut and terraced, ores natural (section 0). In `The Waking World Dev\mods` |
 
 ---
 
@@ -443,7 +482,7 @@ the boss fight is not testable headlessly at all.
 ## 6. Still to do
 
 **Mod**
-- Play-test alpha.14 and report - `/wakingworld kingdom houses redo` at Greyhaven first, then the suburb (`/wakingworld kingdom houses 6` on a town to see it at once),
+- Play-test alpha.15 and report - `/wakingworld kingdom houses redo` at Greyhaven first (doors, terraces, trees in one go), then the suburb (`/wakingworld kingdom houses 6` on a town to see it at once),
   then the engine: a levy or `/wakingworld kingdom standing 100` at Greyhaven should log `begins raising a catapult`,
   and the Horn of Waking beside a colossus (or `/wakingworld bombard`) should land four stones; then everything in section 5.
 - Decide where the Signal Horn comes from (craft vs. a king's gift).

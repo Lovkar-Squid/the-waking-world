@@ -3,6 +3,7 @@ package me.lovkar.wakingworld.kingdom;
 import java.util.ArrayList;
 import java.util.List;
 import me.lovkar.wakingworld.WakingWorld;
+import me.lovkar.wakingworld.worldgen.Tidy;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -38,12 +39,18 @@ public final class KingdomHouses {
     private static final int[] DEPTHS = {76, 87, 98};
     /** Where the doors stand off the road's centre line: the front row and, past the back lane, the second row. */
     private static final int FRONT = 4, BACK = 19, LANE_NEAR = 15, LANE_FAR = 16;
+    /** Path blocks between the doorstep and the edge of the road (or the back lane): the same for both rows. */
+    private static final int LANE_STEPS = 2;
     private static final int ROAD_END = 116;
     private static final int LANE_END = 106;
     /** Works are wide; a house keeps this far from the centre of one. */
     private static final double WORK_CLEARANCE = 15.0;
-    /** How much the ground may rise and fall across a plot (the foundation takes up the rest). */
-    private static final int SLOPE = 4;
+    /** How much the ground may rise and fall across a plot: the cut takes the hill, the plinth takes the hollow. */
+    private static final int SLOPE = 12;
+    /** Trees are felled this far beyond the plot, so no canopy hangs over a roof. */
+    private static final int FELL = 4;
+    /** The plot round a house: a step beyond the eaves to the sides and the front, the yard behind. */
+    private static final int APRON = 2, YARD = 4;
 
     private KingdomHouses() {
     }
@@ -207,14 +214,18 @@ public final class KingdomHouses {
     /** The doorstep for a house of this kind on this slot, or null if the plot will not take it (why[0]: 1 the ground, 2 a work, 3 not loaded; why[1] the detail). */
     static BlockPos site(ServerLevel level, KingdomData.Kingdom k, Slot slot, Kind kind, int[] why) {
         BlockPos column = slot.column(k.center);
-        int gy = KingdomExpansion.groundY(level, column.getX(), column.getZ());
+        Direction facing = slot.facing();
+        // the floor stands at the level of the lane's edge in front of the door, so the door meets the road
+        // whatever the ground does behind the house: uphill is cut away, downhill is stood on a plinth
+        BlockPos edge = column.relative(facing, LANE_STEPS + 1);
+        if (!level.isLoaded(edge)) { why[0] = 3; return null; }
+        int gy = KingdomExpansion.groundY(level, edge.getX(), edge.getZ());
         why[0] = 1;
         why[1] = 1;
         if (gy <= level.getSeaLevel() - 1) return null;
         BlockPos doorstep = new BlockPos(column.getX(), gy + 1, column.getZ());
-        Direction facing = slot.facing();
         Direction right = facing.getCounterClockWise(), depth = facing.getOpposite();
-        int lo = Integer.MAX_VALUE, hi = Integer.MIN_VALUE;
+        int lo = gy, hi = gy;
         for (int u = -kind.hw - 1; u <= kind.hw + 1; u++) {
             for (int v = -1; v <= kind.depth + 1; v++) {
                 int x = doorstep.getX() + right.getStepX() * u + depth.getStepX() * v;
@@ -226,7 +237,8 @@ public final class KingdomHouses {
                 BlockState ground = level.getBlockState(new BlockPos(x, g, z));
                 if (ground.getFluidState().isSource()) { why[1] = 2; return null; }
                 if (!KingdomExpansion.natural(ground)) { why[1] = 3; return null; }
-                for (int y = g + 1; y <= g + kind.height; y++) {
+                // what stands on the plot: a tree is felled, water is a pond, anything built is somebody's
+                for (int y = g + 1; y <= Math.max(g, gy) + kind.height; y++) {
                     BlockState s = level.getBlockState(new BlockPos(x, y, z));
                     if (s.is(Blocks.WATER) || s.is(Blocks.LAVA)) { why[1] = 2; return null; }
                     if (!KingdomExpansion.natural(s)) { why[1] = 3; return null; }
@@ -251,12 +263,27 @@ public final class KingdomHouses {
      */
     private static Drawn draw(ServerLevel level, Slot slot, Kind kind, BlockPos doorstep, int index) {
         KingdomBuild.Plan plan = new KingdomBuild.Plan(true);
-        HouseBuilder.Terrain terrain = (x, z) -> KingdomExpansion.groundY(level, x, z);
+        HouseBuilder.Terrain terrain = (x, z) -> ground(level, x, z);
         int seed = hash(doorstep.getX(), doorstep.getZ());
         HouseBuilder.Palette palette = HouseBuilder.Palette.of(seed + index);
-        HouseBuilder.Frame f = new HouseBuilder.Frame(plan, terrain, doorstep, slot.facing());
-        // whatever grew on the plot goes first, so no tree is left standing through a roof
-        for (int u = -kind.hw - 2; u <= kind.hw + 2; u++) for (int v = -2; v <= kind.depth + 2; v++) f.fill(u, u, 0, kind.height, v, v, HouseBuilder.AIR);
+        Direction facing = slot.facing(), right = facing.getCounterClockWise(), depth = facing.getOpposite();
+        HouseBuilder.Frame f = new HouseBuilder.Frame(plan, terrain, doorstep, facing);
+        int u0 = -kind.hw - APRON, u1 = kind.hw + APRON, v0 = -APRON, v1 = kind.depth + YARD;
+        // 1. the trees: every log this far round the plot is felled from the ground up; the leaves come down when the masons are done
+        for (int u = u0 - FELL; u <= u1 + FELL; u++) for (int v = v0 - FELL; v <= v1 + FELL; v++) fell(level, f, u, v);
+        // 2. the terrace: where the ground round the plot stands above the floor, the cut is faced with the plinth stone
+        for (int v = v0; v <= v1 + 1; v++) { terrace(level, f, palette, u0 - 1, v); terrace(level, f, palette, u1 + 1, v); }
+        for (int u = u0; u <= u1; u++) terrace(level, f, palette, u, v1 + 1);
+        // 3. the cut: the plot is cleared to the sky over the house and, uphill, down to the floor; the apron round the house is grass again
+        for (int u = u0; u <= u1; u++) {
+            for (int v = v0; v <= v1; v++) {
+                int g = f.ground(u, v);
+                f.fill(u, u, 0, Math.max(kind.height, g + 3), v, v, HouseBuilder.AIR);
+                boolean house = Math.abs(u) <= kind.hw && v >= 0 && v <= kind.depth;
+                if (g >= 0 && !house) f.put(u, -1, v, Blocks.GRASS_BLOCK.defaultBlockState());
+            }
+        }
+        // 4. the house, footed to the natural ground
         switch (kind) {
             case LONGHOUSE -> HouseBuilder.longhouse(f, palette);
             case TOWNHOUSE -> HouseBuilder.townhouse(f, palette);
@@ -265,8 +292,63 @@ public final class KingdomHouses {
             case CHAPEL -> HouseBuilder.chapel(f, palette);
             default -> HouseBuilder.cottage(f, palette);
         }
-        yard(f, palette, kind, seed);
+        // 5. the yard, on the ground as it is after the cut
+        HouseBuilder.Terrain cut = (x, z) -> {
+            int g = ground(level, x, z);
+            int dx = x - doorstep.getX(), dz = z - doorstep.getZ();
+            int u = dx * right.getStepX() + dz * right.getStepZ(), v = dx * depth.getStepX() + dz * depth.getStepZ();
+            return u >= u0 && u <= u1 && v >= v0 && v <= v1 ? Math.min(g, doorstep.getY() - 1) : g;
+        };
+        yard(new HouseBuilder.Frame(plan, cut, doorstep, facing), palette, kind, seed);
         return new Drawn(plan, palette, seed);
+    }
+
+    /**
+     * The natural ground under a column, looked for through anything grown or built on it - so a house
+     * raised again is footed to the ground it was footed to, not to its own roof.
+     */
+    static int ground(ServerLevel level, int x, int z) {
+        int y = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, x, z) - 1;
+        int bottom = level.getMinBuildHeight() + 1;
+        for (int n = 0; n < 80 && y > bottom; y--, n++) {
+            BlockState s = level.getBlockState(new BlockPos(x, y, z));
+            if (s.isAir() || s.is(BlockTags.LEAVES) || s.is(BlockTags.LOGS) || s.is(BlockTags.REPLACEABLE) || s.is(Blocks.SNOW)
+                    || s.is(BlockTags.FLOWERS) || s.is(BlockTags.SAPLINGS) || s.is(BlockTags.CROPS) || !KingdomExpansion.natural(s)) continue;
+            return y;
+        }
+        return y;
+    }
+
+    /** Every log standing on a column, from its ground up, is drawn as air; the leaves are the sweep's. */
+    private static void fell(ServerLevel level, HouseBuilder.Frame f, int u, int v) {
+        BlockPos base = f.at(u, 0, v);
+        if (!level.isLoaded(base)) return;
+        int g = f.ground(u, v);
+        for (int y = g + 1; y <= g + 40; y++) {
+            if (level.getBlockState(f.at(u, y, v)).is(BlockTags.LOGS)) f.put(u, y, v, HouseBuilder.AIR);
+        }
+    }
+
+    /** One column of the terrace: the ground above the floor level is faced with stone, a low wall on top of a tall face. */
+    private static void terrace(ServerLevel level, HouseBuilder.Frame f, HouseBuilder.Palette p, int u, int v) {
+        BlockPos base = f.at(u, 0, v);
+        if (!level.isLoaded(base)) return;
+        int g = f.ground(u, v);
+        if (g < 0) return;
+        for (int y = 0; y <= g; y++) {
+            BlockState s = level.getBlockState(f.at(u, y, v));
+            if (s.isAir() || s.is(BlockTags.LEAVES) || s.is(BlockTags.LOGS) || s.is(BlockTags.REPLACEABLE) || !KingdomExpansion.natural(s)) continue;
+            f.put(u, y, v, f.hash(u, y, v) % 4 == 0 ? p.plinthAlt() : p.plinth());
+        }
+        if (g >= 2 && level.getBlockState(f.at(u, g + 1, v)).canBeReplaced()) f.put(u, g + 1, v, Blocks.COBBLESTONE_WALL.defaultBlockState());
+    }
+
+    /** Logs over a paved column come down, and the leaves at head height with them; the rest of a canopy is the sweep's. */
+    private static void fellAbove(ServerLevel level, KingdomBuild.Plan plan, int x, int g, int z) {
+        for (int y = g + 1; y <= g + 40; y++) {
+            BlockState s = level.getBlockState(new BlockPos(x, y, z));
+            if (s.is(BlockTags.LOGS) || (y <= g + 3 && s.is(BlockTags.LEAVES))) plan.set(x, y, z, Blocks.AIR.defaultBlockState());
+        }
     }
 
     private static void raise(ServerLevel level, KingdomData data, KingdomData.Kingdom k, Slot slot, Kind kind, BlockPos doorstep) {
@@ -277,7 +359,8 @@ public final class KingdomHouses {
         lane(level, k, slot, plan, palette, doorstep);
         // the road itself, once per road: paved out to the march wall with its lamps
         int roadBit = 1 << slot.road;
-        if ((k.lanes & roadBit) == 0) {
+        boolean roadLaid = (k.lanes & roadBit) == 0;
+        if (roadLaid) {
             road(level, k, slot, plan, palette);
             k.lanes |= roadBit;
         }
@@ -295,6 +378,7 @@ public final class KingdomHouses {
                 BlockPos at = doorstep.relative(slot.facing(), 2 + i);
                 KingdomSpawns.trader(level, centre.getX(), centre.getY(), centre.getZ(), at.getX(), KingdomExpansion.groundY(level, at.getX(), at.getZ()) + 1, at.getZ(), trades[i]);
             }
+            sweep(level, k, slot, kind, doorstep, roadLaid);
         });
         WakingWorld.LOGGER.info("kingdom {}: raises a {} ({}) at {} - house {}", Kingdoms.name(k.center), kind.key(), palette.name(), doorstep.toShortString(), k.houses.size());
     }
@@ -312,7 +396,9 @@ public final class KingdomHouses {
             if (slot != null && level.isLoaded(doorstep)) {
                 Kind kind = standingKind(level, slot, doorstep, index);
                 Drawn drawn = draw(level, slot, kind, doorstep, index);
-                KingdomBuild.begin(level, doorstep, drawn.plan(), kind.key(), null, true);
+                Slot slotHere = slot;
+                Kind kindHere = kind;
+                KingdomBuild.begin(level, doorstep, drawn.plan(), kind.key(), () -> sweep(level, k, slotHere, kindHere, doorstep, false), true);
                 WakingWorld.LOGGER.info("kingdom {}: raises the {} ({}) at {} again - house {}", Kingdoms.name(k.center), kind.key(), drawn.palette().name(), doorstep.toShortString(), index + 1);
                 begun++;
             }
@@ -351,6 +437,20 @@ public final class KingdomHouses {
         return n[0];
     }
 
+    /**
+     * Once the masons are done: the leaves of the trees they felled have no tree left and come down
+     * ({@link Tidy}), round the house and - when this house laid the road - along the whole road.
+     */
+    private static void sweep(ServerLevel level, KingdomData.Kingdom k, Slot slot, Kind kind, BlockPos doorstep, boolean road) {
+        BlockPos middle = doorstep.relative(slot.facing().getOpposite(), kind.depth / 2);
+        Tidy.begin(level, middle, kind.hw + APRON + FELL + 8, 0, -8, 40);
+        if (road) {
+            Direction a = slot.along();
+            int d = (KingdomWallPiece.REACH + 1 + ROAD_END) / 2;
+            Tidy.begin(level, new BlockPos(k.center.getX() + a.getStepX() * d, doorstep.getY(), k.center.getZ() + a.getStepZ() * d), 46, 0, -10, 40);
+        }
+    }
+
     /** What stands behind and beside a house: a garden, a tree, a hedge or a low wall, by kind and chance. */
     private static void yard(HouseBuilder.Frame f, HouseBuilder.Palette p, Kind kind, int seed) {
         int back = kind.depth + 2;   // one past the back eave
@@ -387,15 +487,16 @@ public final class KingdomHouses {
         return new HouseBuilder.Frame(f.plan, f.terrain, f.at(du, 0, dv), f.facing);
     }
 
-    /** The path from the door to the road (or the back lane), on the ground. */
+    /** The path from the door to the road (or the back lane): level with the floor, filled beneath, the plot's cut above it. */
     private static void lane(ServerLevel level, KingdomData.Kingdom k, Slot slot, KingdomBuild.Plan plan, HouseBuilder.Palette p, BlockPos doorstep) {
         Direction out = slot.facing();
-        int steps = slot.back ? BACK - LANE_FAR - 1 : FRONT - 2;   // to the lane's edge
-        for (int i = 1; i <= steps; i++) {
+        int y = doorstep.getY() - 1;
+        for (int i = 1; i <= LANE_STEPS; i++) {
             BlockPos at = doorstep.relative(out, i);
-            int g = KingdomExpansion.groundY(level, at.getX(), at.getZ());
-            plan.set(at.getX(), g, at.getZ(), (hash(at.getX(), at.getZ()) & 3) == 0 ? Blocks.GRAVEL.defaultBlockState() : Blocks.DIRT_PATH.defaultBlockState());
-            plan.set(at.getX(), g + 1, at.getZ(), Blocks.AIR.defaultBlockState());
+            int g = ground(level, at.getX(), at.getZ());
+            for (int yy = g + 1; yy < y; yy++) plan.set(at.getX(), yy, at.getZ(), Blocks.DIRT.defaultBlockState());
+            plan.set(at.getX(), y, at.getZ(), (hash(at.getX(), at.getZ()) & 3) == 0 ? Blocks.GRAVEL.defaultBlockState() : Blocks.DIRT_PATH.defaultBlockState());
+            plan.set(at.getX(), y + 1, at.getZ(), Blocks.AIR.defaultBlockState());
         }
     }
 
@@ -412,6 +513,7 @@ public final class KingdomHouses {
                 if (g <= level.getSeaLevel() - 1) continue;
                 plan.set(x, g, z, roadBlock(x, z));
                 plan.set(x, g + 1, z, Blocks.AIR.defaultBlockState());
+                fellAbove(level, plan, x, g, z);
             }
         }
         for (int d = 81; d <= 103; d += 11) {
@@ -439,6 +541,7 @@ public final class KingdomHouses {
                     if (g <= level.getSeaLevel() - 1) continue;
                     plan.set(x, g, z, (hash(x, z) % 3) == 0 ? Blocks.GRAVEL.defaultBlockState() : Blocks.DIRT_PATH.defaultBlockState());
                     plan.set(x, g + 1, z, Blocks.AIR.defaultBlockState());
+                    fellAbove(level, plan, x, g, z);
                 }
             }
             // the well where the lane leaves the road's end, the lamp at its far end

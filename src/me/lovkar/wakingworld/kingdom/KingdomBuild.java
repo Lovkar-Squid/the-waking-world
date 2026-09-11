@@ -40,7 +40,18 @@ public final class KingdomBuild {
     public static void begin(ServerLevel var0, BlockPos var1, KingdomBuild.Plan var2, String var3, Runnable done, boolean force) {
         if (!var2.courses.isEmpty()) {
             ArrayList<KingdomBuild.Course> var4 = new ArrayList<>(var2.courses);
+            boolean drawing = var2.where != null;
             var4.sort((var1x, var2x) -> {
+                if (drawing) {
+                    // a drawing is cut first, from the top down, and built after, from the ground up - so the
+                    // hill is gone before the farmland that will not stand under it and the crop that wants the sky
+                    boolean a = var1x.state().isAir(), b = var2x.state().isAir();
+                    if (a != b) return a ? -1 : 1;
+                    if (a) {
+                        int y = Integer.compare(var2x.at().getY(), var1x.at().getY());
+                        if (y != 0) return y;
+                    }
+                }
                 int var3x = Integer.compare(var1x.at().getY(), var2x.at().getY());
                 if (var3x != 0) {
                     return var3x;
@@ -77,25 +88,7 @@ public final class KingdomBuild {
                     int var3 = 0;
 
                     while (var3 < 4 && var6.more()) {
-                        KingdomBuild.Course var4 = var6.courses.get(var6.next++);
-                        if (var1.isLoaded(var4.at())) {
-                            BlockState var5 = var1.getBlockState(var4.at());
-                            if (var4.state().isAir()) {
-                                if (!var5.isAir()) {
-                                    var1.setBlock(var4.at(), var4.state(), 3);
-                                    var3++;
-                                }
-                            } else if (var5 != var4.state() && (var6.force || var5.isAir() || var5.canBeReplaced() || KingdomExpansion.natural(var5))) {
-                                if (!var4.state().canSurvive(var1, var4.at())) {
-                                    if (!var6.retried) {
-                                        var6.again.add(var4);
-                                    }
-                                } else {
-                                    var1.setBlock(var4.at(), var4.state(), 3);
-                                    var3++;
-                                }
-                            }
-                        }
+                        var3 += lay(var1, var6, var6.courses.get(var6.next++));
                     }
 
                     if (var3 > 0 && var1.getGameTime() % 6L == 0L) {
@@ -139,25 +132,7 @@ public final class KingdomBuild {
             }
 
             while (var2 < var1 && var3.more()) {
-                KingdomBuild.Course var4 = var3.courses.get(var3.next++);
-                if (var0.isLoaded(var4.at())) {
-                    BlockState var5 = var0.getBlockState(var4.at());
-                    if (var4.state().isAir()) {
-                        if (!var5.isAir()) {
-                            var0.setBlock(var4.at(), var4.state(), 3);
-                            var2++;
-                        }
-                    } else if (var5 != var4.state() && (var3.force || var5.isAir() || var5.canBeReplaced() || KingdomExpansion.natural(var5))) {
-                        if (!var4.state().canSurvive(var0, var4.at())) {
-                            if (!var3.retried) {
-                                var3.again.add(var4);
-                            }
-                        } else {
-                            var0.setBlock(var4.at(), var4.state(), 3);
-                            var2++;
-                        }
-                    }
-                }
+                var2 += lay(var0, var3, var3.courses.get(var3.next++));
             }
 
             if (var3.more()) {
@@ -170,6 +145,40 @@ public final class KingdomBuild {
         }
 
         return var2;
+    }
+
+    /**
+     * Lays one course: air takes out whatever is there; a block goes into air, into what can be replaced
+     * and into the natural ground (or, when the job forces, into anything), and only where it can stand.
+     * Returns how many blocks were set.
+     */
+    private static int lay(ServerLevel level, KingdomBuild.Job job, KingdomBuild.Course c) {
+        if (!level.isLoaded(c.at())) return 0;
+        BlockState was = level.getBlockState(c.at());
+        if (c.state().isAir()) {
+            if (was.isAir()) return 0;
+            level.setBlock(c.at(), c.state(), 3);
+            return 1;
+        }
+        if (was == c.state()) return 0;
+        if (!(job.force || was.isAir() || was.canBeReplaced() || KingdomExpansion.natural(was))) return 0;
+        int set = 0;
+        if (!c.state().canSurvive(level, c.at())) {
+            // carved into the ground: what stands on this block is the hill the drawing replaces, and
+            // some blocks (farmland, a path) will not stand under anything solid - it comes off first
+            BlockPos up = c.at().above();
+            BlockState over = level.getBlockState(up);
+            if (!was.isAir() && !over.isAir() && KingdomExpansion.natural(over)) {
+                level.setBlock(up, Blocks.AIR.defaultBlockState(), 3);
+                set++;
+            }
+            if (!c.state().canSurvive(level, c.at())) {
+                if (!job.retried) job.again.add(c);
+                return set;
+            }
+        }
+        level.setBlock(c.at(), c.state(), 3);
+        return set + 1;
     }
 
     public static void forget(ServerLevel var0) {
