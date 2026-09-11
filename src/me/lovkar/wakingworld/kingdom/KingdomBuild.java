@@ -29,6 +29,15 @@ public final class KingdomBuild {
 
     /** As above, with something to do once the last course is laid (the people moving in, say). */
     public static void begin(ServerLevel var0, BlockPos var1, KingdomBuild.Plan var2, String var3, Runnable done) {
+        begin(var0, var1, var2, var3, done, false);
+    }
+
+    /**
+     * As above; {@code force} lays every course over whatever stands there, not only into air and the
+     * natural ground - the way a house is raised again over itself. A block that is already what the
+     * plan wants is left alone.
+     */
+    public static void begin(ServerLevel var0, BlockPos var1, KingdomBuild.Plan var2, String var3, Runnable done, boolean force) {
         if (!var2.courses.isEmpty()) {
             ArrayList<KingdomBuild.Course> var4 = new ArrayList<>(var2.courses);
             var4.sort((var1x, var2x) -> {
@@ -43,6 +52,7 @@ public final class KingdomBuild {
             });
             KingdomBuild.Job job = new KingdomBuild.Job(var0, var1, var4, var3);
             job.done = done;
+            job.force = force;
             QUEUE.add(job);
         }
     }
@@ -75,7 +85,7 @@ public final class KingdomBuild {
                                     var1.setBlock(var4.at(), var4.state(), 3);
                                     var3++;
                                 }
-                            } else if (var5.isAir() || var5.canBeReplaced() || KingdomExpansion.natural(var5)) {
+                            } else if (var5 != var4.state() && (var6.force || var5.isAir() || var5.canBeReplaced() || KingdomExpansion.natural(var5))) {
                                 if (!var4.state().canSurvive(var1, var4.at())) {
                                     if (!var6.retried) {
                                         var6.again.add(var4);
@@ -137,7 +147,7 @@ public final class KingdomBuild {
                             var0.setBlock(var4.at(), var4.state(), 3);
                             var2++;
                         }
-                    } else if (var5.isAir() || var5.canBeReplaced() || KingdomExpansion.natural(var5)) {
+                    } else if (var5 != var4.state() && (var3.force || var5.isAir() || var5.canBeReplaced() || KingdomExpansion.natural(var5))) {
                         if (!var4.state().canSurvive(var0, var4.at())) {
                             if (!var3.retried) {
                                 var3.again.add(var4);
@@ -186,6 +196,7 @@ public final class KingdomBuild {
         final List<KingdomBuild.Course> again = new ArrayList<>();
         boolean retried;
         Runnable done;
+        boolean force;
 
         Job(ServerLevel var1, BlockPos var2, List<KingdomBuild.Course> var3, String var4) {
             this.level = var1;
@@ -211,9 +222,34 @@ public final class KingdomBuild {
 
     public static final class Plan {
         private final List<KingdomBuild.Course> courses = new ArrayList<>();
+        /** Position -> index of its course, when the plan is a drawing; null when every course is kept. */
+        private final java.util.Map<Long, Integer> where;
+
+        /** The works' plan: every course is kept and laid in turn, so an air course before a block course clears the ground for it. */
+        public Plan() {
+            this(false);
+        }
+
+        /**
+         * A drawing, when {@code lastWins}: a later course at a position replaces the earlier one, so a
+         * door drawn into a wall is a door and a pane drawn into a wall is a window. Without it the mason
+         * lays the wall first and then refuses the door, since a wall is not ground - which is how the
+         * first suburb came up with no doors.
+         */
+        public Plan(boolean lastWins) {
+            this.where = lastWins ? new java.util.HashMap<>() : null;
+        }
 
         public void set(int var1, int var2, int var3, BlockState var4) {
-            this.courses.add(new KingdomBuild.Course(new BlockPos(var1, var2, var3), var4));
+            KingdomBuild.Course c = new KingdomBuild.Course(new BlockPos(var1, var2, var3), var4);
+            if (this.where != null) {
+                Integer i = this.where.putIfAbsent(c.at().asLong(), this.courses.size());
+                if (i != null) {
+                    this.courses.set(i, c);
+                    return;
+                }
+            }
+            this.courses.add(c);
         }
 
         public void fill(int var1, int var2, int var3, int var4, BlockState var5) {

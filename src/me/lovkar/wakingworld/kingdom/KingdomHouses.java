@@ -241,11 +241,19 @@ public final class KingdomHouses {
         return doorstep;
     }
 
-    private static void raise(ServerLevel level, KingdomData data, KingdomData.Kingdom k, Slot slot, Kind kind, BlockPos doorstep) {
-        KingdomBuild.Plan plan = new KingdomBuild.Plan();
+    /** A house drawn on its plot: the plan, and the palette and seed it was drawn with. */
+    record Drawn(KingdomBuild.Plan plan, HouseBuilder.Palette palette, int seed) {
+    }
+
+    /**
+     * Draws the {@code index}-th house of the town on its plot - the plot cleared, the design, its yard.
+     * The plan is a drawing (last course at a position wins), so a door cut into a wall is a door.
+     */
+    private static Drawn draw(ServerLevel level, Slot slot, Kind kind, BlockPos doorstep, int index) {
+        KingdomBuild.Plan plan = new KingdomBuild.Plan(true);
         HouseBuilder.Terrain terrain = (x, z) -> KingdomExpansion.groundY(level, x, z);
         int seed = hash(doorstep.getX(), doorstep.getZ());
-        HouseBuilder.Palette palette = HouseBuilder.Palette.of(seed + k.houses.size());
+        HouseBuilder.Palette palette = HouseBuilder.Palette.of(seed + index);
         HouseBuilder.Frame f = new HouseBuilder.Frame(plan, terrain, doorstep, slot.facing());
         // whatever grew on the plot goes first, so no tree is left standing through a roof
         for (int u = -kind.hw - 2; u <= kind.hw + 2; u++) for (int v = -2; v <= kind.depth + 2; v++) f.fill(u, u, 0, kind.height, v, v, HouseBuilder.AIR);
@@ -258,6 +266,14 @@ public final class KingdomHouses {
             default -> HouseBuilder.cottage(f, palette);
         }
         yard(f, palette, kind, seed);
+        return new Drawn(plan, palette, seed);
+    }
+
+    private static void raise(ServerLevel level, KingdomData data, KingdomData.Kingdom k, Slot slot, Kind kind, BlockPos doorstep) {
+        Drawn drawn = draw(level, slot, kind, doorstep, k.houses.size());
+        KingdomBuild.Plan plan = drawn.plan();
+        HouseBuilder.Palette palette = drawn.palette();
+        int seed = drawn.seed();
         lane(level, k, slot, plan, palette, doorstep);
         // the road itself, once per road: paved out to the march wall with its lamps
         int roadBit = 1 << slot.road;
@@ -281,6 +297,58 @@ public final class KingdomHouses {
             }
         });
         WakingWorld.LOGGER.info("kingdom {}: raises a {} ({}) at {} - house {}", Kingdoms.name(k.center), kind.key(), palette.name(), doorstep.toShortString(), k.houses.size());
+    }
+
+    /**
+     * Raises every standing house again, over itself, with the design as it is drawn today - the way a
+     * suburb built by an older version gets its doors. The masons lay every course, so anything a player
+     * changed inside a house is lost; the people already living there stay. Returns how many were begun.
+     */
+    public static int redo(ServerLevel level, KingdomData.Kingdom k) {
+        int begun = 0, index = 0;
+        for (long h : k.houses) {
+            BlockPos doorstep = BlockPos.of(h);
+            Slot slot = slotOf(k, doorstep);
+            if (slot != null && level.isLoaded(doorstep)) {
+                Kind kind = standingKind(level, slot, doorstep, index);
+                Drawn drawn = draw(level, slot, kind, doorstep, index);
+                KingdomBuild.begin(level, doorstep, drawn.plan(), kind.key(), null, true);
+                WakingWorld.LOGGER.info("kingdom {}: raises the {} ({}) at {} again - house {}", Kingdoms.name(k.center), kind.key(), drawn.palette().name(), doorstep.toShortString(), index + 1);
+                begun++;
+            }
+            index++;
+        }
+        return begun;
+    }
+
+    /** The slot a doorstep stands on, or null if it is on none (a house from before the slots, say). */
+    static Slot slotOf(KingdomData.Kingdom k, BlockPos doorstep) {
+        for (Slot slot : slots()) {
+            BlockPos c = slot.column(k.center);
+            if (c.getX() == doorstep.getX() && c.getZ() == doorstep.getZ()) return slot;
+        }
+        return null;
+    }
+
+    /**
+     * What kind the {@code index}-th house was built as: its kind by the order, unless what stands there
+     * matches a cottage better - the fallback a wide house takes when it does not fit beside its neighbour.
+     */
+    static Kind standingKind(ServerLevel level, Slot slot, BlockPos doorstep, int index) {
+        Kind byOrder = kindFor(index);
+        if (byOrder == Kind.COTTAGE) return byOrder;
+        int asDrawn = matches(level, draw(level, slot, byOrder, doorstep, index).plan(), doorstep);
+        int asCottage = matches(level, draw(level, slot, Kind.COTTAGE, doorstep, index).plan(), doorstep);
+        return asCottage > asDrawn ? Kind.COTTAGE : byOrder;
+    }
+
+    /** How many of a plan's blocks above the doorstep stand in the world as the same block. */
+    private static int matches(ServerLevel level, KingdomBuild.Plan plan, BlockPos doorstep) {
+        int[] n = new int[1];
+        plan.forEach((at, state) -> {
+            if (!state.isAir() && at.getY() >= doorstep.getY() && level.getBlockState(at).is(state.getBlock())) n[0]++;
+        });
+        return n[0];
     }
 
     /** What stands behind and beside a house: a garden, a tree, a hedge or a low wall, by kind and chance. */

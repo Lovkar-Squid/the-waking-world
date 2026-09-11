@@ -3,6 +3,24 @@
 All notable changes to The Waking World. The format follows [Keep a Changelog](https://keepachangelog.com/);
 versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-releases.
 
+## [0.3.0-alpha.14] - 2026-09-11 (unreleased)
+
+The suburb gets its doors.
+
+### Fixed
+- **The houses outside the walls had no doors** - and no window panes, no plinth course, a stone
+  floor where planks were drawn, and a flue that stopped at the roof. A house plan is a drawing:
+  the walls are drawn first and the door is drawn into them. But the masons lay every course in
+  turn and only into air or natural ground, so the wall went up and the door, arriving at a wall,
+  was refused. The previews never showed it because they draw last-course-wins. A house plan is
+  now exactly that (`KingdomBuild.Plan(true)`): a later course at a position replaces the earlier
+  one. The works and the march wall keep the old plan, where an air course before a block course
+  clears the ground for it.
+- `/wakingworld kingdom [at] houses redo` raises every standing house again over itself with the
+  design as it is drawn today - the way a suburb built by alpha.12 or alpha.13 gets its doors.
+  The masons lay every course this time (anything a player changed inside a house is lost); the
+  people already living there stay. `kingdom build` lays it all at once.
+
 ## [0.3.0-alpha.13] - 2026-09-11 (unreleased)
 
 The engines: a city gets its catapult, and the stones it throws arrive.

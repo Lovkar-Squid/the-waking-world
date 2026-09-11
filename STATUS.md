@@ -1,6 +1,6 @@
 # The Waking World — where we are
 
-Written 9 Sep 2026 at **0.3.0-alpha.11**, brought up to date 11 Sep 2026 at **0.3.0-alpha.13**.
+Written 9 Sep 2026 at **0.3.0-alpha.11**, brought up to date 11 Sep 2026 at **0.3.0-alpha.14**.
 This is the handover: what exists, what was fixed and how it was proved, what is untested, and what
 is left. **Section 0 is new and comes first because it changes where the source is.**
 
@@ -108,6 +108,33 @@ within 160 of the player, so generated). Renders: `promo\bts\eldermere_tier4_wor
 Workaround he has now: stand where the engine should go (within 120 of the centre, outside the
 town wall) and `/wakingworld kingdom ~ ~ ~ engine`.
 
+### alpha.14 — "hiše okoli kingdoma niso imele vrat/vhoda"
+
+His report, 11 Sep, and true: read out of the rig's save, every doorstep column was wall infill top to
+bottom, and no house had a glass pane, a plinth course or a plank floor either. **Cause: a plan is a
+list of courses, the masons lay them in turn and only into air / replaceable / natural ground, and a
+house is drawn walls-first with the door, the panes, the plinth course and the floor drawn INTO them.**
+The wall went up; the door arrived at a wall and was refused. `HousePreview`/`plan_iso` draw
+last-course-wins, so every preview showed doors that the mason never laid. **Lesson: the preview must
+render what the mason does, not what the drawing says - or read the built thing back out of the save,
+which is what caught it.**
+
+- `KingdomBuild.Plan(true)`: a drawing - a later course at a position replaces the earlier one.
+  Houses use it; the works and the march wall keep the old list (there an AIR course before a block
+  course clears the ground, and the catapult was verified block-for-block on that behaviour).
+- `KingdomBuild.begin(..., force)`: lays every course over whatever stands there, skipping blocks
+  that already are what the plan wants. `KingdomHouses.redo()` re-raises every standing house that
+  way (kind from its order, or a cottage if what stands there matches a cottage better - the
+  fallback a wide kind takes; palette from doorstep hash + index, as raised). No residents spawned
+  again. `/wakingworld kingdom [at] houses redo`.
+
+*Proved on the rig:* `houses redo` on Eldermere's 20 houses (32 601 courses queued, 4 220 blocks
+actually changed) → 19 of 20 doorsteps carry a two-half door of the palette's wood, the 20th is the
+smithy, which is open-fronted by design; panes in every wall; two new houses raised the ordinary way
+have their doors too. Renders `promo\bts\eldermere_west_lane_doors.png`, `eldermere_new_cottages.png`.
+**He should run `/wakingworld kingdom houses redo` once near Greyhaven** (and `kingdom build` if he
+does not want to watch the masons for six minutes).
+
 ### The rig, for kingdoms (new)
 
 - `/root/nfserver/wwrun.sh [keep]` - only the newest `wakingworld-*.jar`, normal world `wwworld`
@@ -162,7 +189,8 @@ split -b 14000000 -d wakingworld-0.3.0-alpha.N.jar /tmp/xfer/ww.part
 - `/wakingworld kingdom [at]` — report; `... standing <n>` reviews the tier on the spot
 - `/wakingworld kingdom [at] repair` — one sweep, reports blocks and fires
 - `/wakingworld kingdom build [blocks]` — drains the mason queue (headless has no watcher)
-- `/wakingworld kingdom <at> engine` — **new**, raises one catapult there and registers it
+- `/wakingworld kingdom <at> engine` — raises one catapult there and registers it
+- `/wakingworld kingdom [at] houses [n]` / `houses forget` / `houses redo` — raise n houses, retry refused plots, re-raise every standing house with today's design
 - `/wakingworld bombard <at>` — **new**, calls a volley on a point with no player
 - `/wakingworld terrain`, `tidy [r]`, `kingdomscan <at> <cells>`
 
@@ -222,7 +250,8 @@ into a scoreboard and is read afterwards with `scoreboard players get`.
 | alpha.10 | companion orders and stances, guard chase fix, catapult rebuild, siege damage, lava patrol, Signal Horn *(shipped, then superseded within the hour)* |
 | alpha.11 | SHA256 `29d5293e5c4641596a40e3bebc66524df6d0dc5f57758d1f2ab31ad15945a4da`, 29 041 476 B. The jar the source was recovered from; in `mods\_old` |
 | alpha.12 | the suburb (section 0). SHA256 `785890ab…e704`, 29 205 866 B; in `mods\_old` |
-| **alpha.13** | **current** — the engine that never came, and the stones that hang (section 0). In `The Waking World Dev\mods` |
+| alpha.13 | the engine that never came, and the stones that hang (section 0). SHA256 `2adaeeb6…be4a`, 29 206 393 B; in `mods\_old` |
+| **alpha.14** | **current** — the suburb gets its doors, `houses redo` (section 0). In `The Waking World Dev\mods` |
 
 ---
 
@@ -414,7 +443,7 @@ the boss fight is not testable headlessly at all.
 ## 6. Still to do
 
 **Mod**
-- Play-test alpha.13 and report - the suburb first (`/wakingworld kingdom houses 6` on a town to see it at once),
+- Play-test alpha.14 and report - `/wakingworld kingdom houses redo` at Greyhaven first, then the suburb (`/wakingworld kingdom houses 6` on a town to see it at once),
   then the engine: a levy or `/wakingworld kingdom standing 100` at Greyhaven should log `begins raising a catapult`,
   and the Horn of Waking beside a colossus (or `/wakingworld bombard`) should land four stones; then everything in section 5.
 - Decide where the Signal Horn comes from (craft vs. a king's gift).

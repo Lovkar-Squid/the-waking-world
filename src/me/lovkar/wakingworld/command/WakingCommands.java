@@ -500,11 +500,12 @@ public final class WakingCommands {
                                             ))
                                         .then(Commands.literal("repair").executes(var0x -> kingdomRepair(var0x, null))))
                                         .then(
-                                            ((LiteralArgumentBuilder)Commands.literal("houses").executes(var0x -> kingdomHouses(var0x, null, 3)))
+                                            ((LiteralArgumentBuilder)((LiteralArgumentBuilder)Commands.literal("houses").executes(var0x -> kingdomHouses(var0x, null, 3)))
                                                 .then(
                                                     Commands.argument("count", IntegerArgumentType.integer(1, 48))
                                                         .executes(var0x -> kingdomHouses(var0x, null, IntegerArgumentType.getInteger(var0x, "count")))
-                                                )
+                                                ))
+                                                .then(Commands.literal("redo").executes(var0x -> kingdomHousesRedo(var0x, null)))
                                         )
                                     .then(
                                         ((LiteralArgumentBuilder)Commands.literal("build").executes(var0x -> kingdomBuild(var0x, 20000)))
@@ -530,6 +531,7 @@ public final class WakingCommands {
                                                         .executes(var0x -> kingdomHouses(var0x, BlockPosArgument.getBlockPos(var0x, "at"), IntegerArgumentType.getInteger(var0x, "count")))
                                                 ))
                                                 .then(Commands.literal("forget").executes(var0x -> kingdomHouses(var0x, BlockPosArgument.getBlockPos(var0x, "at"), 0)))
+                                                .then(Commands.literal("redo").executes(var0x -> kingdomHousesRedo(var0x, BlockPosArgument.getBlockPos(var0x, "at"))))
                                         )
                                         .then(
                                             Commands.literal("standing")
@@ -678,6 +680,30 @@ public final class WakingCommands {
         KingdomData.Kingdom kk = k;
         ctx.getSource().sendSuccess(() -> Component.literal(Kingdoms.name(kk.center) + ": " + begun + " house" + (begun == 1 ? "" : "s") + " begun, "
                 + kk.houses.size() + " standing, " + kk.badSlots.size() + " plots refused, " + KingdomBuild.pending() + " blocks queued"), false);
+        return begun;
+    }
+
+    /** Raises every standing house of the nearest town again, over itself - the design as drawn today. */
+    private static int kingdomHousesRedo(CommandContext<CommandSourceStack> ctx, BlockPos at) {
+        ServerLevel level = ctx.getSource().getLevel();
+        BlockPos here = at != null ? at : BlockPos.containing(ctx.getSource().getPosition());
+        KingdomData data = KingdomData.get(level);
+        KingdomData.Kingdom k = data.kingdomAt(here);
+        if (k == null) {
+            double best = Double.MAX_VALUE;
+            for (KingdomData.Kingdom c : data.all()) {
+                double d = c.center.distSqr(here);
+                if (d < best) { best = d; k = c; }
+            }
+        }
+        if (k == null) {
+            ctx.getSource().sendFailure(Component.literal("no kingdom is known in this world yet"));
+            return 0;
+        }
+        int begun = KingdomHouses.redo(level, k);
+        KingdomData.Kingdom kk = k;
+        ctx.getSource().sendSuccess(() -> Component.literal(Kingdoms.name(kk.center) + ": " + begun + " of " + kk.houses.size() + " houses being raised again, "
+                + KingdomBuild.pending() + " blocks queued (the masons work while someone is near; `kingdom build` lays it all now)"), false);
         return begun;
     }
 
