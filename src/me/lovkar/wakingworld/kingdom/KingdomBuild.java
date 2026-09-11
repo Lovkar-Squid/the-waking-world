@@ -24,6 +24,11 @@ public final class KingdomBuild {
     }
 
     public static void begin(ServerLevel var0, BlockPos var1, KingdomBuild.Plan var2, String var3) {
+        begin(var0, var1, var2, var3, null);
+    }
+
+    /** As above, with something to do once the last course is laid (the people moving in, say). */
+    public static void begin(ServerLevel var0, BlockPos var1, KingdomBuild.Plan var2, String var3, Runnable done) {
         if (!var2.courses.isEmpty()) {
             ArrayList<KingdomBuild.Course> var4 = new ArrayList<>(var2.courses);
             var4.sort((var1x, var2x) -> {
@@ -36,7 +41,9 @@ public final class KingdomBuild {
                     return Double.compare(var4x, var6);
                 }
             });
-            QUEUE.add(new KingdomBuild.Job(var0, var1, var4, var3));
+            KingdomBuild.Job job = new KingdomBuild.Job(var0, var1, var4, var3);
+            job.done = done;
+            QUEUE.add(job);
         }
     }
 
@@ -105,6 +112,7 @@ public final class KingdomBuild {
                             var1, 15257738, 6.0F, (double)var6.centre.getX() + 0.5, (double)var6.centre.getY() + 0.4, (double)var6.centre.getZ() + 0.5
                         );
                         WakingWorld.LOGGER.info("kingdom: finished raising a {} at {}", var6.what, var6.centre.toShortString());
+                        if (var6.done != null) var6.done.run();
                     }
                 }
             }
@@ -148,6 +156,7 @@ public final class KingdomBuild {
 
             QUEUE.poll();
             WakingWorld.LOGGER.info("kingdom: finished raising a {} at {}", var3.what, var3.centre.toShortString());
+            if (var3.done != null) var3.done.run();
         }
 
         return var2;
@@ -176,6 +185,7 @@ public final class KingdomBuild {
         int next;
         final List<KingdomBuild.Course> again = new ArrayList<>();
         boolean retried;
+        Runnable done;
 
         Job(ServerLevel var1, BlockPos var2, List<KingdomBuild.Course> var3, String var4) {
             this.level = var1;
@@ -214,6 +224,11 @@ public final class KingdomBuild {
 
         public int size() {
             return this.courses.size();
+        }
+
+        /** Every course in the order it was drawn - for previews and tests; the mason sorts its own copy. */
+        public void forEach(java.util.function.BiConsumer<BlockPos, BlockState> visitor) {
+            for (KingdomBuild.Course c : this.courses) visitor.accept(c.at(), c.state());
         }
     }
 }

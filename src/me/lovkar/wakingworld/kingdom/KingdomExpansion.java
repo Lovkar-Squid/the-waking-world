@@ -109,7 +109,7 @@ public final class KingdomExpansion {
             int var10 = var1.center.getX() + (int)Math.round(Math.cos(var7) * (double)var9);
             int var11 = var1.center.getZ() + (int)Math.round(Math.sin(var7) * (double)var9);
             BlockPos var12 = ground(var0, var10, var11);
-            if (var12 != null && !occupied(var0, var12) && clear(var0, var12, var3, var4, var5)) {
+            if (var12 != null && !inLane(var1, var12) && !occupied(var0, var12) && clear(var0, var12, var3, var4, var5)) {
                 return var12;
             }
         }
@@ -148,10 +148,22 @@ public final class KingdomExpansion {
         }
     }
 
+    /** The four roads out of the town and the rows of houses along them are the suburb's; the works stay in the quarters between. */
+    static boolean inLane(KingdomData.Kingdom k, BlockPos at) {
+        int dx = Math.abs(at.getX() - k.center.getX()), dz = Math.abs(at.getZ() - k.center.getZ());
+        return dx <= 34 && dz <= 118 || dz <= 34 && dx <= 118;
+    }
+
     private static boolean occupied(ServerLevel var0, BlockPos var1) {
         for (KingdomData.Kingdom var3 : KingdomData.get(var0).all()) {
             for (long var5 : var3.works) {
                 if (BlockPos.of(var5).distSqr(var1) < 2304.0) {
+                    return true;
+                }
+            }
+            // the suburb's houses are smaller, but a work is wide: keep its centre 20 blocks off any doorstep
+            for (long h : var3.houses) {
+                if (BlockPos.of(h).distSqr(var1) < 400.0) {
                     return true;
                 }
             }

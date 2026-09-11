@@ -54,6 +54,12 @@ public class KingdomData extends SavedData {
         public long knownTower;
         public int wallArcs;
         public final Set<Long> catapults = new LinkedHashSet<>();
+        /** The doorsteps of the houses outside the walls, in the order they were raised (see {@link KingdomHouses}). */
+        public final Set<Long> houses = new LinkedHashSet<>();
+        /** Lane slots that were tried and found unfit (water, a cliff, somebody's build) - never tried again. */
+        public final Set<Integer> badSlots = new LinkedHashSet<>();
+        /** Which roads (bits 0-3) and back lanes (bits 4-7) the suburb has paved. */
+        public int lanes;
 
         Kingdom(BlockPos var1) {
             this.center = var1;
@@ -217,6 +223,9 @@ public class KingdomData extends SavedData {
             if (!k.catapults.isEmpty()) t.putLongArray("Catapults", longs(k.catapults));
             if (!k.works.isEmpty()) t.putLongArray("Works", longs(k.works));
             if (!k.claims.isEmpty()) t.putLongArray("Claims", longs(k.claims));
+            if (!k.houses.isEmpty()) t.putLongArray("Houses", longs(k.houses));
+            if (!k.badSlots.isEmpty()) t.putIntArray("BadSlots", k.badSlots.stream().mapToInt(Integer::intValue).toArray());
+            t.putInt("Lanes", k.lanes);
             if (k.throne != null) {
                 t.putDouble("ThroneX", k.throne.x);
                 t.putDouble("ThroneY", k.throne.y);
@@ -276,6 +285,9 @@ public class KingdomData extends SavedData {
             for (long c : t.getLongArray("Catapults")) k.catapults.add(c);
             for (long c : t.getLongArray("Claims")) k.claims.add(c);
             for (long c : t.getLongArray("Works")) k.works.add(c);
+            for (long c : t.getLongArray("Houses")) k.houses.add(c);
+            for (int c : t.getIntArray("BadSlots")) k.badSlots.add(c);
+            k.lanes = t.getInt("Lanes");
             if (t.contains("ThroneX")) k.throne = new net.minecraft.world.phys.Vec3(t.getDouble("ThroneX"), t.getDouble("ThroneY"), t.getDouble("ThroneZ"));
             if (t.contains("Treasury")) {
                 int[] b = t.getIntArray("Treasury");

@@ -126,7 +126,7 @@ public class KingdomStructure extends Structure {
      * {@code KingdomWallPiece.REACH} (70) - hung over the border, which is exactly what a player
      * sees on the chart. Wrong constant, right idea.</p>
      */
-    private static int inSquare(int v) {
+    public static int inSquare(int v) {
         int size = me.lovkar.wakingworld.WakingConfig.landSize();
         int margin = KingdomWallPiece.REACH + 4;   // the whole town, moat and all
         int inside = Math.floorMod(v, size);

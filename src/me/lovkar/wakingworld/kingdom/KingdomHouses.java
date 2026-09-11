@@ -1,0 +1,402 @@
+package me.lovkar.wakingworld.kingdom;
+
+import java.util.ArrayList;
+import java.util.List;
+import me.lovkar.wakingworld.WakingWorld;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+
+/**
+ * The suburb: the houses a kingdom raises outside its walls as it grows, along the roads out of its two
+ * gates - and, when those lanes are full or unfit, along two more lanes east and west.
+ *
+ * <p>Every road has a front row of plots facing it (doors four blocks off the road) and, behind a back
+ * lane, a second row facing the same way. A plot is a fixed slot: the same kingdom always fills the same
+ * places in the same order, so a town seen at tier 2 and again at tier 4 has grown, not shuffled. A slot
+ * that turns out unfit (water, a cliff, somebody's build, one of the town's own works) is written down
+ * and never tried again. A tier says how many houses the town keeps; a review raises up to {@link #PER_REVIEW}
+ * of the shortfall, so growth is watched happening rather than found done.
+ *
+ * <p>What stands on a slot depends on how many houses the town already has: the first are cottages and
+ * longhouses, a town gets its tavern and its smithy and the first townhouses, a city its chapel. When
+ * the masons finish a house, its people arrive: townsfolk of the trade the house suggests, kept to the
+ * lane they live on.
+ */
+public final class KingdomHouses {
+    /** Houses per review while the town is short of what its tier keeps. */
+    static final int PER_REVIEW = 3;
+    /** The plot centres along a road, measured from the town's centre. The last plot's eave stays inside the march wall. */
+    private static final int[] DEPTHS = {76, 87, 98};
+    /** Where the doors stand off the road's centre line: the front row and, past the back lane, the second row. */
+    private static final int FRONT = 4, BACK = 19, LANE_NEAR = 15, LANE_FAR = 16;
+    private static final int ROAD_END = 116;
+    private static final int LANE_END = 106;
+    /** Works are wide; a house keeps this far from the centre of one. */
+    private static final double WORK_CLEARANCE = 15.0;
+    /** How much the ground may rise and fall across a plot (the foundation takes up the rest). */
+    private static final int SLOPE = 4;
+
+    private KingdomHouses() {
+    }
+
+    /** How many houses a tier keeps outside the walls. */
+    public static int wanted(int tier) {
+        return switch (tier) {
+            case 1 -> 0;
+            case 2 -> 6;
+            case 3 -> 13;
+            default -> 22;
+        };
+    }
+
+    // ------------------------------------------------------------------ the slots
+
+    /** The four roads: south and north are the gate roads, east and west are lanes the suburb lays itself. */
+    private static final Direction[] ROADS = {Direction.SOUTH, Direction.NORTH, Direction.EAST, Direction.WEST};
+
+    record Slot(int index, int road, int depth, int side, boolean back) {
+        Direction along() {
+            return ROADS[road];
+        }
+
+        /** The lateral direction of side +1 (clockwise off the road, seen from above). */
+        Direction lateral() {
+            return along().getClockWise();
+        }
+
+        int off() {
+            return back ? BACK : FRONT;
+        }
+
+        /** The doorstep column: down the road, then off to the side. */
+        BlockPos column(BlockPos centre) {
+            Direction a = along(), l = lateral();
+            return centre.offset(a.getStepX() * depth + l.getStepX() * side * off(), 0, a.getStepZ() * depth + l.getStepZ() * side * off());
+        }
+
+        /** The house faces back toward the road. */
+        Direction facing() {
+            return side > 0 ? lateral().getOpposite() : lateral();
+        }
+    }
+
+    /** The slots in the order they are filled: the gate roads first, front rows before back rows, the side lanes as overflow. */
+    static List<Slot> slots() {
+        List<Slot> out = new ArrayList<>();
+        int i = 0;
+        for (boolean back : new boolean[]{false, true})
+            for (int d : DEPTHS)
+                for (int road = 0; road < 2; road++)
+                    for (int side = 1; side >= -1; side -= 2) out.add(new Slot(i++, road, d, side, back));
+        for (boolean back : new boolean[]{false, true})
+            for (int d : DEPTHS)
+                for (int road = 2; road < 4; road++)
+                    for (int side = 1; side >= -1; side -= 2) out.add(new Slot(i++, road, d, side, back));
+        return out;
+    }
+
+    // ------------------------------------------------------------------ the kinds
+
+    enum Kind {
+        COTTAGE(3, 6, 8), LONGHOUSE(5, 6, 8), TOWNHOUSE(4, 6, 12), SMITHY(3, 6, 8), TAVERN(4, 8, 12), CHAPEL(3, 10, 17);
+
+        final int hw, depth, height;
+
+        Kind(int hw, int depth, int height) {
+            this.hw = hw;
+            this.depth = depth;
+            this.height = height;
+        }
+
+        String key() {
+            return name().toLowerCase();
+        }
+    }
+
+    /** What the n-th house of a town is. */
+    static Kind kindFor(int n) {
+        Kind[] order = {
+            Kind.COTTAGE, Kind.COTTAGE, Kind.LONGHOUSE, Kind.COTTAGE, Kind.COTTAGE, Kind.LONGHOUSE,                                        // a town
+            Kind.TAVERN, Kind.SMITHY, Kind.TOWNHOUSE, Kind.COTTAGE, Kind.TOWNHOUSE, Kind.LONGHOUSE, Kind.COTTAGE,                          // a walled town
+            Kind.CHAPEL, Kind.TOWNHOUSE, Kind.TOWNHOUSE, Kind.COTTAGE, Kind.LONGHOUSE, Kind.TOWNHOUSE, Kind.COTTAGE, Kind.TOWNHOUSE, Kind.COTTAGE // a city
+        };
+        return n < order.length ? order[n] : (n % 3 == 0 ? Kind.TOWNHOUSE : n % 3 == 1 ? Kind.COTTAGE : Kind.LONGHOUSE);
+    }
+
+    /** The trades that live in a house of this kind (townsfolk professions), one per resident. */
+    static int[] residents(Kind kind, int seed) {
+        return switch (kind) {
+            case SMITHY -> new int[]{TownsfolkEntity.SMITH};
+            case TAVERN -> new int[]{TownsfolkEntity.PROVISIONER, TownsfolkEntity.CHANDLER};
+            case CHAPEL -> new int[]{TownsfolkEntity.SCRIBE};
+            case TOWNHOUSE -> new int[]{seed % 2 == 0 ? TownsfolkEntity.SCRIBE : TownsfolkEntity.SURVEYOR};
+            case LONGHOUSE -> new int[]{TownsfolkEntity.PROVISIONER, TownsfolkEntity.CHANDLER};
+            default -> new int[]{seed % 2 == 0 ? TownsfolkEntity.PROVISIONER : TownsfolkEntity.CHANDLER};
+        };
+    }
+
+    // ------------------------------------------------------------------ growing
+
+    /**
+     * Raises up to {@link #PER_REVIEW} houses if the town has fewer than its tier keeps. Called from the
+     * review; returns how many were begun.
+     */
+    public static int grow(ServerLevel level, KingdomData data, KingdomData.Kingdom k, List<ServerPlayer> players) {
+        return grow(level, data, k, players, Math.min(PER_REVIEW, wanted(k.tier) - k.houses.size()));
+    }
+
+    /** Raises up to {@code count} houses regardless of tier - the dev command's way in. */
+    public static int grow(ServerLevel level, KingdomData data, KingdomData.Kingdom k, List<ServerPlayer> players, int count) {
+        if (count <= 0) return 0;
+        int begun = 0;
+        for (Slot slot : slots()) {
+            if (begun >= count) break;
+            if (k.badSlots.contains(slot.index) || taken(k, slot)) continue;
+            BlockPos column = slot.column(k.center);
+            if (!level.isLoaded(column)) continue;                   // out of sight: try again another day
+            Kind kind = kindFor(k.houses.size());
+            int[] why = new int[2];
+            BlockPos doorstep = site(level, k, slot, kind, why);
+            if (doorstep == null && why[0] == 1 && why[1] == 3 && kind != Kind.COTTAGE) {
+                // a wide house does not fit beside what is already there: a cottage might
+                kind = Kind.COTTAGE;
+                doorstep = site(level, k, slot, kind, why);
+            }
+            if (doorstep == null) {
+                WakingWorld.LOGGER.info("kingdom {}: plot {} ({} road, {} {}, {}) refused: {}", Kingdoms.name(k.center), slot.index, slot.along().getName(), slot.depth,
+                        slot.side > 0 ? "right" : "left", slot.back ? "back row" : "front row", why[0] == 1 ? WHY[why[1]] : why[0] == 2 ? "a work in the way" : "not loaded");
+                if (why[0] == 1 && why[1] != 3) {   // the ground itself: never again. Something built there may yet go
+                    k.badSlots.add(slot.index);
+                    data.setDirty();
+                }
+                continue;
+            }
+            raise(level, data, k, slot, kind, doorstep);
+            begun++;
+        }
+        if (begun > 0) {
+            level.playSound(null, k.center, SoundEvents.BELL_BLOCK, SoundSource.NEUTRAL, 2.4F, 1.2F);
+            for (ServerPlayer p : players) {
+                p.displayClientMessage(Component.translatable(begun == 1 ? "kingdom.wakingworld.built.house" : "kingdom.wakingworld.built.houses",
+                        Kingdoms.name(k.center), begun).withStyle(ChatFormatting.GOLD), false);
+            }
+        }
+        return begun;
+    }
+
+    private static boolean taken(KingdomData.Kingdom k, Slot slot) {
+        BlockPos c = slot.column(k.center);
+        for (long h : k.houses) {
+            BlockPos p = BlockPos.of(h);
+            if (p.getX() == c.getX() && p.getZ() == c.getZ()) return true;
+        }
+        return false;
+    }
+
+    static final String[] WHY = {"", "the door would be under the sea", "water or lava on the plot", "something built on the plot", "the ground is too uneven"};
+
+    /** The doorstep for a house of this kind on this slot, or null if the plot will not take it (why[0]: 1 the ground, 2 a work, 3 not loaded; why[1] the detail). */
+    static BlockPos site(ServerLevel level, KingdomData.Kingdom k, Slot slot, Kind kind, int[] why) {
+        BlockPos column = slot.column(k.center);
+        int gy = KingdomExpansion.groundY(level, column.getX(), column.getZ());
+        why[0] = 1;
+        why[1] = 1;
+        if (gy <= level.getSeaLevel() - 1) return null;
+        BlockPos doorstep = new BlockPos(column.getX(), gy + 1, column.getZ());
+        Direction facing = slot.facing();
+        Direction right = facing.getCounterClockWise(), depth = facing.getOpposite();
+        int lo = Integer.MAX_VALUE, hi = Integer.MIN_VALUE;
+        for (int u = -kind.hw - 1; u <= kind.hw + 1; u++) {
+            for (int v = -1; v <= kind.depth + 1; v++) {
+                int x = doorstep.getX() + right.getStepX() * u + depth.getStepX() * v;
+                int z = doorstep.getZ() + right.getStepZ() * u + depth.getStepZ() * v;
+                if (!level.isLoaded(new BlockPos(x, gy, z))) { why[0] = 3; return null; }
+                int g = KingdomExpansion.groundY(level, x, z);
+                lo = Math.min(lo, g);
+                hi = Math.max(hi, g);
+                BlockState ground = level.getBlockState(new BlockPos(x, g, z));
+                if (ground.getFluidState().isSource()) { why[1] = 2; return null; }
+                if (!KingdomExpansion.natural(ground)) { why[1] = 3; return null; }
+                for (int y = g + 1; y <= g + kind.height; y++) {
+                    BlockState s = level.getBlockState(new BlockPos(x, y, z));
+                    if (s.is(Blocks.WATER) || s.is(Blocks.LAVA)) { why[1] = 2; return null; }
+                    if (!KingdomExpansion.natural(s)) { why[1] = 3; return null; }
+                }
+            }
+        }
+        if (hi - lo > SLOPE) { why[1] = 4; return null; }
+        // the town's own works are wide: keep clear of their centres
+        why[0] = 2;
+        for (long w : k.works) if (BlockPos.of(w).distSqr(doorstep) < WORK_CLEARANCE * WORK_CLEARANCE) return null;
+        why[0] = 0;
+        return doorstep;
+    }
+
+    private static void raise(ServerLevel level, KingdomData data, KingdomData.Kingdom k, Slot slot, Kind kind, BlockPos doorstep) {
+        KingdomBuild.Plan plan = new KingdomBuild.Plan();
+        HouseBuilder.Terrain terrain = (x, z) -> KingdomExpansion.groundY(level, x, z);
+        int seed = hash(doorstep.getX(), doorstep.getZ());
+        HouseBuilder.Palette palette = HouseBuilder.Palette.of(seed + k.houses.size());
+        HouseBuilder.Frame f = new HouseBuilder.Frame(plan, terrain, doorstep, slot.facing());
+        // whatever grew on the plot goes first, so no tree is left standing through a roof
+        for (int u = -kind.hw - 2; u <= kind.hw + 2; u++) for (int v = -2; v <= kind.depth + 2; v++) f.fill(u, u, 0, kind.height, v, v, HouseBuilder.AIR);
+        switch (kind) {
+            case LONGHOUSE -> HouseBuilder.longhouse(f, palette);
+            case TOWNHOUSE -> HouseBuilder.townhouse(f, palette);
+            case SMITHY -> HouseBuilder.smithy(f, palette);
+            case TAVERN -> HouseBuilder.tavern(f, palette);
+            case CHAPEL -> HouseBuilder.chapel(f, palette);
+            default -> HouseBuilder.cottage(f, palette);
+        }
+        yard(f, palette, kind, seed);
+        lane(level, k, slot, plan, palette, doorstep);
+        // the road itself, once per road: paved out to the march wall with its lamps
+        int roadBit = 1 << slot.road;
+        if ((k.lanes & roadBit) == 0) {
+            road(level, k, slot, plan, palette);
+            k.lanes |= roadBit;
+        }
+        int backBit = 1 << (4 + slot.road);
+        if (slot.back && (k.lanes & backBit) == 0) {
+            backLane(level, k, slot, plan, palette);
+            k.lanes |= backBit;
+        }
+        k.houses.add(doorstep.asLong());
+        data.setDirty();
+        int[] trades = residents(kind, seed);
+        BlockPos centre = k.center;
+        KingdomBuild.begin(level, doorstep, plan, kind.key(), () -> {
+            for (int i = 0; i < trades.length; i++) {
+                BlockPos at = doorstep.relative(slot.facing(), 2 + i);
+                KingdomSpawns.trader(level, centre.getX(), centre.getY(), centre.getZ(), at.getX(), KingdomExpansion.groundY(level, at.getX(), at.getZ()) + 1, at.getZ(), trades[i]);
+            }
+        });
+        WakingWorld.LOGGER.info("kingdom {}: raises a {} ({}) at {} - house {}", Kingdoms.name(k.center), kind.key(), palette.name(), doorstep.toShortString(), k.houses.size());
+    }
+
+    /** What stands behind and beside a house: a garden, a tree, a hedge or a low wall, by kind and chance. */
+    private static void yard(HouseBuilder.Frame f, HouseBuilder.Palette p, Kind kind, int seed) {
+        int back = kind.depth + 2;   // one past the back eave
+        switch (kind) {
+            case COTTAGE -> {
+                HouseBuilder.garden(shifted(f, seed % 2 == 0 ? -1 : 1, back), p, 2, 2);
+                HouseBuilder.tree(shifted(f, seed % 2 == 0 ? 4 : -4, back + 1), p, false);
+                if (seed % 3 == 0) HouseBuilder.hedge(f, p, -4, 4, -2, true);
+            }
+            case LONGHOUSE -> {
+                HouseBuilder.garden(shifted(f, -2, back), p, 3, 2);
+                HouseBuilder.tree(shifted(f, 5, back + 1), p, true);
+                HouseBuilder.yardWall(f, -6, 6, -2);
+            }
+            case TOWNHOUSE -> {
+                HouseBuilder.tree(shifted(f, seed % 2 == 0 ? 4 : -4, back), p, false);
+                HouseBuilder.hedge(f, p, -4, 4, back + 1, false);
+            }
+            case SMITHY -> HouseBuilder.tree(shifted(f, -4, back), p, true);
+            case TAVERN -> {
+                HouseBuilder.tree(shifted(f, 3, back), p, true);
+                HouseBuilder.tree(shifted(f, -3, back), p, true);
+            }
+            default -> {
+                HouseBuilder.tree(shifted(f, 5, 3), p, true);
+                HouseBuilder.tree(shifted(f, -5, 3), p, true);
+                HouseBuilder.hedge(f, p, -4, 4, -2, true);
+            }
+        }
+    }
+
+    /** The same frame moved by (du, dv) on the drawing. */
+    private static HouseBuilder.Frame shifted(HouseBuilder.Frame f, int du, int dv) {
+        return new HouseBuilder.Frame(f.plan, f.terrain, f.at(du, 0, dv), f.facing);
+    }
+
+    /** The path from the door to the road (or the back lane), on the ground. */
+    private static void lane(ServerLevel level, KingdomData.Kingdom k, Slot slot, KingdomBuild.Plan plan, HouseBuilder.Palette p, BlockPos doorstep) {
+        Direction out = slot.facing();
+        int steps = slot.back ? BACK - LANE_FAR - 1 : FRONT - 2;   // to the lane's edge
+        for (int i = 1; i <= steps; i++) {
+            BlockPos at = doorstep.relative(out, i);
+            int g = KingdomExpansion.groundY(level, at.getX(), at.getZ());
+            plan.set(at.getX(), g, at.getZ(), (hash(at.getX(), at.getZ()) & 3) == 0 ? Blocks.GRAVEL.defaultBlockState() : Blocks.DIRT_PATH.defaultBlockState());
+            plan.set(at.getX(), g + 1, at.getZ(), Blocks.AIR.defaultBlockState());
+        }
+    }
+
+    /** The road out of the gate paved on to the march wall (or, on the side lanes, laid from the moat out), lamp posts on its verges. */
+    private static void road(ServerLevel level, KingdomData.Kingdom k, Slot slot, KingdomBuild.Plan plan, HouseBuilder.Palette p) {
+        Direction a = slot.along(), l = slot.lateral();
+        int from = KingdomWallPiece.REACH + 1;
+        for (int d = from; d <= ROAD_END; d++) {
+            for (int s = -1; s <= 1; s++) {
+                int x = k.center.getX() + a.getStepX() * d + l.getStepX() * s;
+                int z = k.center.getZ() + a.getStepZ() * d + l.getStepZ() * s;
+                if (!level.isLoaded(new BlockPos(x, k.center.getY(), z))) continue;
+                int g = KingdomExpansion.groundY(level, x, z);
+                if (g <= level.getSeaLevel() - 1) continue;
+                plan.set(x, g, z, roadBlock(x, z));
+                plan.set(x, g + 1, z, Blocks.AIR.defaultBlockState());
+            }
+        }
+        for (int d = 81; d <= 103; d += 11) {
+            for (int s = -2; s <= 2; s += 4) {
+                int x = k.center.getX() + a.getStepX() * d + l.getStepX() * s;
+                int z = k.center.getZ() + a.getStepZ() * d + l.getStepZ() * s;
+                if (!level.isLoaded(new BlockPos(x, k.center.getY(), z))) continue;
+                int g = KingdomExpansion.groundY(level, x, z);
+                HouseBuilder.lamp(new HouseBuilder.Frame(plan, (xx, zz) -> KingdomExpansion.groundY(level, xx, zz), new BlockPos(x, g + 1, z), Direction.SOUTH), p);
+            }
+        }
+    }
+
+    /** The lane behind the front row: two blocks of gravel and path with a well at its head and a lamp at its far end. */
+    private static void backLane(ServerLevel level, KingdomData.Kingdom k, Slot slot, KingdomBuild.Plan plan, HouseBuilder.Palette p) {
+        Direction a = slot.along(), l = slot.lateral();
+        HouseBuilder.Terrain terrain = (xx, zz) -> KingdomExpansion.groundY(level, xx, zz);
+        for (int side = -1; side <= 1; side += 2) {
+            for (int d = DEPTHS[0] - 5; d <= LANE_END; d++) {
+                for (int s = LANE_NEAR; s <= LANE_FAR; s++) {
+                    int x = k.center.getX() + a.getStepX() * d + l.getStepX() * s * side;
+                    int z = k.center.getZ() + a.getStepZ() * d + l.getStepZ() * s * side;
+                    if (!level.isLoaded(new BlockPos(x, k.center.getY(), z))) continue;
+                    int g = KingdomExpansion.groundY(level, x, z);
+                    if (g <= level.getSeaLevel() - 1) continue;
+                    plan.set(x, g, z, (hash(x, z) % 3) == 0 ? Blocks.GRAVEL.defaultBlockState() : Blocks.DIRT_PATH.defaultBlockState());
+                    plan.set(x, g + 1, z, Blocks.AIR.defaultBlockState());
+                }
+            }
+            // the well where the lane leaves the road's end, the lamp at its far end
+            int wx = k.center.getX() + a.getStepX() * (DEPTHS[0] - 8) + l.getStepX() * (LANE_NEAR + 1) * side;
+            int wz = k.center.getZ() + a.getStepZ() * (DEPTHS[0] - 8) + l.getStepZ() * (LANE_NEAR + 1) * side;
+            if (level.isLoaded(new BlockPos(wx, k.center.getY(), wz))) {
+                HouseBuilder.well(new HouseBuilder.Frame(plan, terrain, new BlockPos(wx, KingdomExpansion.groundY(level, wx, wz) + 1, wz), Direction.SOUTH), p);
+            }
+            int lx = k.center.getX() + a.getStepX() * (LANE_END + 2) + l.getStepX() * (LANE_NEAR + 1) * side;
+            int lz = k.center.getZ() + a.getStepZ() * (LANE_END + 2) + l.getStepZ() * (LANE_NEAR + 1) * side;
+            if (level.isLoaded(new BlockPos(lx, k.center.getY(), lz))) {
+                HouseBuilder.lamp(new HouseBuilder.Frame(plan, terrain, new BlockPos(lx, KingdomExpansion.groundY(level, lx, lz) + 1, lz), Direction.SOUTH), p);
+            }
+        }
+    }
+
+    static BlockState roadBlock(int x, int z) {
+        int h = hash(x, z) % 100;
+        return h < 50 ? Blocks.COBBLESTONE.defaultBlockState() : h < 72 ? Blocks.STONE_BRICKS.defaultBlockState()
+                : h < 86 ? Blocks.POLISHED_ANDESITE.defaultBlockState() : h < 94 ? Blocks.GRAVEL.defaultBlockState() : Blocks.MOSSY_COBBLESTONE.defaultBlockState();
+    }
+
+    static int hash(int x, int z) {
+        int h = x * 668265261 ^ z * 374761393;
+        h ^= h >>> 15;
+        h *= 625341585;
+        return (h ^ h >>> 13) & 0x7fffffff;
+    }
+}

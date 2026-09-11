@@ -47,6 +47,12 @@ and says so and skips itself when they are missing.
 
 ## Tools
 
+`tools/java/HousePreview.java` draws every suburb design on flat ground and writes the courses as JSON;
+`tools/plan_iso.py` renders that (or any such JSON) with stairs, slabs, fences, panes, doors and
+shutters as the shapes they are, one PNG per design and a contact sheet; `tools/world_iso.py` renders
+a box of a real world the same way out of its region files (`MC_REGION=.../region`). `tools/recover/`
+holds the scripts that rebuilt the 0.3 source from a jar (`docs/RECOVERY-0.3.md`).
+
 `tools/textures/*.py` paint every texture in the mod (items, mob skins, garb, blocks, the gate, the GUI
 sheets) with Pillow and numpy - edit the script, not the PNG. `tools/sfx/*.py` synthesize the sounds
 (ffmpeg encodes the OGGs). `tools/music/` processes the battle themes. `tools/java/GridDump.java` writes a

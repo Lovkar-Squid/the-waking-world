@@ -828,6 +828,8 @@
   "kingdom.wakingworld.built.mill": "%s has raised a mill over its fields.",
   "kingdom.wakingworld.built.market": "%s has laid out a market at its crossroads.",
   "kingdom.wakingworld.built.catapult": "%s has set an engine on its border.",
+  "kingdom.wakingworld.built.house": "%s is growing: a new house is going up outside the walls.",
+  "kingdom.wakingworld.built.houses": "%s is growing: %s new houses are going up outside the walls.",
   "kingdom.wakingworld.bombard": "%s heard the horn. Get clear of the giant.",
   "entity.wakingworld.dark_mage.ward.broken": "%s's ward gives way.",
   "item.wakingworld.pocket_mage": "Pocket Mage",

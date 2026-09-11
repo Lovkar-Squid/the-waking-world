@@ -136,6 +136,8 @@ public final class KingdomGrowth {
         if (!var9) {
             KingdomExpansion.march(var0, var1, var2, var3);
         }
+
+        KingdomHouses.grow(var0, var1, var2, var3);
     }
 
     public static void claims(ServerLevel var0, KingdomData var1, KingdomData.Kingdom var2, List<ServerPlayer> var3) {

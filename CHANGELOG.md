@@ -3,6 +3,67 @@
 All notable changes to The Waking World. The format follows [Keep a Changelog](https://keepachangelog.com/);
 versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-releases.
 
+## [0.3.0-alpha.12] - 2026-09-11 (unreleased)
+
+The suburb: a kingdom that grows now grows outward.
+
+### Added
+- **Houses outside the walls.** A town (tier 2) keeps six houses along the roads out of its gates, a
+  walled town thirteen, a city twenty-two - raised a few at a time as the town is reviewed, so the
+  growth is watched rather than found. Six designs, each drawn once and turned to face its lane:
+  the cottage, the longhouse, the jettied townhouse, the smithy, the tavern with its sign, and the
+  chapel with a bell in an open belfry (a city's only). Five timber-and-roof palettes, chosen by the
+  plot. Every house is footed to the ground, floored, furnished and lit; every one has a garden, a
+  tree, a hedge or a yard wall; the lanes get their lamps, a well at the head of each back lane, and
+  the road is paved out to the march wall. The people move in when the masons finish: townsfolk of
+  the trade the house suggests, kept to the lane they live on.
+- `/wakingworld kingdom [at] houses [n]` raises n houses at once; `houses forget` gives refused plots
+  another look. The report now says `houses 6/13`.
+- `/wakingworld kingdomscan` prints the exact `/place structure` line for every cell that would take
+  a kingdom - the way to put one down on a headless server without a four-minute `/locate`.
+- Tools: `tools/java/HousePreview.java` + `tools/plan_iso.py` draw every design on flat ground with
+  stairs, panes, fences and shutters as the shapes they are; `tools/world_iso.py` does the same for a
+  box of a real world out of its region files; `tools/region_read.py` has `state_grid` back.
+
+### Changed
+- The works (farm, mill, tower, market, catapult) keep out of the four road corridors now; they are
+  the suburb's.
+- `KingdomBuild` jobs can carry something to do when the last course is laid.
+- Built with `javac -g` from now on (see `docs/RECOVERY-0.3.md`).
+
+### Fixed
+- The 0.3 source, recovered from the alpha.11 jar after the workspace that held it was lost.
+
+## [0.3.0-alpha.1 - alpha.11] - 2026-09-08 to 2026-09-09 (unreleased)
+
+The dark mage and the kingdoms that grow. Written up from the jar and `STATUS.md` after the source was
+recovered (the alphas' own notes went with the workspace); the detail is in `STATUS.md`.
+
+### Added
+- **The dark mage**: his tower on a crag, the Asking Stone and the five rites (aimed down the
+  player's bearing), a four-stage boss with seven attacks, a ward per stage, four forms that come
+  apart rather than grow, his own boss bar and window, four battle tracks that turn over with his
+  stage. The last blow folds him into a jar: the **Pocket Mage**, a companion with orders and
+  stances (MEEK / DEFEND / GUARD), Mend, Light and Gather - or a prisoner for a king, who digs a cell
+  under the bailey. Ward stones, rune sentinels in the fight, the Mage's Mirror.
+- **Kingdoms that grow**: standing (-100..100) moved by trade, a Colossus Heart given to the king, a
+  giant put down in the country, or an offence; tiers 1-4 with hysteresis, reviewed once a game day
+  with a player near; the Named Lands as the border, one land per tier. Dressing per tier (lanterns
+  on the wall walk, the town's colours, flower boxes), works outside the moat two per tier (farm,
+  mill, watchtower, market, catapult), a march wall at radius 118 in 24 arcs from tier 3, the king's
+  charge (a levy of goods or a contract against the mage), `KingdomRepair` (the masons rebuild
+  damage from the hourglass's own record, and fight fires and lava), `KingdomBuild` raising
+  everything course by course, catapults that answer a horn blown at a giant, the **Signal Horn**.
+- `/wakingworld kingdom [at] [standing n | repair | build | engine]`, `/wakingworld bombard`.
+
+### Fixed
+- `Ruin.mark` feeds whichever record is open (a lone meteor's crater was written down nowhere).
+- Every heightmap counts leaves: `KingdomExpansion.groundY` walks down to real ground.
+- Guards no longer freeze at their post (`PostAttackGoal` leashes from the post, not the restriction).
+- The mage folds on any death, is immune to drowning and falling, walks as well as blinks, and his
+  sentinels no longer shoot him.
+- The 10-tick mercy window no longer eats a siege volley (`siegeStruck`).
+
 ## [0.2.0] - 2026-09-08 "Falling Sky"
 
 The Cataclysms: five things that can happen to a world that is waking up. Also the Named Lands, and

@@ -58,8 +58,9 @@ public final class KingdomRepair {
     }
 
     private static void sweepWork(ServerLevel var0, KingdomData.Kingdom var1, long var2) {
-        if (!var1.works.isEmpty()) {
-            ArrayList var4 = new ArrayList<>(var1.works);
+        if (!var1.works.isEmpty() || !var1.houses.isEmpty()) {
+            ArrayList<Long> var4 = new ArrayList<>(var1.works);
+            var4.addAll(var1.houses);
             BlockPos var5 = BlockPos.of((Long)var4.get((int)(var2 / 20L % (long)var4.size())));
             if (var0.isLoaded(var5)) {
                 MutableBlockPos var6 = new MutableBlockPos();

@@ -40,6 +40,7 @@ import me.lovkar.wakingworld.entity.RubbleEntity;
 import me.lovkar.wakingworld.kingdom.KingdomBuild;
 import me.lovkar.wakingworld.kingdom.KingdomData;
 import me.lovkar.wakingworld.kingdom.KingdomExpansion;
+import me.lovkar.wakingworld.kingdom.KingdomHouses;
 import me.lovkar.wakingworld.kingdom.KingdomGrowth;
 import me.lovkar.wakingworld.kingdom.KingdomRepair;
 import me.lovkar.wakingworld.kingdom.KingdomSiege;
@@ -498,6 +499,13 @@ public final class WakingCommands {
                                                     )
                                             ))
                                         .then(Commands.literal("repair").executes(var0x -> kingdomRepair(var0x, null))))
+                                        .then(
+                                            ((LiteralArgumentBuilder)Commands.literal("houses").executes(var0x -> kingdomHouses(var0x, null, 3)))
+                                                .then(
+                                                    Commands.argument("count", IntegerArgumentType.integer(1, 48))
+                                                        .executes(var0x -> kingdomHouses(var0x, null, IntegerArgumentType.getInteger(var0x, "count")))
+                                                )
+                                        )
                                     .then(
                                         ((LiteralArgumentBuilder)Commands.literal("build").executes(var0x -> kingdomBuild(var0x, 20000)))
                                             .then(
@@ -515,6 +523,14 @@ public final class WakingCommands {
                                                         .executes(var0x -> kingdomRepair(var0x, BlockPosArgument.getBlockPos(var0x, "at")))
                                                 ))
                                             .then(Commands.literal("engine").executes(var0x -> kingdomEngine(var0x, BlockPosArgument.getBlockPos(var0x, "at")))))
+                                        .then(
+                                            ((LiteralArgumentBuilder)((LiteralArgumentBuilder)Commands.literal("houses").executes(var0x -> kingdomHouses(var0x, BlockPosArgument.getBlockPos(var0x, "at"), 3)))
+                                                .then(
+                                                    Commands.argument("count", IntegerArgumentType.integer(1, 48))
+                                                        .executes(var0x -> kingdomHouses(var0x, BlockPosArgument.getBlockPos(var0x, "at"), IntegerArgumentType.getInteger(var0x, "count")))
+                                                ))
+                                                .then(Commands.literal("forget").executes(var0x -> kingdomHouses(var0x, BlockPosArgument.getBlockPos(var0x, "at"), 0)))
+                                        )
                                         .then(
                                             Commands.literal("standing")
                                                 .then(
@@ -617,6 +633,10 @@ public final class WakingCommands {
                                 + var15.works.size()
                                 + "/"
                                 + KingdomExpansion.wanted(var15.tier)
+                                + "  houses "
+                                + var15.houses.size()
+                                + "/"
+                                + KingdomHouses.wanted(var15.tier)
                                 + "  holds "
                                 + (var14.isEmpty() ? "nothing named yet" : String.join(", ", var14))
                         ),
@@ -624,6 +644,39 @@ public final class WakingCommands {
                 );
             return 1;
         }
+    }
+
+    /** Raises {@code count} houses at once, tier or no tier - the way the rig looks at a suburb without waiting for reviews. */
+    private static int kingdomHouses(CommandContext<CommandSourceStack> ctx, BlockPos at, int count) {
+        ServerLevel level = ctx.getSource().getLevel();
+        BlockPos here = at != null ? at : BlockPos.containing(ctx.getSource().getPosition());
+        KingdomData data = KingdomData.get(level);
+        KingdomData.Kingdom k = data.kingdomAt(here);
+        if (k == null) {
+            double best = Double.MAX_VALUE;
+            for (KingdomData.Kingdom c : data.all()) {
+                double d = c.center.distSqr(here);
+                if (d < best) { best = d; k = c; }
+            }
+        }
+        if (k == null) {
+            ctx.getSource().sendFailure(Component.literal("no kingdom is known in this world yet"));
+            return 0;
+        }
+        BlockPos centre = k.center;
+        if (count == 0) {   // "forget": the refused plots get another look next time
+            int n = k.badSlots.size();
+            k.badSlots.clear();
+            data.setDirty();
+            ctx.getSource().sendSuccess(() -> Component.literal(Kingdoms.name(centre) + ": " + n + " refused plots forgotten"), false);
+            return 1;
+        }
+        List<ServerPlayer> near = level.getPlayers(pl -> pl.distanceToSqr(centre.getX() + 0.5, pl.getY(), centre.getZ() + 0.5) < 220 * 220);
+        int begun = KingdomHouses.grow(level, data, k, near, count);
+        KingdomData.Kingdom kk = k;
+        ctx.getSource().sendSuccess(() -> Component.literal(Kingdoms.name(kk.center) + ": " + begun + " house" + (begun == 1 ? "" : "s") + " begun, "
+                + kk.houses.size() + " standing, " + kk.badSlots.size() + " plots refused, " + KingdomBuild.pending() + " blocks queued"), false);
+        return begun;
     }
 
     private static int kingdomBuild(CommandContext<CommandSourceStack> var0, int var1) {
@@ -682,21 +735,27 @@ public final class WakingCommands {
                 .get(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(me.lovkar.wakingworld.WakingWorld.MODID, "kingdom"));
         java.util.function.Predicate<net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome>> biomes = kingdom == null ? b -> true : kingdom.biomes()::contains;
         int[] counts = new int[6];
+        java.util.List<String> passing = new java.util.ArrayList<>();
         long t0 = System.nanoTime();
         int step = 640; // a placement cell at spacing 40
         for (int i = -cells; i <= cells; i++) {
             for (int j = -cells; j <= cells; j++) {
-                int x = at.getX() + i * step + 8, z = at.getZ() + j * step + 8;
+                // the site exactly as the structure would pick it for this chunk: the chunk's middle, nudged into its land square
+                net.minecraft.world.level.ChunkPos chunk = new net.minecraft.world.level.ChunkPos(new BlockPos(at.getX() + i * step, 64, at.getZ() + j * step));
+                int x = me.lovkar.wakingworld.kingdom.KingdomStructure.inSquare(chunk.getMiddleBlockX());
+                int z = me.lovkar.wakingworld.kingdom.KingdomStructure.inSquare(chunk.getMiddleBlockZ());
                 net.minecraft.world.level.levelgen.structure.Structure.GenerationContext gc = new net.minecraft.world.level.levelgen.structure.Structure.GenerationContext(
                         level.registryAccess(), gen, gen.getBiomeSource(), level.getChunkSource().randomState(), level.getServer().getStructureManager(),
-                        level.getSeed(), new net.minecraft.world.level.ChunkPos(new BlockPos(x, 64, z)), level, biomes);
+                        level.getSeed(), chunk, level, biomes);
                 int[] why = new int[1];
                 int y = me.lovkar.wakingworld.kingdom.KingdomStructure.kingdomSite(gc, x, z, why);
                 counts[y == Integer.MIN_VALUE ? why[0] : 0]++;
+                if (y != Integer.MIN_VALUE && passing.size() < 12) passing.add("/place structure wakingworld:kingdom " + chunk.getMiddleBlockX() + " " + y + " " + chunk.getMiddleBlockZ() + " (town at " + x + " " + z + ")");
             }
         }
         int n = (2 * cells + 1) * (2 * cells + 1);
-        String summary = String.format("%d cells in %.1f s: pass %d, biome %d, middle wet %d, wet %d, uneven %d, real ground %d", n, (System.nanoTime() - t0) / 1e9, counts[0], counts[1], counts[2], counts[3], counts[4], counts[5]);
+        String summary = String.format("%d cells in %.1f s: pass %d, biome %d, middle wet %d, wet %d, uneven %d, real ground %d%s", n, (System.nanoTime() - t0) / 1e9, counts[0], counts[1], counts[2], counts[3], counts[4], counts[5],
+                passing.isEmpty() ? "" : " - passing: " + String.join(", ", passing));
         me.lovkar.wakingworld.WakingWorld.LOGGER.info("kingdomscan {}: {}", at.toShortString(), summary);
         ctx.getSource().sendSuccess(() -> Component.literal(summary), true);
         return 1;

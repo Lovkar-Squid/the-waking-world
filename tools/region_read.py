@@ -26,6 +26,12 @@ def load_chunk(cx, cz):
 
 def block_grid(x0, z0, x1, z1, y0, y1):
     """dict[(x,y,z)] = block name, for the box."""
+    return {p: n for p, (n, _) in state_grid(x0, z0, x1, z1, y0, y1).items()}
+
+
+def state_grid(x0, z0, x1, z1, y0, y1):
+    """dict[(x,y,z)] = (block name, {property: value}) for the box - keeps the palette's Properties, so a
+    bed whose halves disagree or a stair facing the wrong way is visible in the dump, not just the name."""
     out = {}
     for cx in range(x0 >> 4, (x1 >> 4) + 1):
         for cz in range(z0 >> 4, (z1 >> 4) + 1):
@@ -38,9 +44,9 @@ def block_grid(x0, z0, x1, z1, y0, y1):
                 bs = sec.get("block_states")
                 if bs is None:
                     continue
-                palette = [str(p["Name"]) for p in bs["palette"]]
+                palette = [(str(p["Name"]), {str(k): str(v) for k, v in (p.get("Properties") or {}).items()}) for p in bs["palette"]]
                 if len(palette) == 1:
-                    name = palette[0]
+                    name = palette[0][0]
                     if name == "minecraft:air":
                         continue
                     data = None
@@ -62,8 +68,8 @@ def block_grid(x0, z0, x1, z1, y0, y1):
                     else:
                         w = data[i // per]
                         idx = (w >> (bits * (i % per))) & mask
-                    name = palette[idx]
+                    name, props = palette[idx]
                     if name == "minecraft:air" or name == "minecraft:cave_air":
                         continue
-                    out[(xx, yy, zz)] = name
+                    out[(xx, yy, zz)] = (name, props)
     return out
