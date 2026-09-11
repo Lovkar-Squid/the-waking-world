@@ -27,6 +27,8 @@ C = {
     "deepslate_tiles": (64, 64, 70), "deepslate_tile_stairs": (64, 64, 70), "deepslate_tile_slab": (64, 64, 70), "deepslate_tile_wall": (64, 64, 70),
     "glass_pane": (200, 230, 240), "cyan_stained_glass_pane": (60, 170, 180), "lantern": (255, 200, 80), "chain": (80, 80, 90), "campfire": (255, 140, 40),
     "red_bed": (200, 40, 40), "white_bed": (235, 235, 235), "blue_bed": (50, 60, 170), "light_gray_carpet": (160, 160, 160), "cyan_carpet": (40, 150, 160),
+    "stripped_dark_oak_log": (80, 60, 36), "stripped_spruce_log": (150, 112, 70), "stripped_birch_log": (210, 200, 160), "magma_block": (120, 50, 20), "deepslate_bricks": (70, 70, 76),
+    "cherry_leaves": (230, 160, 190), "snow": (240, 244, 250), "snow_block": (240, 244, 250), "coal_ore": (90, 90, 90), "short_grass": (80, 140, 50),
     "chest": (170, 120, 50), "barrel": (140, 100, 60), "crafting_table": (140, 100, 60), "bookshelf": (150, 110, 70), "composter": (120, 90, 50), "hay_block": (220, 190, 60),
     "smoker": (100, 100, 100), "furnace": (110, 110, 110), "blast_furnace": (90, 90, 96), "anvil": (70, 70, 70), "grindstone": (110, 110, 110), "smithing_table": (60, 60, 70),
     "cauldron": (60, 60, 60), "water_cauldron": (60, 90, 200), "water": (60, 90, 200), "cake": (240, 230, 220), "lectern": (150, 110, 60), "bell": (240, 200, 60), "candle": (240, 230, 200),

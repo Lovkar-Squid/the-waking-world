@@ -1,6 +1,6 @@
 # The Waking World — where we are
 
-Written 9 Sep 2026 at **0.3.0-alpha.11**, brought up to date 11 Sep 2026 at **0.3.0-alpha.12**.
+Written 9 Sep 2026 at **0.3.0-alpha.11**, brought up to date 11 Sep 2026 at **0.3.0-alpha.13**.
 This is the handover: what exists, what was fixed and how it was proved, what is untested, and what
 is left. **Section 0 is new and comes first because it changes where the source is.**
 
@@ -59,7 +59,7 @@ with `wwrun.sh [keep]` (see below). Both are gone with the container; the repo i
 - **People**: when the masons finish (`KingdomBuild.begin(..., done)`), 1-2 townsfolk of the trade the
   house suggests spawn at the door, restricted to 10 blocks. Measured on the rig: 20 houses → 24
   townsfolk outside the walls.
-- Fire watch sweeps the houses too (`KingdomRepair.sweepWork`); `occupied` keeps works 20 off a door.
+- Fire watch sweeps the houses too (`KingdomRepair.sweepWork`); `occupied` keeps works off the doors (20 in alpha.12, 23 from alpha.13).
 
 *Proved on the rig* (seed 8127364, kingdom **Eldermere** placed at -2486 70 714 - a snowy mountain
 site, deliberately unkind): 20 houses raised over four `houses` calls, every kind at least once, every
@@ -67,6 +67,46 @@ palette, on slopes up to 4; save/restart kept them; residents spawned; no except
 renders are in `promo\bts\` (`suburb_designs.png`, `eldermere_15_houses.png`, `eldermere_north_road.png`,
 `eldermere_south_road.png`). **Not proved:** how it looks in the client (roof lines, shutters, the
 sign, the bell), the residents' behaviour, a flat-plains town where every lane fills.
+
+### alpha.13 — "katapulti niso delali če prav je bil city na max levelu"
+
+His report, 11 Sep. Read out of his logs (`logs\*.log.gz` of the Dev instance) rather than guessed:
+
+- **His current world, Greyhaven at -3766 71 234:** the town never raised a catapult. Reviews 1–3
+  raised farm, mill, tower; from review 4 on, every review built a march wall arc (24/24 by 13:09)
+  and then nothing. `KingdomExpansion.ring()` tried **14 fixed spots** (angles from `works.size()`,
+  radii 74–102) for the market and every one failed - rough ground (`clear` wants 13×13 natural and
+  ≤4 of rise), the road corridors (`inLane`, new in alpha.12), 48 blocks off the other works, 20 off
+  every doorstep. The 14 spots are the same at every review, so it never recovered; the catapult is
+  the 5th work and was never reached. **Sarnmark on 9 Sep (alpha.5) was the same at 0/6** - the
+  finder was fragile before the lanes, the lanes made it worse.
+- **His 9 Sep world:** Greyhaven had an engine and `throws 4 shot at …` four times. Stones spawn 58
+  back towards the town and 74 up with no chunk ticket; with the Signal Horn's 160-block reach that
+  can be past what the player keeps ticking, and an entity in a non-ticking chunk hangs in the air.
+
+What changed (all in `KingdomExpansion`, `KingdomSiege`, `Cataclysms.hold` made public):
+
+- `ring()` walks five rings (75, 83, 91, 99, 107) from a **random start angle**, 36 steps each; the
+  cheap tests (sea, lane, room) on every candidate, the ground survey on the first 60 that pass;
+  a second pass allows 2 more of rise. Logs `found no ground for a <kind> this time` when it fails.
+- `nextKind()`: **a tier-4 town with no engine raises the catapult before any other work**; the civil
+  cycle (farm, mill, tower, market) is counted from `works − catapults`, so a city that grew the
+  ordinary way gets exactly the old order (farm, mill, tower, market, catapult, farm).
+- Works keep 40 between centres (was 48) and 23 off a doorstep (was 20 - a house runs 10 back
+  from its door, the market is 15 wide).
+- `throwOne` holds the chunks at the stone's start and its target (`Cataclysms.hold`, the falling
+  star's 600-tick ticket).
+- Report says `engines N`.
+
+*Proved on the rig* (Eldermere, keep): from 1/2 works, six reviews raised mill → **catapult (first
+thing at tier 4)** → tower → market → farm, all sited first try; `bombard` at a point 400 blocks
+off with no player and no forceload: 4 stones, all landed (2.5 s each once the chunks existed;
+the first volley into ungenerated terrain took ~30 s to generate them - in his game the target is
+within 160 of the player, so generated). Renders: `promo\bts\eldermere_tier4_works.png`,
+`eldermere_engine_sw.png`. **Not proved:** his Greyhaven itself - the next review there
+(pay a levy, or `/wakingworld kingdom standing 100` near it) should log `begins raising a catapult`.
+Workaround he has now: stand where the engine should go (within 120 of the centre, outside the
+town wall) and `/wakingworld kingdom ~ ~ ~ engine`.
 
 ### The rig, for kingdoms (new)
 
@@ -181,7 +221,8 @@ into a scoreboard and is read afterwards with `scoreboard players get`.
 | alpha.9 | whole mage fight as one scar, the jar made findable (glow, no despawn, rune column) — **built but never installed**, superseded |
 | alpha.10 | companion orders and stances, guard chase fix, catapult rebuild, siege damage, lava patrol, Signal Horn *(shipped, then superseded within the hour)* |
 | alpha.11 | SHA256 `29d5293e5c4641596a40e3bebc66524df6d0dc5f57758d1f2ab31ad15945a4da`, 29 041 476 B. The jar the source was recovered from; in `mods\_old` |
-| **alpha.12** | **current** — the suburb (section 0). In `The Waking World Dev\mods` |
+| alpha.12 | the suburb (section 0). SHA256 `785890ab…e704`, 29 205 866 B; in `mods\_old` |
+| **alpha.13** | **current** — the engine that never came, and the stones that hang (section 0). In `The Waking World Dev\mods` |
 
 ---
 
@@ -373,7 +414,9 @@ the boss fight is not testable headlessly at all.
 ## 6. Still to do
 
 **Mod**
-- Play-test alpha.12 and report - the suburb first (`/wakingworld kingdom houses 6` on a town to see it at once), then everything in section 5.
+- Play-test alpha.13 and report - the suburb first (`/wakingworld kingdom houses 6` on a town to see it at once),
+  then the engine: a levy or `/wakingworld kingdom standing 100` at Greyhaven should log `begins raising a catapult`,
+  and the Horn of Waking beside a colossus (or `/wakingworld bombard`) should land four stones; then everything in section 5.
 - Decide where the Signal Horn comes from (craft vs. a king's gift).
 - The source is on the PC repo branch `0.3-recovered`; nothing is pushed until he has tested.
 - Suburb ideas not built: houses abandoned when a town shrinks, a cottager profession with its own

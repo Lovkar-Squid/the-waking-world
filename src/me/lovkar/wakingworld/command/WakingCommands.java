@@ -633,6 +633,8 @@ public final class WakingCommands {
                                 + var15.works.size()
                                 + "/"
                                 + KingdomExpansion.wanted(var15.tier)
+                                + "  engines "
+                                + var15.catapults.size()
                                 + "  houses "
                                 + var15.houses.size()
                                 + "/"

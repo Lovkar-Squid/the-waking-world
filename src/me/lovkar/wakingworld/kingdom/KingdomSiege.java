@@ -218,6 +218,10 @@ public final class KingdomSiege {
                 var3.aimedAt(var1.getId(), var2.blow);
             }
 
+            // the stone starts 58 blocks back towards the town and 74 up - past the edge of what a player
+            // 160 blocks off has ticking; an entity in a chunk that is not ticking hangs in the air for ever
+            Cataclysms.hold(var0, var3.position());
+            Cataclysms.hold(var0, var5);
             var0.addFreshEntity(var3);
             Cataclysms.puff(
                 var0,

@@ -3,6 +3,30 @@
 All notable changes to The Waking World. The format follows [Keep a Changelog](https://keepachangelog.com/);
 versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-releases.
 
+## [0.3.0-alpha.13] - 2026-09-11 (unreleased)
+
+The engines: a city gets its catapult, and the stones it throws arrive.
+
+### Fixed
+- **A city could grow to its full tier and never raise a catapult.** The works were sited from
+  fourteen fixed spots round the town; on rough ground, once the roads and houses and the other
+  works had taken their share, every one of them was refused - and the same fourteen were tried at
+  every review, so the town went on building march wall for ever with three works and no engine
+  (Greyhaven on 11 Sep stopped at 3/6; Sarnmark on 9 Sep at 0/6). The plot search now walks five
+  rings from a random angle (up to 180 spots, the ground survey on the first sixty that pass the
+  cheap tests) and takes a rougher plot when no flat one is left; works keep 40 blocks between
+  their centres rather than 48.
+- A city (tier 4) with no engine raises its catapult before any other work, whatever the cycle
+  says. A city that grew the ordinary way gets the same order as before: farm, mill, tower, market,
+  catapult, farm.
+- Siege stones are thrown from 58 blocks back towards the town and 74 up - past the edge of what a
+  player 160 blocks off (the Signal Horn's reach) keeps ticking, so a volley could hang in the air
+  and never land. The chunks the stone starts in and lands on are now held open for the throw, the
+  way a falling star's are.
+
+### Changed
+- The kingdom report says `engines N`; a review that finds no ground for a work says so in the log.
+
 ## [0.3.0-alpha.12] - 2026-09-11 (unreleased)
 
 The suburb: a kingdom that grows now grows outward.

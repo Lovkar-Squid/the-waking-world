@@ -26,8 +26,18 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 
 public final class KingdomExpansion {
-    private static final int TRIES = 14;
-    private static final String[] KINDS = new String[]{"farm", "mill", "tower", "market", "catapult"};
+    /** The civil works, in the order a town raises them; the engine comes between them once the town is a city. */
+    private static final String[] KINDS = new String[]{"farm", "mill", "tower", "market"};
+    /** The tier at which a town keeps an engine on its border. */
+    static final int ENGINE_TIER = 4;
+    /** The rings the works stand on: past the town wall and the last house plot's eave, inside the march wall at 118. */
+    private static final int[] RADII = new int[]{75, 83, 91, 99, 107};
+    /** Angles tried on each ring. */
+    private static final int STEPS = 36;
+    /** How many plots get the full ground survey in one review - the cheap checks run on all of them. */
+    private static final int LOOKS = 60;
+    /** Centre-to-centre room between two works (the widest is the market at 15). */
+    private static final double SPACING = 40.0;
     private static final int OUTER = 118;
     private static final int ARCS = 24;
     private static final int WALL_H = 5;
@@ -39,12 +49,23 @@ public final class KingdomExpansion {
         return Math.max(0, (var0 - 1) * 2);
     }
 
+    /**
+     * What the town raises next. The civil works cycle farm, mill, tower, market; a city with no engine
+     * raises its catapult before anything else, so a town that grew fast on rough ground is not left
+     * with a full wall and nothing to answer a horn with. (A city that grew the ordinary way gets the
+     * same order as before: farm, mill, tower, market, catapult, farm.)
+     */
+    static String nextKind(KingdomData.Kingdom k) {
+        if (k.tier >= ENGINE_TIER && k.catapults.isEmpty()) return "catapult";
+        int civil = Math.max(0, k.works.size() - k.catapults.size());
+        return KINDS[civil % KINDS.length];
+    }
+
     public static boolean works(ServerLevel var0, KingdomData var1, KingdomData.Kingdom var2, List<ServerPlayer> var3) {
         if (var2.works.size() >= wanted(var2.tier)) {
             return false;
         } else {
-            int var4 = var2.works.size() % KINDS.length;
-            String var5 = KINDS[var4];
+            String var5 = nextKind(var2);
             boolean var6 = var5.equals("tower");
             BlockPos var7 = var6 ? towerSite(var0, var2) : null;
             if (var7 == null) {
@@ -52,6 +73,7 @@ public final class KingdomExpansion {
             }
 
             if (var7 == null) {
+                WakingWorld.LOGGER.info("kingdom {}: found no ground for a {} this time ({} works standing)", Kingdoms.name(var2.center), var5, var2.works.size());
                 return false;
             } else {
                 KingdomBuild.Plan var8 = new KingdomBuild.Plan();
@@ -98,19 +120,34 @@ public final class KingdomExpansion {
         }
     }
 
+    /**
+     * A plot for a work in the quarters between the roads. The rings are walked from a random angle,
+     * so a review that finds nothing does not try the same spots for ever; the cheap tests (sea, lane,
+     * room) run on every candidate and the ground survey on the first {@link #LOOKS} that pass them.
+     * If no plot is flat enough, the second pass takes a rougher one - the builders plinth and pave.
+     */
     private static BlockPos ring(ServerLevel var0, KingdomData.Kingdom var1, boolean var2) {
         int var3 = var2 ? 3 : 5;
         int var4 = var2 ? 13 : 3;
         int var5 = var2 ? 3 : 4;
+        double start = var0.random.nextDouble() * 360.0;
 
-        for (int var6 = 0; var6 < 14; var6++) {
-            double var7 = Math.toRadians(37.0 + (double)var6 * 360.0 / 14.0 + (double)(var1.works.size() * 23));
-            int var9 = 74 + var6 % 5 * 7;
-            int var10 = var1.center.getX() + (int)Math.round(Math.cos(var7) * (double)var9);
-            int var11 = var1.center.getZ() + (int)Math.round(Math.sin(var7) * (double)var9);
-            BlockPos var12 = ground(var0, var10, var11);
-            if (var12 != null && !inLane(var1, var12) && !occupied(var0, var12) && clear(var0, var12, var3, var4, var5)) {
-                return var12;
+        for (int pass = 0; pass < 2; pass++) {
+            int looked = 0;
+            for (int ri = 0; ri < RADII.length; ri++) {
+                int var9 = RADII[ri];
+                for (int var6 = 0; var6 < STEPS && looked < LOOKS; var6++) {
+                    double var7 = Math.toRadians(start + (double)var6 * 360.0 / (double)STEPS + (double)(ri * 5));
+                    int var10 = var1.center.getX() + (int)Math.round(Math.cos(var7) * (double)var9);
+                    int var11 = var1.center.getZ() + (int)Math.round(Math.sin(var7) * (double)var9);
+                    BlockPos var12 = ground(var0, var10, var11);
+                    if (var12 != null && !inLane(var1, var12) && !occupied(var0, var12)) {
+                        looked++;
+                        if (clear(var0, var12, var3, var4, var5 + pass * 2)) {
+                            return var12;
+                        }
+                    }
+                }
             }
         }
 
@@ -157,13 +194,14 @@ public final class KingdomExpansion {
     private static boolean occupied(ServerLevel var0, BlockPos var1) {
         for (KingdomData.Kingdom var3 : KingdomData.get(var0).all()) {
             for (long var5 : var3.works) {
-                if (BlockPos.of(var5).distSqr(var1) < 2304.0) {
+                if (BlockPos.of(var5).distSqr(var1) < SPACING * SPACING) {
                     return true;
                 }
             }
-            // the suburb's houses are smaller, but a work is wide: keep its centre 20 blocks off any doorstep
+            // the suburb's houses are smaller, but a work is wide and a house runs ten blocks back from its
+            // doorstep: keep the work's centre 23 blocks off any doorstep, so there is a lane's width between
             for (long h : var3.houses) {
-                if (BlockPos.of(h).distSqr(var1) < 400.0) {
+                if (BlockPos.of(h).distSqr(var1) < 529.0) {
                     return true;
                 }
             }

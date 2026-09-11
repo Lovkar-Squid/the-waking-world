@@ -310,7 +310,7 @@ public final class Cataclysms extends SavedData {
      * anyone has loaded - and an entity in a chunk that is not ticking does not fall. This holds the
      * few chunks it needs open for half a minute and then lets go of them on its own.
      */
-    private static void hold(ServerLevel level, Vec3 at) {
+    public static void hold(ServerLevel level, Vec3 at) {
         ChunkPos cp = new ChunkPos(net.minecraft.core.BlockPos.containing(at));
         level.getChunkSource().addRegionTicket(METEOR_TICKET, cp, 4, cp);
     }
