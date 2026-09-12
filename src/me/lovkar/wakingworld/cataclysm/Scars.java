@@ -93,6 +93,22 @@ public final class Scars {
      * thousands of blocks and cannot afford a neighbour update on each of them; the restoration
      * does its own settling pass afterwards.</p>
      */
+    /**
+     * A block a cataclysm LEAVES rather than one it breaks: the Starstone a falling star was
+     * carrying. This is the one write allowed to land on a colony, and only because it takes
+     * nothing away - it goes into air or something replaceable and nowhere else, so the worst it
+     * can do to a town is put a rock in its square. It is remembered like any other, so an
+     * Hourglass takes it back with the rest of the strike.
+     */
+    public static boolean gift(ServerLevel level, BlockPos at, BlockState state) {
+        BlockState there = level.getBlockState(at);
+        if (!there.isAir() && !there.canBeReplaced()) return false;
+        if (!state.canSurvive(level, at)) return false;
+        mark(level, at);
+        level.setBlock(at, state, 2);
+        return true;
+    }
+
     public static boolean set(ServerLevel level, BlockPos at, BlockState state) {
         if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, at)) return false;   // a cataclysm stops at a colony's border
         mark(level, at);

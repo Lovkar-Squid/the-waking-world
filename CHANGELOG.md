@@ -3,6 +3,19 @@
 All notable changes to The Waking World. The format follows [Keep a Changelog](https://keepachangelog.com/);
 versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-releases.
 
+## [0.3.0-beta.4] - 2026-09-12
+
+### Changed
+- **A star that comes down on a colony tears no crater, but still leaves what it was carrying.**
+  The hole, the glassed floor, the scorch and the blight were already refused there; the Starstone
+  went with them, so a strike on a town was all noise and no prize. The core is now LEFT on the
+  ground instead of set in the floor of a crater that does not exist - a few blocks of Starstone
+  lying where it landed, placed into air and nothing else, so it costs the town nothing. If there
+  is no room for even that (it came down through a roof) its Star Iron is dropped instead.
+- `Scars.gift` is the one write allowed on a colony's land, for exactly that reason: it takes
+  nothing away, goes into air or something replaceable only, and is remembered like any other, so
+  an Hourglass takes the meteorite back with the rest of the strike.
+
 ## [0.3.0-beta.3] - 2026-09-12
 
 ### Fixed

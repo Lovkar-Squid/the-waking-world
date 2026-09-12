@@ -1,6 +1,6 @@
 # The Waking World — where we are
 
-Written 9 Sep 2026 at **0.3.0-alpha.11**, brought up to date 12 Sep 2026 at **0.3.0-beta.3** (colony protection + the silent volcano).
+Written 9 Sep 2026 at **0.3.0-alpha.11**, brought up to date 12 Sep 2026 at **0.3.0-beta.4** (colony protection, the silent volcano, the star that leaves its core).
 This is the handover: what exists, what was fixed and how it was proved, what is untested, and what
 is left. **Section 0 is new and comes first because it changes where the source is.**
 
@@ -293,7 +293,8 @@ into a scoreboard and is read afterwards with `scoreboard players get`.
 | alpha.15 | trees felled, hillsides cut and terraced, ores natural (section 0). SHA256 `b6528726…e1e`, 29 212 557 B; in `mods\_old`. **Play-tested 12 Sep** ("katapulti so zdaj delali": Greyhaven raised its catapult, market and farm and threw four-stone volleys, zero errors in the log) |
 | 0.3.0-beta.1 | PUBLISHED 12 Sep 2026 "Crown and Tower" — alpha.15 under a release name, nothing else changed. SHA256 `699690e7433bcc52a0f0be8ec27bbae97dd63c12a61f0cff10287d37b6edea36`, 29 212 553 B. In `The Waking World Dev\mods` and `waking-world\release` |
 | 0.3.0-beta.2 | PUBLISHED 12 Sep 2026 - MineColonies colonies are left alone (`compat/Colonies`, `[compat]` config, `/wakingworld colony`). Proved on the rig against a real colony: a star inside it remembered 0 blocks and changed 0 of 841 columns while the control dug 591; every east-road house plot refused "a colony's land"; the paved road stopped exactly at the buffer edge; the engines refused to fire; and the mod alone, without MineColonies, still dug a 3614-block crater with no errors |
-| **0.3.0-beta.3** | **current** - his first report from a real colony: a volcano that could not grow still smoked, banged and shook for its whole rise. It now refuses to open on colony land (command, site choice and rite), a course that lays nothing is silent, and three of them call the eruption off. `Colonies.keepOffLoading` loads the chunk for the rare one-off DECISIONS (a site a hundred blocks out is often not in memory). `Scars.set` returns whether it placed. Proved on the rig: refused inside the colony, grew normally outside, and called itself off when a colony was founded on a rising one |
+| 0.3.0-beta.3 | PUBLISHED 12 Sep 2026 - his first report from a real colony: a volcano that could not grow still smoked, banged and shook for its whole rise. It now refuses to open on colony land (command, site choice and rite), a course that lays nothing is silent, and three of them call the eruption off. `Colonies.keepOffLoading` loads the chunk for the rare one-off DECISIONS (a site a hundred blocks out is often not in memory). `Scars.set` returns whether it placed. Proved on the rig: refused inside the colony, grew normally outside, and called itself off when a colony was founded on a rising one |
+| **0.3.0-beta.4** | **current** - his second report: a star that falls on a colony should leave its Star Iron even though it digs no crater. `Starfall.core` now lays the Starstone ON the ground there (`Scars.gift`: air or replaceable only, remembered, the single write allowed on colony land) and drops Star Iron if there is no room. Proved on the rig on a mountain colony: 612 columns of untouched snow, 4 starstone on top, scar 20 blocks against the control's 3373 |
 
 ---
 

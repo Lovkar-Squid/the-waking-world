@@ -1,7 +1,11 @@
 package me.lovkar.wakingworld.cataclysm;
 
+import me.lovkar.wakingworld.WakingWorld;
+import me.lovkar.wakingworld.item.WakingItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Blocks;
@@ -57,9 +61,32 @@ public final class Starfall {
     private static void core(ServerLevel level, BlockPos center, int size, RandomSource rnd) {
         BlockPos floor = surface(level, center, 24);
         if (floor == null) floor = center;
-        BlockPos at = floor.below(1 + rnd.nextInt(2));
-        int n = 3 + size * 3;
         BlockState star = CataclysmBlocks.STARSTONE.get().defaultBlockState();
+        int n = 3 + size * 3;
+
+        // A star that came down on a colony tore nothing: there is no crater to put its core in the
+        // floor of. The thing it was carrying is still worth having, though, and a rock lying on the
+        // grass costs the town nothing - so it is LEFT there, on top of the ground, and if there is
+        // no room for even that (it came down through a roof) it is handed over as Star Iron.
+        if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, floor)) {
+            int laid = 0;
+            for (int i = 0; i <= n && laid < 1 + size; i++) {
+                BlockPos p = floor.above().offset(rnd.nextInt(3) - 1, rnd.nextInt(2), rnd.nextInt(3) - 1);
+                if (Scars.gift(level, p, star)) laid++;
+            }
+            if (laid == 0) {
+                ItemStack iron = new ItemStack(WakingItems.STAR_IRON.get(), 1 + size);
+                ItemEntity drop = new ItemEntity(level, floor.getX() + 0.5, floor.getY() + 1.2, floor.getZ() + 0.5, iron);
+                drop.setDeltaMovement(0, 0.2, 0);
+                level.addFreshEntity(drop);
+            }
+            WakingWorld.LOGGER.info("cataclysm: a star came down on a colony at {} {} {} - no crater; {}",
+                    floor.getX(), floor.getY(), floor.getZ(),
+                    laid > 0 ? laid + " starstone left on the ground" : "its star iron was dropped");
+            return;
+        }
+
+        BlockPos at = floor.below(1 + rnd.nextInt(2));
         Scars.set(level, at, star);
         for (int i = 0; i < n; i++) {
             BlockPos p = at.offset(rnd.nextInt(3) - 1, rnd.nextInt(3) - 1, rnd.nextInt(3) - 1);
