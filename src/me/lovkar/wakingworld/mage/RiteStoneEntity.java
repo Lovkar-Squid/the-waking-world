@@ -223,14 +223,25 @@ public class RiteStoneEntity extends BlockEntity {
     }
 
     private void light(Player var1) {
-        this.burning = 280;
         Vec3 var2 = var1.getLookAngle();
-        this.aim = new Vec3(var2.x, 0.0, var2.z);
-        if (this.aim.lengthSqr() < 1.0E-4) {
-            this.aim = new Vec3(1.0, 0.0, 0.0);
+        Vec3 aimed = new Vec3(var2.x, 0.0, var2.z);
+        if (aimed.lengthSqr() < 1.0E-4) {
+            aimed = new Vec3(1.0, 0.0, 0.0);
         }
-
-        this.aim = this.aim.normalize();
+        aimed = aimed.normalize();
+        // where the answer would land: a colony's land is not somewhere the stone will send one
+        if (this.level instanceof ServerLevel here) {
+            DarkRites.Rite want = DarkRites.byId(this.rite);
+            int off = reach(want == null ? "meteor" : want.id());
+            BlockPos there = off == 0 ? this.worldPosition
+                    : Cataclysms.surface(here, this.worldPosition.getX() + 0.5 + aimed.x * off, this.worldPosition.getZ() + 0.5 + aimed.z * off);
+            if (me.lovkar.wakingworld.compat.Colonies.keepOff(here, there, 48)) {
+                var1.displayClientMessage(Component.translatable("rite.wakingworld.colony").withStyle(ChatFormatting.GRAY), true);
+                return;
+            }
+        }
+        this.burning = 280;
+        this.aim = aimed;
         this.sync();
         if (this.level != null) {
             this.level.setBlock(this.worldPosition, (BlockState)this.getBlockState().setValue(RiteStone.LIT, true), 3);

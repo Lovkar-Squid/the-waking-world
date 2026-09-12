@@ -240,6 +240,7 @@ public final class Aftermath {
                 BlockState state = level.getBlockState(on);
                 if (state.is(BlockTags.CROPS) || state.is(Blocks.MELON) || state.is(Blocks.PUMPKIN)
                         || state.is(Blocks.SUGAR_CANE) || state.is(BlockTags.FLOWERS) || state.is(BlockTags.SAPLINGS)) {
+                    if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, on)) continue;   // a colony's fields are not blighted
                     Ruin.mark(level, on);
                     level.destroyBlock(on, false);
                     hit++;

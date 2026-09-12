@@ -197,7 +197,7 @@ public final class KingdomRepair {
             if (!var10.isEmpty()) {
                 for (Entry<BlockPos, BlockState> var12 : var10.entrySet()) {
                     BlockPos var13 = (BlockPos)var12.getKey();
-                    if (damaged(var0.getBlockState(var13))) {
+                    if (damaged(var0.getBlockState(var13)) && !me.lovkar.wakingworld.compat.Colonies.keepOff(var0, var13)) {
                         var0.setBlock(var13, (BlockState)var12.getValue(), 3);
                         if ((var6 & 7) == 0) {
                             dust(var0, var13);

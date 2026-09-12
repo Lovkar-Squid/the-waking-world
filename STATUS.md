@@ -1,6 +1,6 @@
 # The Waking World — where we are
 
-Written 9 Sep 2026 at **0.3.0-alpha.11**, brought up to date 12 Sep 2026 at **0.3.0-beta.1** (the first published 0.3 build).
+Written 9 Sep 2026 at **0.3.0-alpha.11**, brought up to date 12 Sep 2026 at **0.3.0-beta.2** (colony protection).
 This is the handover: what exists, what was fixed and how it was proved, what is untested, and what
 is left. **Section 0 is new and comes first because it changes where the source is.**
 
@@ -291,7 +291,8 @@ into a scoreboard and is read afterwards with `scoreboard players get`.
 | alpha.13 | the engine that never came, and the stones that hang (section 0). SHA256 `2adaeeb6…be4a`, 29 206 393 B; in `mods\_old` |
 | alpha.14 | the suburb gets its doors, `houses redo` (section 0). SHA256 `eb5761b2…dca9`, 29 209 534 B; in `mods\_old` |
 | alpha.15 | trees felled, hillsides cut and terraced, ores natural (section 0). SHA256 `b6528726…e1e`, 29 212 557 B; in `mods\_old`. **Play-tested 12 Sep** ("katapulti so zdaj delali": Greyhaven raised its catapult, market and farm and threw four-stone volleys, zero errors in the log) |
-| **0.3.0-beta.1** | **current, PUBLISHED 12 Sep 2026** "Crown and Tower" — alpha.15 under a release name, nothing else changed. SHA256 `699690e7433bcc52a0f0be8ec27bbae97dd63c12a61f0cff10287d37b6edea36`, 29 212 553 B. In `The Waking World Dev\mods` and `waking-world\release` |
+| 0.3.0-beta.1 | PUBLISHED 12 Sep 2026 "Crown and Tower" — alpha.15 under a release name, nothing else changed. SHA256 `699690e7433bcc52a0f0be8ec27bbae97dd63c12a61f0cff10287d37b6edea36`, 29 212 553 B. In `The Waking World Dev\mods` and `waking-world\release` |
+| **0.3.0-beta.2** | **current** - MineColonies colonies are left alone (`compat/Colonies`, `[compat]` config, `/wakingworld colony`). Proved on the rig against a real colony: a star inside it remembered 0 blocks and changed 0 of 841 columns while the control dug 591; every east-road house plot refused "a colony's land"; the paved road stopped exactly at the buffer edge; the engines refused to fire; and the mod alone, without MineColonies, still dug a 3614-block crater with no errors |
 
 ---
 

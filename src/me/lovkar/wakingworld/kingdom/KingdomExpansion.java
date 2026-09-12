@@ -192,6 +192,9 @@ public final class KingdomExpansion {
     }
 
     private static boolean occupied(ServerLevel var0, BlockPos var1) {
+        if (me.lovkar.wakingworld.compat.Colonies.keepOff(var0, var1, 16)) {   // a colony's land is somebody's
+            return true;
+        }
         for (KingdomData.Kingdom var3 : KingdomData.get(var0).all()) {
             for (long var5 : var3.works) {
                 if (BlockPos.of(var5).distSqr(var1) < SPACING * SPACING) {

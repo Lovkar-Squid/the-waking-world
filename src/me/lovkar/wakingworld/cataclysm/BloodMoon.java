@@ -258,6 +258,7 @@ public final class BloodMoon extends SavedData {
             BlockPos ground = Cataclysms.surface(level, x, z);
             if (ground.getY() <= level.getMinBuildHeight() + 1) continue;
             if (!level.getFluidState(ground.below()).isEmpty()) continue;
+            if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, ground)) continue;                   // not inside a colony's walls
             if (level.getBrightness(net.minecraft.world.level.LightLayer.BLOCK, ground) > 7) continue;   // not in someone's lit hall
             if (!level.noCollision(EntityType.ZOMBIE.getSpawnAABB(ground.getX() + 0.5, ground.getY(), ground.getZ() + 0.5))) continue;
             return ground;

@@ -52,6 +52,14 @@ public class RubbleEntity extends FallingBlockEntity {
 
     @Override
     public void tick() {
+        if (this.level() instanceof ServerLevel over && !this.isRemoved() && this.tickCount > 1
+                && me.lovkar.wakingworld.compat.Colonies.claimed(over, this.blockPosition())) {
+            // it would land on a colony's land: it comes down as dust, and the fight's count is kept straight
+            over.sendParticles(new net.minecraft.core.particles.BlockParticleOption(net.minecraft.core.particles.ParticleTypes.BLOCK, this.getBlockState()),
+                    this.getX(), this.getY() + 0.5, this.getZ(), 8, 0.3, 0.3, 0.3, 0.05);
+            this.remove(RemovalReason.KILLED);
+            return;
+        }
         if (!this.level().isClientSide && !this.isRemoved()) {
             // where might it be after this tick's move? what is there now is what it may replace
             probe.clear();

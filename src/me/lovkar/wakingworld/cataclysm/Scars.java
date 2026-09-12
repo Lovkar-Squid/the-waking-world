@@ -94,6 +94,7 @@ public final class Scars {
      * does its own settling pass afterwards.</p>
      */
     public static void set(ServerLevel level, BlockPos at, BlockState state) {
+        if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, at)) return;   // a cataclysm stops at a colony's border
         mark(level, at);
         level.setBlock(at, state, 2);
     }

@@ -261,6 +261,7 @@ public final class TornadoEntity extends Entity {
             BlockPos top = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                     BlockPos.containing(getX() + dx, 0, getZ() + dz)).below();
             if (!loose(level, top)) continue;
+            if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, top)) continue;   // the column passes over a colony and lifts nothing
             BlockState state = level.getBlockState(top);
             Ruin.mark(level, top);
             level.removeBlock(top, false);

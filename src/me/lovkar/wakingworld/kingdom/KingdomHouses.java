@@ -181,7 +181,7 @@ public final class KingdomHouses {
             if (doorstep == null) {
                 WakingWorld.LOGGER.info("kingdom {}: plot {} ({} road, {} {}, {}) refused: {}", Kingdoms.name(k.center), slot.index, slot.along().getName(), slot.depth,
                         slot.side > 0 ? "right" : "left", slot.back ? "back row" : "front row", why[0] == 1 ? WHY[why[1]] : why[0] == 2 ? "a work in the way" : "not loaded");
-                if (why[0] == 1 && why[1] != 3) {   // the ground itself: never again. Something built there may yet go
+                if (why[0] == 1 && why[1] != 3 && why[1] != 5) {   // the ground itself: never again. Something built there, or a colony, may yet go
                     k.badSlots.add(slot.index);
                     data.setDirty();
                 }
@@ -209,7 +209,7 @@ public final class KingdomHouses {
         return false;
     }
 
-    static final String[] WHY = {"", "the door would be under the sea", "water or lava on the plot", "something built on the plot", "the ground is too uneven"};
+    static final String[] WHY = {"", "the door would be under the sea", "water or lava on the plot", "something built on the plot", "the ground is too uneven", "a colony's land"};
 
     /** The doorstep for a house of this kind on this slot, or null if the plot will not take it (why[0]: 1 the ground, 2 a work, 3 not loaded; why[1] the detail). */
     static BlockPos site(ServerLevel level, KingdomData.Kingdom k, Slot slot, Kind kind, int[] why) {
@@ -224,6 +224,8 @@ public final class KingdomHouses {
         why[1] = 1;
         if (gy <= level.getSeaLevel() - 1) return null;
         BlockPos doorstep = new BlockPos(column.getX(), gy + 1, column.getZ());
+        // a plot on (or hard against) a colony's land is somebody's, like anything built: looked at again later, never written off
+        if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, doorstep, kind.depth + APRON + FELL)) { why[1] = 5; return null; }
         Direction right = facing.getCounterClockWise(), depth = facing.getOpposite();
         int lo = gy, hi = gy;
         for (int u = -kind.hw - 1; u <= kind.hw + 1; u++) {

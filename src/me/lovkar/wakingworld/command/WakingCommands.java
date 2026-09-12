@@ -482,6 +482,14 @@ public final class WakingCommands {
                                         )
                                 ))
                             .then(
+                                ((LiteralArgumentBuilder)Commands.literal("colony")
+                                    .executes(var0x -> colony(var0x, BlockPos.containing(var0x.getSource().getPosition()))))
+                                    .then(
+                                        Commands.argument("at", BlockPosArgument.blockPos())
+                                            .executes(var0x -> colony(var0x, BlockPosArgument.getBlockPos(var0x, "at")))
+                                    )
+                            )
+                            .then(
                                 ((LiteralArgumentBuilder)Commands.literal("tidy").executes(var0x -> tidy(var0x, 62)))
                                     .then(
                                         Commands.argument("radius", IntegerArgumentType.integer(8, 128))
@@ -790,6 +798,31 @@ public final class WakingCommands {
     }
 
     /** Debug: the quick (preliminary) surface against the real one on a grid round a point, and how long each costs. */
+    /**
+     * What the mod thinks of this spot: is it a colony's land, and would the mod keep off it?
+     * The one place to look when a kingdom will not grow somewhere or a star refuses to fall.
+     */
+    private static int colony(CommandContext<CommandSourceStack> ctx, BlockPos at) {
+        ServerLevel level = ctx.getSource().getLevel();
+        me.lovkar.wakingworld.compat.Colonies.forget();
+        boolean present = me.lovkar.wakingworld.compat.Colonies.present();
+        boolean active = me.lovkar.wakingworld.compat.Colonies.active();
+        boolean claimed = me.lovkar.wakingworld.compat.Colonies.claimed(level, at);
+        boolean off = me.lovkar.wakingworld.compat.Colonies.keepOff(level, at);
+        String name = me.lovkar.wakingworld.compat.Colonies.nameAt(level, at);
+        StringBuilder out = new StringBuilder("colony check at ")
+                .append(at.getX()).append(' ').append(at.getY()).append(' ').append(at.getZ()).append('\n');
+        out.append("  MineColonies ").append(present ? "installed" : "not installed")
+           .append(", protection ").append(active ? "on" : "off")
+           .append(" (buffer ").append(me.lovkar.wakingworld.WakingConfig.colonyBuffer()).append(")\n");
+        out.append("  chunk claimed: ").append(claimed).append(name == null ? "" : " (" + name + ")").append('\n');
+        out.append("  the mod keeps off here: ").append(off);
+        ctx.getSource().sendSuccess(() -> Component.literal(out.toString()), false);
+        me.lovkar.wakingworld.WakingWorld.LOGGER.info("colony check at {} {} {}: present={} active={} claimed={} keepOff={} name={}",
+                at.getX(), at.getY(), at.getZ(), present, active, claimed, off, name);
+        return off ? 1 : 0;
+    }
+
     private static int terrain(CommandContext<CommandSourceStack> ctx, BlockPos at) {
         ServerLevel level = ctx.getSource().getLevel();
         net.minecraft.world.level.chunk.ChunkGenerator gen = level.getChunkSource().getGenerator();

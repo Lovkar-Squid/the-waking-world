@@ -38,6 +38,11 @@ public class SignalHornItem extends Item {
         var1.playSound(null, var2.getX(), var2.getY(), var2.getZ(), (SoundEvent)WakingSounds.HORN_BLOW.get(), SoundSource.PLAYERS, 14.0F, 1.25F);
         if (!var1.isClientSide && var2 instanceof ServerPlayer var5 && var1 instanceof ServerLevel var6) {
             Vec3 var7 = aimPoint(var6, var5);
+            if (me.lovkar.wakingworld.compat.Colonies.keepOff(var6, net.minecraft.core.BlockPos.containing(var7), 24)) {
+                var5.displayClientMessage(Component.translatable("kingdom.wakingworld.siege_colony").withStyle(ChatFormatting.GRAY), true);
+                var5.getCooldowns().addCooldown(this, 40);
+                return InteractionResultHolder.fail(var4);
+            }
             if (!KingdomSiege.callAt(var6, var5, var7)) {
                 var5.displayClientMessage(Component.translatable("item.wakingworld.signal_horn.nobody").withStyle(ChatFormatting.GRAY), true);
                 var5.getCooldowns().addCooldown(this, 40);

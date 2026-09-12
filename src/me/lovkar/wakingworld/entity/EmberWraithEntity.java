@@ -90,7 +90,8 @@ public class EmberWraithEntity extends Zombie {
         } else if (level() instanceof ServerLevel server && tickCount % 20 == 0 && isAlive()) {
             // its footfalls scorch: a little fire where it walks over something that burns, never over stone
             net.minecraft.core.BlockPos at = blockPosition();
-            if (server.getBlockState(at).isAir() && server.getBlockState(at.below()).is(net.minecraft.tags.BlockTags.DIRT) && random.nextInt(4) == 0) {
+            if (server.getBlockState(at).isAir() && server.getBlockState(at.below()).is(net.minecraft.tags.BlockTags.DIRT) && random.nextInt(4) == 0
+                    && !me.lovkar.wakingworld.compat.Colonies.keepOff(server, at)) {
                 server.setBlock(at, net.minecraft.world.level.block.Blocks.FIRE.defaultBlockState(), 3);
             }
         }

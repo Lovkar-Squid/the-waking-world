@@ -160,7 +160,7 @@ public final class KingdomDressing {
     }
 
     private static void put(KingdomDressing.Job var0, ServerLevel var1, BlockPos var2, BlockState var3) {
-        if (var3.canSurvive(var1, var2)) {
+        if (var3.canSurvive(var1, var2) && !me.lovkar.wakingworld.compat.Colonies.keepOff(var1, var2)) {
             var1.setBlock(var2, var3, 3);
             var0.placed++;
         }

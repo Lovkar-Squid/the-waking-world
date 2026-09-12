@@ -49,10 +49,16 @@ public final class WakingSpawns {
         return !natural(type) || me.lovkar.wakingworld.WakingConfig.ruins();
     }
 
+    /** None of them turns up on its own inside a colony (MineColonies), whatever the biome says. */
+    private static boolean colony(ServerLevelAccessor level, BlockPos pos) {
+        return me.lovkar.wakingworld.compat.Colonies.keepOff(level.getLevel(), pos);
+    }
+
     /** Thralls: by night, in the dark, and only within a ruin or a hamlet - the dead of the old people keep to their walls. */
     private static <T extends Monster> boolean thrall(EntityType<T> type, ServerLevelAccessor level, MobSpawnType spawnType, BlockPos pos, RandomSource random) {
         if (!natural(spawnType)) return true;
         if (!wanted(spawnType)) return false;
+        if (colony(level, pos)) return false;
         if (!level.getLevel().isNight() || !Monster.checkMonsterSpawnRules(type, level, spawnType, pos, random)) return false;
         StructureStart ruin = level.getLevel().structureManager().getStructureWithPieceAt(pos, RUINS);
         return ruin.isValid();
@@ -62,6 +68,7 @@ public final class WakingSpawns {
     private static <T extends Monster> boolean wraith(EntityType<T> type, ServerLevelAccessor level, MobSpawnType spawnType, BlockPos pos, RandomSource random) {
         if (!natural(spawnType)) return true;
         if (!wanted(spawnType)) return false;
+        if (colony(level, pos)) return false;
         return level.getLevel().isNight() && level.canSeeSky(pos) && Monster.checkMonsterSpawnRules(type, level, spawnType, pos, random);
     }
 
@@ -69,6 +76,7 @@ public final class WakingSpawns {
     private static <T extends Monster> boolean keeper(EntityType<T> type, ServerLevelAccessor level, MobSpawnType spawnType, BlockPos pos, RandomSource random) {
         if (!natural(spawnType)) return true;
         if (!wanted(spawnType)) return false;
+        if (colony(level, pos)) return false;
         // as the drowned do: water under and around it, dark, and not in peace (a sturdy floor is not asked for in the water)
         if (!level.getFluidState(pos.below()).is(FluidTags.WATER) || !level.getFluidState(pos).is(FluidTags.WATER)) return false;
         return level.getLevel().isNight() && level.getDifficulty() != net.minecraft.world.Difficulty.PEACEFUL && Monster.isDarkEnoughToSpawn(level, pos, random);

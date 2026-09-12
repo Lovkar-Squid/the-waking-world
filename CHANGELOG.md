@@ -3,6 +3,29 @@
 All notable changes to The Waking World. The format follows [Keep a Changelog](https://keepachangelog.com/);
 versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-releases.
 
+## [0.3.0-beta.2] - 2026-09-12
+
+Colonies are somebody's land.
+
+### Added
+- **MineColonies colonies are left alone.** With MineColonies installed, everything this mod does to
+  the world on its own now stops at a colony's border: a falling star, a volcano, a tornado, an
+  earthquake and the blight choose somewhere else and change nothing there; a blood moon spawns
+  nothing inside it; a kingdom sites no work, house, road, lane or march wall on it and its masons
+  lay no course there; a kingdom's repairs and its dressing stop at the line; the engines refuse to
+  fire on it, whoever blows the horn; the Asking Stone will not send a rite onto it; a colossus
+  breaks, tramples, throws and heaps nothing there, and rubble that would land on it comes down as
+  dust; and the mod's own wanderers do not spawn there. A colony's claimed chunks and a buffer of
+  open country round them are the border. `[compat]` in the server config: `protectColonies`
+  (default on) and `colonyBuffer` (default 32 blocks).
+- `/wakingworld colony [at]` says whether a spot is a colony's land and whether the mod keeps off it.
+
+### Note
+- The mod does not depend on MineColonies and nothing changes without it: the one class that names
+  a MineColonies type is loaded only when the mod is there.
+- What was already built stands. A kingdom that generated before a colony was founded keeps every
+  block it had; it simply grows no further into it.
+
 ## [0.3.0-beta.1] - 2026-09-12 "Crown and Tower"
 
 The first public build of the 0.3 line: the dark mage and the kingdoms that grow. It is the

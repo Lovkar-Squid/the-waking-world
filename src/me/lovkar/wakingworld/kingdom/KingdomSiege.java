@@ -128,6 +128,13 @@ public final class KingdomSiege {
         int var5 = Math.min(14, var1.catapults.size() * 4);
         if (var5 <= 0) {
             return false;
+        } else if (me.lovkar.wakingworld.compat.Colonies.keepOff(var0, BlockPos.containing(var3), 24)) {
+            // the engines will not fire on a colony's land, whoever asks and whatever stands there
+            if (var4 != null) {
+                var4.displayClientMessage(Component.translatable("kingdom.wakingworld.siege_colony").withStyle(ChatFormatting.GRAY), true);
+            }
+            WakingWorld.LOGGER.info("kingdom {}: will not fire on a colony's land at {} {} {}", Kingdoms.name(var1.center), (int)var3.x, (int)var3.y, (int)var3.z);
+            return false;
         } else {
             Vec3 var6 = new Vec3((double)var1.center.getX() - var3.x, 0.0, (double)var1.center.getZ() - var3.z);
             BlockPos var7 = BlockPos.of(var1.catapults.iterator().next());

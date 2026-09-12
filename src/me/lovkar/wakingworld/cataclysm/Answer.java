@@ -67,6 +67,7 @@ public final class Answer {
 
         BlockPos c = altar.getBlockPos();
         Vec3 spot = Vec3.atBottomCenterOf(c).add(0, 0, 36);
+        if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, BlockPos.containing(spot), 40)) return null;   // not onto a colony
         ColossusEntity woken = Waker.wakeAt(level, witness.position(), Rites.palette(k), Rites.height(k), spot, null);
         if (woken == null) return null;                                   // one was already up
         woken.setAltar(c);

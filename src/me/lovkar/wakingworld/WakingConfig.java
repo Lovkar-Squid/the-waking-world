@@ -37,6 +37,8 @@ public final class WakingConfig {
     private static final ModConfigSpec.IntValue METEORS_PER_SHOWER;
     private static final ModConfigSpec.IntValue SHOWER_LENGTH;
     private static final ModConfigSpec.IntValue METEOR_SAFE_RADIUS;
+    private static final ModConfigSpec.BooleanValue PROTECT_COLONIES;
+    private static final ModConfigSpec.IntValue COLONY_BUFFER;
     private static final ModConfigSpec.BooleanValue VOLCANOES;
     private static final ModConfigSpec.DoubleValue VOLCANO_CHANCE;
     private static final ModConfigSpec.IntValue DAYS_BETWEEN_VOLCANOES;
@@ -291,6 +293,15 @@ public final class WakingConfig {
         GEMINI_LANDS = b.comment("Let Gemini name the lands from what is actually on the ground there (needs geminiApiKey).",
                 "Off or without a key: the built-in names, which are chosen by the terrain the same way.").define("geminiLands", true);
         b.pop();
+        b.push("compat");
+        PROTECT_COLONIES = b.comment("MineColonies: leave every colony's land alone. A colony's claimed chunks (and the buffer below) never take",
+                        "a falling star, a volcano, a tornado, a quake or a blood-moon spawn; a kingdom sites no work, house, road or",
+                        "wall there and its engines will not fire on it; a colossus breaks nothing there and its rubble does not land",
+                        "there. Nothing happens without MineColonies installed.")
+                .define("protectColonies", true);
+        COLONY_BUFFER = b.comment("Blocks of open country kept round every claimed chunk as well (0 = only the claimed chunks themselves).")
+                .defineInRange("colonyBuffer", 32, 0, 256);
+        b.pop();
         SPEC = b.build();
     }
 
@@ -539,6 +550,14 @@ public final class WakingConfig {
 
     public static int meteorSafeRadius() {
         return loaded() ? METEOR_SAFE_RADIUS.get() : 64;
+    }
+
+    public static boolean protectColonies() {
+        return loaded() ? PROTECT_COLONIES.get() : true;
+    }
+
+    public static int colonyBuffer() {
+        return loaded() ? COLONY_BUFFER.get() : 32;
     }
 
     public static double cameraShake() {

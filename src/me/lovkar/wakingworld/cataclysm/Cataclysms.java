@@ -138,6 +138,7 @@ public final class Cataclysms extends SavedData {
             double z = from.z + Math.sin(angle) * dist;
             BlockPos ground = surface(level, x, z);              // loads the chunk
             Vec3 here = new Vec3(x, ground.getY(), z);
+            if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, ground, 48)) continue;   // a colony's land: not even the fallback
             if (fallback == null) fallback = here;
             if (ground.getY() <= level.getSeaLevel() + 1) continue;                  // water, or a shore
             if (!level.getFluidState(ground.below()).isEmpty()) continue;            // a lake or a river
@@ -330,6 +331,7 @@ public final class Cataclysms extends SavedData {
 
     /** Not on a player's doorstep: their spawn point, the world spawn, and anywhere too close to a player. */
     static boolean away(ServerLevel level, BlockPos at) {
+        if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, at, 48)) return false;   // never on a colony's land
         int keep = WakingConfig.meteorSafeRadius();
         if (keep > 0) {
             if (level.getSharedSpawnPos().closerThan(at, keep)) return false;

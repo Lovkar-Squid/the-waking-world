@@ -94,6 +94,7 @@ public final class Crater {
     /** Blocks the world can lose to a giant: not bedrock, not blast-proof, not chests and machines, not fluids. */
     public static boolean breakable(ServerLevel level, BlockPos pos, BlockState state) {
         if (state.isAir() || !state.getFluidState().isEmpty()) return false;
+        if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, pos)) return false;   // a colony's land is nobody's to break
         if (state.hasBlockEntity()) return false;
         if (state.is(BlockTags.WITHER_IMMUNE) || state.is(BlockTags.DRAGON_IMMUNE)) return false;
         if (state.is(Blocks.OBSIDIAN) || state.is(Blocks.CRYING_OBSIDIAN) || state.is(Blocks.ANCIENT_DEBRIS)) return false;
@@ -122,6 +123,7 @@ public final class Crater {
 
     /** The same with a chosen upward kick ({@code up} = the least vertical speed; vanilla-ish 0.25). */
     public static void fling(ServerLevel level, BlockPos pos, BlockState state, Vec3 from, double power, double up, RandomSource rnd) {
+        if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, pos)) return;
         if (!WakingConfig.terrainDamage()) {
             // no flying blocks allowed: the block still has to go (a trampled tree cannot stay standing)
             if (!level.getBlockState(pos).isAir()) {

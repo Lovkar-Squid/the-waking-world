@@ -130,6 +130,7 @@ public final class Earthquake {
                         level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                                 (int) Math.floor(px), (int) Math.floor(pz)) - 1, (int) Math.floor(pz));
                 if (!natural(level, top)) continue;
+                if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, top)) continue;   // the fault stops at a colony's border
                 // the top of it is thrown into the air rather than deleted: that is the whole
                 // difference between ground that cracked and ground that was always cracked
                 BlockState surface = level.getBlockState(top);
@@ -370,11 +371,16 @@ public final class Earthquake {
 
     /** Somewhere on the surface near a player, for the scheduler. */
     public static Vec3 site(ServerLevel level, ServerPlayer near, RandomSource rnd) {
-        double angle = rnd.nextDouble() * Math.PI * 2;
-        double dist = 20 + rnd.nextDouble() * 60;
-        double x = near.getX() + Math.cos(angle) * dist;
-        double z = near.getZ() + Math.sin(angle) * dist;
-        BlockPos ground = Cataclysms.surface(level, x, z);
-        return new Vec3(x, ground.getY(), z);
+        Vec3 last = null;
+        for (int attempt = 0; attempt < 8; attempt++) {
+            double angle = rnd.nextDouble() * Math.PI * 2;
+            double dist = 20 + rnd.nextDouble() * 60;
+            double x = near.getX() + Math.cos(angle) * dist;
+            double z = near.getZ() + Math.sin(angle) * dist;
+            BlockPos ground = Cataclysms.surface(level, x, z);
+            last = new Vec3(x, ground.getY(), z);
+            if (!me.lovkar.wakingworld.compat.Colonies.keepOff(level, ground, 48)) return last;
+        }
+        return last;
     }
 }

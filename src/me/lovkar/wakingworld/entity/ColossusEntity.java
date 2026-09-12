@@ -187,6 +187,7 @@ public class ColossusEntity extends Monster {
     void tempBlock(ServerLevel server, BlockPos pos, BlockState state, int ticks) {
         BlockState before = server.getBlockState(pos);
         if (!before.isAir() && !before.canBeReplaced() && before.getFluidState().isEmpty()) return;
+        if (me.lovkar.wakingworld.compat.Colonies.keepOff(server, pos)) return;
         if (server.setBlock(pos, state, 3)) tempBlocks.add(new TempBlock(pos.immutable(), before, server.getGameTime() + ticks));
     }
 
@@ -194,6 +195,7 @@ public class ColossusEntity extends Monster {
     void tempOverlay(ServerLevel server, BlockPos pos, BlockState state, int ticks) {
         BlockState before = server.getBlockState(pos);
         if (before.isAir() || !before.canOcclude() || server.getBlockEntity(pos) != null) return;
+        if (me.lovkar.wakingworld.compat.Colonies.keepOff(server, pos)) return;
         if (server.setBlock(pos, state, 3)) tempBlocks.add(new TempBlock(pos.immutable(), before, server.getGameTime() + ticks));
     }
 
@@ -1165,6 +1167,7 @@ public class ColossusEntity extends Monster {
             pos.set(Mth.floor(wx), Mth.floor(wy), Mth.floor(wz));
             BlockState state = server.getBlockState(pos);
             if (state.isAir()) continue;
+            if (me.lovkar.wakingworld.compat.Colonies.keepOff(server, pos)) continue;
             boolean soft = Crater.vegetation(state) || Crater.trampleable(server, pos, state);
             if (!soft && (!hard || !Crater.breakable(server, pos, state))) continue;
             cleared++;
@@ -2340,6 +2343,7 @@ public class ColossusEntity extends Monster {
             }
         }
         if (logs == 0) return;
+        for (BlockPos p : tree) if (me.lovkar.wakingworld.compat.Colonies.keepOff(server, p)) return;   // a colony's tree stays standing
         // centre of mass, pieces relative to it, then take the blocks out of the world
         double cx = 0, cy = 0, cz = 0;
         for (BlockPos p : tree) { cx += p.getX(); cy += p.getY(); cz += p.getZ(); }
@@ -3107,6 +3111,7 @@ public class ColossusEntity extends Monster {
                     BlockPos pos = new BlockPos(x, base + y, z);
                     BlockState there = server.getBlockState(pos);
                     if (!there.isAir() && !there.canBeReplaced() && there.getFluidState().isEmpty() && !Crater.vegetation(there)) continue;
+                    if (me.lovkar.wakingworld.compat.Colonies.keepOff(server, pos)) continue;   // the heap does not spill onto a colony
                     boolean ember = this.random.nextInt(28) == 0 && y > 0;
                     me.lovkar.wakingworld.ruin.Ruin.mark(server, pos);
                     server.setBlock(pos, ember ? palette().core.defaultBlockState() : palette().pick(this.random), 3);

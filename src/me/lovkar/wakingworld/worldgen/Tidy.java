@@ -127,7 +127,7 @@ public final class Tidy {
                     pos.set(s.x, y, z);
                     BlockState state = level.getBlockState(pos);
                     if (state.isAir()) continue;
-                    if (in && growing(state)) {
+                    if (in && growing(state) && !me.lovkar.wakingworld.compat.Colonies.keepOff(level, pos)) {
                         level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
                         s.taken++;
                     } else if (state.is(BlockTags.LOGS)) {
@@ -175,7 +175,8 @@ public final class Tidy {
         int end = Math.min(s.doomed.size(), s.cut + PER_TICK);
         for (; s.cut < end; s.cut++) {
             BlockPos p = s.doomed.get(s.cut);
-            if (level.hasChunkAt(p) && level.getBlockState(p).getBlock() instanceof LeavesBlock) {
+            if (level.hasChunkAt(p) && level.getBlockState(p).getBlock() instanceof LeavesBlock
+                    && !me.lovkar.wakingworld.compat.Colonies.keepOff(level, p)) {
                 level.setBlock(p, Blocks.AIR.defaultBlockState(), 3);
             }
         }

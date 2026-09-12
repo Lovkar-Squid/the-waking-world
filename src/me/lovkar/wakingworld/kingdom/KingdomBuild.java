@@ -154,6 +154,7 @@ public final class KingdomBuild {
      */
     private static int lay(ServerLevel level, KingdomBuild.Job job, KingdomBuild.Course c) {
         if (!level.isLoaded(c.at())) return 0;
+        if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, c.at())) return 0;   // the masons stop at a colony's border
         BlockState was = level.getBlockState(c.at());
         if (c.state().isAir()) {
             if (was.isAir()) return 0;
