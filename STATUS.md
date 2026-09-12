@@ -1,6 +1,6 @@
 # The Waking World — where we are
 
-Written 9 Sep 2026 at **0.3.0-alpha.11**, brought up to date 11 Sep 2026 at **0.3.0-alpha.15**.
+Written 9 Sep 2026 at **0.3.0-alpha.11**, brought up to date 12 Sep 2026 at **0.3.0-beta.1** (the first published 0.3 build).
 This is the handover: what exists, what was fixed and how it was proved, what is untested, and what
 is left. **Section 0 is new and comes first because it changes where the source is.**
 
@@ -290,7 +290,8 @@ into a scoreboard and is read afterwards with `scoreboard players get`.
 | alpha.12 | the suburb (section 0). SHA256 `785890ab…e704`, 29 205 866 B; in `mods\_old` |
 | alpha.13 | the engine that never came, and the stones that hang (section 0). SHA256 `2adaeeb6…be4a`, 29 206 393 B; in `mods\_old` |
 | alpha.14 | the suburb gets its doors, `houses redo` (section 0). SHA256 `eb5761b2…dca9`, 29 209 534 B; in `mods\_old` |
-| **alpha.15** | **current** — trees felled, hillsides cut and terraced, ores natural (section 0). In `The Waking World Dev\mods` |
+| alpha.15 | trees felled, hillsides cut and terraced, ores natural (section 0). SHA256 `b6528726…e1e`, 29 212 557 B; in `mods\_old`. **Play-tested 12 Sep** ("katapulti so zdaj delali": Greyhaven raised its catapult, market and farm and threw four-stone volleys, zero errors in the log) |
+| **0.3.0-beta.1** | **current, PUBLISHED 12 Sep 2026** "Crown and Tower" — alpha.15 under a release name, nothing else changed. SHA256 `699690e7433bcc52a0f0be8ec27bbae97dd63c12a61f0cff10287d37b6edea36`, 29 212 553 B. In `The Waking World Dev\mods` and `waking-world\release` |
 
 ---
 
@@ -482,11 +483,10 @@ the boss fight is not testable headlessly at all.
 ## 6. Still to do
 
 **Mod**
-- Play-test alpha.15 and report - `/wakingworld kingdom houses redo` at Greyhaven first (doors, terraces, trees in one go), then the suburb (`/wakingworld kingdom houses 6` on a town to see it at once),
-  then the engine: a levy or `/wakingworld kingdom standing 100` at Greyhaven should log `begins raising a catapult`,
-  and the Horn of Waking beside a colossus (or `/wakingworld bombard`) should land four stones; then everything in section 5.
+- 0.3.0-beta.1 is out (12 Sep): watch the CurseForge/Modrinth comments and #bug-reports for the first foreign worlds; fixes go out as beta.2, beta.3 … and 0.3.0 final follows.
+- Decided 12 Sep: the mod is NOT going into the MineColonies pack until (a) a MineColonies compat keeps every cataclysm, kingdom work, road, felling and colossus ruin out of a colony's claimed chunks (+ a buffer), and (b) the shrines use conventional biome tags so Terralith worlds get them. Both are 0.3.x/0.4 work worth doing regardless; cross-linking the two packs meanwhile.
+- The works still want ≤ 4/6 of rise; cliff plots (13+) are refused - a mountain town grows slowly.
 - Decide where the Signal Horn comes from (craft vs. a king's gift).
-- The source is on the PC repo branch `0.3-recovered`; nothing is pushed until he has tested.
 - Suburb ideas not built: houses abandoned when a town shrinks, a cottager profession with its own
   garb, market stalls along the road, the side lanes joined to the gate roads by a ring lane.
 - Written down in `docs/IDEAS.md` and not built: relationships between kingdoms, roads,

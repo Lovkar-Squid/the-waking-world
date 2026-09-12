@@ -3,6 +3,20 @@
 All notable changes to The Waking World. The format follows [Keep a Changelog](https://keepachangelog.com/);
 versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-releases.
 
+## [0.3.0-beta.1] - 2026-09-12 "Crown and Tower"
+
+The first public build of the 0.3 line: the dark mage and the kingdoms that grow. It is the
+alpha.15 build under a release name - everything in the alpha entries below is in it, and nothing
+else. Play-tested in the author's worlds (the suburb, the doors, the terraces, the engines and their
+volleys) and on a headless server; a beta because the growing kingdoms are a big new system meeting
+other people's worlds for the first time.
+
+### Known
+- The works (farm, mill, tower, market, catapult) still want fairly level ground - a plot with more
+  than a few blocks of rise is passed over; the houses take up to twelve. Cliff-side plots are
+  refused. A town in the mountains grows more slowly than one on a plain.
+- A suburb raised by an earlier alpha gets its doors with `/wakingworld kingdom houses redo`.
+
 ## [0.3.0-alpha.15] - 2026-09-11 (unreleased)
 
 The suburb takes the ground as it finds it: trees felled, hillsides cut and terraced.
