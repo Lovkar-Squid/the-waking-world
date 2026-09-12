@@ -93,9 +93,10 @@ public final class Scars {
      * thousands of blocks and cannot afford a neighbour update on each of them; the restoration
      * does its own settling pass afterwards.</p>
      */
-    public static void set(ServerLevel level, BlockPos at, BlockState state) {
-        if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, at)) return;   // a cataclysm stops at a colony's border
+    public static boolean set(ServerLevel level, BlockPos at, BlockState state) {
+        if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, at)) return false;   // a cataclysm stops at a colony's border
         mark(level, at);
         level.setBlock(at, state, 2);
+        return true;
     }
 }

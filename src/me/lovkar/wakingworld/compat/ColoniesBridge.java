@@ -5,7 +5,7 @@ import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.util.ColonyUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.ChunkAccess;
 
 /**
  * The only class in the mod that names a MineColonies type. It is loaded on first use, and
@@ -21,7 +21,7 @@ final class ColoniesBridge {
     }
 
     /** A colony owns this chunk, or holds it as part of its base claim. */
-    static boolean claimed(LevelChunk chunk) {
+    static boolean claimed(ChunkAccess chunk) {
         if (ColonyUtils.getOwningColony(chunk) != 0) return true;
         var statics = ColonyUtils.getStaticClaims(chunk);
         return statics != null && !statics.isEmpty();

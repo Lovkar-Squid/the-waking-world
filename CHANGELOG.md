@@ -3,6 +3,20 @@
 All notable changes to The Waking World. The format follows [Keep a Changelog](https://keepachangelog.com/);
 versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-releases.
 
+## [0.3.0-beta.3] - 2026-09-12
+
+### Fixed
+- **A volcano that cannot grow no longer erupts anyway.** With a colony under it the mountain laid
+  no rock - correctly - but went on smoking, banging and shaking the screen for its whole rise, so
+  a colony got the whole eruption and none of the mountain. A volcano now refuses to open on a
+  colony's land at all (the command says so; the Asking Stone already did), the world never sites
+  one whose foot would fall there, and a course that lays not one block is silent: no smoke, no
+  bang, no shaking, no bombs. Three such courses and the eruption is called off and its record
+  closed - which is also what happens if a colony is founded on top of one while it rises.
+- Where a cataclysm or a kingdom *decides* something - a volcano's site, a chosen spot - the colony
+  question now loads the chunk it is asking about instead of treating "not in memory" as "nobody
+  lives there". Those decisions are made once, often a hundred blocks out, past what is loaded.
+
 ## [0.3.0-beta.2] - 2026-09-12
 
 Colonies are somebody's land.

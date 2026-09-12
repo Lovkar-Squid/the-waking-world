@@ -1291,8 +1291,12 @@ public final class WakingCommands {
                 return 0;
             }
         }
-        me.lovkar.wakingworld.cataclysm.Volcano.force(level, where, height, foot, seconds);
         final String w = where.getX() + " " + where.getY() + " " + where.getZ();
+        if (!me.lovkar.wakingworld.cataclysm.Volcano.force(level, where, height, foot, seconds)) {
+            ctx.getSource().sendFailure(Component.literal("That is a colony's land (" + w
+                    + ") - nothing opens there. Set compat.protectColonies to false, or name a spot outside it."));
+            return 0;
+        }
         ctx.getSource().sendSuccess(() -> Component.literal("A vent opens at " + w
                 + (seconds > 0 ? " - up in " + seconds + " s." : " - stand back.")), true);
         return 1;

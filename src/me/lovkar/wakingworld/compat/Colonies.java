@@ -90,6 +90,37 @@ public final class Colonies {
         }
     }
 
+    /**
+     * The same question, but chunks that are not in memory are loaded to answer it.
+     *
+     * <p>{@link #keepOff} is asked for every block of a crater, so it must be cheap and treats a
+     * chunk it cannot see as unclaimed. That is wrong for the handful of places where the mod
+     * DECIDES something once - where a volcano opens, where a house or a work goes - because the
+     * spot is often chosen a hundred blocks out, past what is in memory, and "I could not see it"
+     * would read as "nobody lives there". Those ask this instead.</p>
+     */
+    public static boolean keepOffLoading(ServerLevel level, BlockPos pos, int margin) {
+        if (!active()) return false;
+        int blocks = WakingConfig.colonyBuffer() + Math.max(0, margin);
+        int r = (blocks + 15) >> 4;
+        int cx = pos.getX() >> 4, cz = pos.getZ() >> 4;
+        for (int dx = -r; dx <= r; dx++) {
+            for (int dz = -r; dz <= r; dz++) {
+                int gapX = dx == 0 ? 0 : (Math.abs(dx) - 1) * 16 + edgeGap(pos.getX(), dx);
+                int gapZ = dz == 0 ? 0 : (Math.abs(dz) - 1) * 16 + edgeGap(pos.getZ(), dz);
+                if (Math.max(gapX, gapZ) > blocks) continue;
+                try {
+                    if (ColoniesBridge.claimed(level.getChunk(cx + dx, cz + dz))) return true;
+                } catch (Throwable t) {
+                    WakingWorld.LOGGER.warn("colonies: cannot read MineColonies claims ({}) - colony protection is off", t.toString());
+                    failed = true;
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
     private static boolean near(ServerLevel level, BlockPos pos, int blocks) {
         int r = (blocks + 15) >> 4;
         int cx = pos.getX() >> 4, cz = pos.getZ() >> 4;

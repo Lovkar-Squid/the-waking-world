@@ -50,6 +50,7 @@ public final class Volcano extends SavedData {
     private int course;              // how many rings are already laid
     private int courses;             // how many there will be
     private int baseR;               // the radius of the foot
+    private int barren;              // courses in a row that laid no block (a colony under the cone)
     private int nextPulse;
     /** How far up the flow has set. Everything below this is rock again; the crater is left glowing. */
     private int cooledTo;
@@ -236,6 +237,7 @@ public final class Volcano extends SavedData {
         course = 0;
         spill = rnd.nextFloat() * (float) (Math.PI * 2);
         riseSeconds = 0;                // a volcano the world raised keeps the world's pace
+        barren = 0;
         phase = Phase.WARNING;
         phaseTicks = 22 * 20;
         cooldownUntilDay = (int) (level.getDayTime() / 24000L) + WakingConfig.daysBetweenVolcanoes();
@@ -252,6 +254,7 @@ public final class Volcano extends SavedData {
 
     /** One course of the cone: a ring of rock at the current height, and something thrown out of it. */
     private void pulse(ServerLevel level, RandomSource rnd) {
+        int laid = 0;
         int h = course;
         double climbed = (double) h / courses;
         double outer = outerAt(climbed);
@@ -273,14 +276,29 @@ public final class Volcano extends SavedData {
                     // the eye has something to look at while the mountain grows round it. It cannot
                     // spill: this course's ring is laid at the same height and encloses it, and the
                     // course below is lava already, so there is nowhere for it to go.
-                    Scars.set(level, at, Blocks.LAVA.defaultBlockState());
+                    if (Scars.set(level, at, Blocks.LAVA.defaultBlockState())) laid++;
                     continue;
                 }
                 BlockState state = level.getBlockState(at);
                 if (!state.isAir() && state.getFluidState().isEmpty() && h > 0 && rnd.nextDouble() < 0.35) continue;
-                Scars.set(level, at, wall(rnd, climbed));
+                if (Scars.set(level, at, wall(rnd, climbed))) laid++;
             }
         }
+
+        // A course that laid not one block is a mountain being refused - it is standing on a
+        // colony, or on ground the config will not let it touch. It gets no smoke, no bang and no
+        // shaking: an eruption nobody can see the result of is just noise over somebody's town.
+        // Three of them in a row and the whole thing is called off.
+        if (laid == 0) {
+            barren++;
+            course++;
+            if (barren >= 3) {
+                WakingWorld.LOGGER.info("cataclysm: the mountain at {} {} {} can raise nothing (a colony's land) - it is called off", cx, baseY, cz);
+                end(level);
+            }
+            return;
+        }
+        barren = 0;
 
         // and from a third of the way up, the flank is open and running
         if (climbed > 0.30) channel(level, rnd);
@@ -623,6 +641,8 @@ public final class Volcano extends SavedData {
             if (top.getY() < level.getSeaLevel() + 2) continue;               // not in the sea
             if (!level.getFluidState(top.below()).is(Fluids.EMPTY)) continue;
             if (!Cataclysms.away(level, top)) continue;
+            // a mountain's whole foot must be the world's own ground, not a colony's
+            if (me.lovkar.wakingworld.compat.Colonies.keepOffLoading(level, top, WakingConfig.volcanoRadius() + 6)) continue;
             // reasonably flat, or the cone hangs off a cliff
             int lo = Integer.MAX_VALUE, hi = Integer.MIN_VALUE;
             for (int dx = -8; dx <= 8; dx += 4) {
@@ -679,15 +699,20 @@ public final class Volcano extends SavedData {
     }
 
     /** For the debug command: open one here, now. */
-    public static void force(ServerLevel level, BlockPos at, int height, int foot) {
-        force(level, at, height, foot, 0);
+    public static boolean force(ServerLevel level, BlockPos at, int height, int foot) {
+        return force(level, at, height, foot, 0);
     }
 
     /**
      * The same, at a pace of the caller's choosing: {@code riseSeconds} is how long the whole cone
      * should take to come up (0 = the config's minutes). The camera uses it.
      */
-    public static void force(ServerLevel level, BlockPos at, int height, int foot, int riseSeconds) {
+    public static boolean force(ServerLevel level, BlockPos at, int height, int foot, int riseSeconds) {
+        if (me.lovkar.wakingworld.compat.Colonies.keepOffLoading(level, at, 8)) {
+            WakingWorld.LOGGER.info("cataclysm: a volcano was called at {} {} {} - that is a colony's land, nothing opens",
+                    at.getX(), at.getY(), at.getZ());
+            return false;
+        }
         Volcano v = get(level);
         v.riseSeconds = riseSeconds;
         v.spill = level.random.nextFloat() * (float) (Math.PI * 2);
@@ -701,6 +726,8 @@ public final class Volcano extends SavedData {
         v.phaseTicks = 5 * 20;
         v.scar = Scars.begin(level, at, "a volcano");   // a forced one is written down like any other
         v.cooldownUntilDay = (int) (level.getDayTime() / 24000L) + WakingConfig.daysBetweenVolcanoes();
+        v.barren = 0;
         v.setDirty();
+        return true;
     }
 }
