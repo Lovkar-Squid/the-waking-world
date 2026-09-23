@@ -1,0 +1,20 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+[[mods]]
+modId="wwspawngate"
+version="1.0.0"
+displayName="Waking World spawn switch test"
+description="Headless test: does spawns.naturalSpawns actually stop the mod's own creatures, and do they keep off a colony?"
+[[dependencies.wwspawngate]]
+modId="wakingworld"
+type="required"
+versionRange="*"
+ordering="AFTER"
+side="SERVER"
+[[dependencies.wwspawngate]]
+modId="minecolonies"
+type="required"
+versionRange="*"
+ordering="AFTER"
+side="SERVER"

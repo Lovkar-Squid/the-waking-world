@@ -44,20 +44,52 @@ public final class WakingSpawns {
      * The three wanderers are the old people's dead, and belong to the ruins: with that part of the
      * mod switched off they never turn up on their own. Spawners, eggs and commands still work -
      * a spawner in a dungeon that is already standing goes on doing its job.
+     *
+     * <p>Since 0.3.0-beta.5 there is a switch of their own as well, because the ruins are not the
+     * reason anybody wants them gone: Matchu Centric reported Keepers spawning in the ponds inside
+     * a colony and drowning the colonists, and the only answer then was to turn the whole dead
+     * world off. {@code spawns.naturalSpawns} turns all three off, and each has its own line.</p>
      */
     private static boolean wanted(MobSpawnType type) {
-        return !natural(type) || me.lovkar.wakingworld.WakingConfig.ruins();
+        return !natural(type) || (me.lovkar.wakingworld.WakingConfig.ruins()
+                && me.lovkar.wakingworld.WakingConfig.naturalSpawns());
     }
 
-    /** None of them turns up on its own inside a colony (MineColonies), whatever the biome says. */
-    private static boolean colony(ServerLevelAccessor level, BlockPos pos) {
-        return me.lovkar.wakingworld.compat.Colonies.keepOff(level.getLevel(), pos);
+    /**
+     * Is this creature allowed to turn up on its own at all, by the config alone? Public because it
+     * is the whole of the switch, and a headless check can ask it without a night, a biome and a
+     * dark block to stand in.
+     */
+    public static boolean allowedByConfig(EntityType<?> type) {
+        if (!me.lovkar.wakingworld.WakingConfig.ruins() || !me.lovkar.wakingworld.WakingConfig.naturalSpawns()) {
+            return false;
+        }
+        if (type == WakingWorld.STONE_THRALL.get()) {
+            return me.lovkar.wakingworld.WakingConfig.spawnThralls();
+        }
+        if (type == WakingWorld.EMBER_WRAITH.get()) {
+            return me.lovkar.wakingworld.WakingConfig.spawnWraiths();
+        }
+        if (type == WakingWorld.DROWNED_KEEPER.get()) {
+            return me.lovkar.wakingworld.WakingConfig.spawnKeepers();
+        }
+        return false;
+    }
+
+    /**
+     * None of them turns up on its own inside a colony (MineColonies), whatever the biome says -
+     * nor within {@code spawns.spawnColonyMargin} blocks of one. A colony's ponds and its outskirts
+     * often sit in chunks it has not claimed, which is how a Keeper ends up in the middle of a town.
+     */
+    public static boolean colony(ServerLevelAccessor level, BlockPos pos) {
+        return me.lovkar.wakingworld.compat.Colonies.keepOff(level.getLevel(), pos,
+                me.lovkar.wakingworld.WakingConfig.spawnColonyMargin());
     }
 
     /** Thralls: by night, in the dark, and only within a ruin or a hamlet - the dead of the old people keep to their walls. */
     private static <T extends Monster> boolean thrall(EntityType<T> type, ServerLevelAccessor level, MobSpawnType spawnType, BlockPos pos, RandomSource random) {
         if (!natural(spawnType)) return true;
-        if (!wanted(spawnType)) return false;
+        if (!wanted(spawnType) || !me.lovkar.wakingworld.WakingConfig.spawnThralls()) return false;
         if (colony(level, pos)) return false;
         if (!level.getLevel().isNight() || !Monster.checkMonsterSpawnRules(type, level, spawnType, pos, random)) return false;
         StructureStart ruin = level.getLevel().structureManager().getStructureWithPieceAt(pos, RUINS);
@@ -67,7 +99,7 @@ public final class WakingSpawns {
     /** Wraiths: under the open night sky of the deserts and badlands (the biome list picks the lands), in the dark. */
     private static <T extends Monster> boolean wraith(EntityType<T> type, ServerLevelAccessor level, MobSpawnType spawnType, BlockPos pos, RandomSource random) {
         if (!natural(spawnType)) return true;
-        if (!wanted(spawnType)) return false;
+        if (!wanted(spawnType) || !me.lovkar.wakingworld.WakingConfig.spawnWraiths()) return false;
         if (colony(level, pos)) return false;
         return level.getLevel().isNight() && level.canSeeSky(pos) && Monster.checkMonsterSpawnRules(type, level, spawnType, pos, random);
     }
@@ -75,7 +107,7 @@ public final class WakingSpawns {
     /** Keepers: in the water of swamps and rivers, by night, in the dark. */
     private static <T extends Monster> boolean keeper(EntityType<T> type, ServerLevelAccessor level, MobSpawnType spawnType, BlockPos pos, RandomSource random) {
         if (!natural(spawnType)) return true;
-        if (!wanted(spawnType)) return false;
+        if (!wanted(spawnType) || !me.lovkar.wakingworld.WakingConfig.spawnKeepers()) return false;
         if (colony(level, pos)) return false;
         // as the drowned do: water under and around it, dark, and not in peace (a sturdy floor is not asked for in the water)
         if (!level.getFluidState(pos.below()).is(FluidTags.WATER) || !level.getFluidState(pos).is(FluidTags.WATER)) return false;

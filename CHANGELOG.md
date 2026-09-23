@@ -3,6 +3,33 @@
 All notable changes to The Waking World. The format follows [Keep a Changelog](https://keepachangelog.com/);
 versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-releases.
 
+## [0.3.0-beta.5] - 2026-09-23
+
+### Added
+- **A switch for the mod's own creatures turning up on their own.** Matchu Centric reported Drowned
+  Keepers spawning in the ponds inside a MineColonies colony and drowning the colonists, and the
+  only thing to turn off was `features.ruins` - the whole dead world, dungeons, Dead Letters and
+  all. There is now a `spawns` section in the server config:
+  - `naturalSpawns` (default on) - all three wanderers turning up by themselves. Off, and they are
+    only ever found where the world put them: the dungeon spawners, eggs and commands still work,
+    and everything already alive stays alive (`/kill @e[type=wakingworld:drowned_keeper]` clears the
+    ones that are).
+  - `spawnStoneThralls`, `spawnEmberWraiths`, `spawnDrownedKeepers` - one line each, for turning off
+    just the one that is a nuisance.
+  - `spawnColonyMargin` (default 64 blocks) - how far outside a colony's claimed chunks and its
+    `colonyBuffer` a natural spawn is pushed. A colony's pond often sits in a chunk the colony never
+    claimed, which is exactly how a Keeper ends up in the middle of a town; the rest of the mod's
+    keep-off (32 blocks) was not enough for something that then walks in.
+
+### Fixed
+- **None of the three spawns near a colony any more, not just inside it.** They already kept off
+  claimed chunks; now the whole `spawnColonyMargin` ring is theirs to stay out of.
+
+Checked headless against a real colony on a dedicated server (`wwspawngate`): the switch on, a
+Keeper may stand in a dark pond out in the country and never in the colony's own; the switch off,
+neither - while a spawner, an egg or a command is bound by none of it. Eight checks, twice, and no
+warnings from the mod.
+
 ## [0.3.0-beta.4] - 2026-09-12
 
 ### Changed

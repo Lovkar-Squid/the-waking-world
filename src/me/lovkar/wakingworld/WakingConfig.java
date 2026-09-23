@@ -39,6 +39,11 @@ public final class WakingConfig {
     private static final ModConfigSpec.IntValue METEOR_SAFE_RADIUS;
     private static final ModConfigSpec.BooleanValue PROTECT_COLONIES;
     private static final ModConfigSpec.IntValue COLONY_BUFFER;
+    private static final ModConfigSpec.BooleanValue NATURAL_SPAWNS;
+    private static final ModConfigSpec.BooleanValue SPAWN_THRALLS;
+    private static final ModConfigSpec.BooleanValue SPAWN_WRAITHS;
+    private static final ModConfigSpec.BooleanValue SPAWN_KEEPERS;
+    private static final ModConfigSpec.IntValue SPAWN_COLONY_MARGIN;
     private static final ModConfigSpec.BooleanValue VOLCANOES;
     private static final ModConfigSpec.DoubleValue VOLCANO_CHANCE;
     private static final ModConfigSpec.IntValue DAYS_BETWEEN_VOLCANOES;
@@ -292,6 +297,26 @@ public final class WakingConfig {
                 .define("landChat", false);
         GEMINI_LANDS = b.comment("Let Gemini name the lands from what is actually on the ground there (needs geminiApiKey).",
                 "Off or without a key: the built-in names, which are chosen by the terrain the same way.").define("geminiLands", true);
+        b.pop();
+        b.push("spawns");
+        NATURAL_SPAWNS = b.comment("The mod's own creatures - Stone Thralls, Ember Wraiths, Drowned Keepers - turning up on their own,",
+                        "at night, the way vanilla monsters do. Off: they are only ever found where the world put them -",
+                        "spawners in the dungeons, eggs and commands still work, and everything already alive stays alive",
+                        "(/kill @e[type=wakingworld:drowned_keeper] clears the ones that are).",
+                        "Off is the switch to reach for if they keep turning up somewhere you would rather they did not.")
+                .define("naturalSpawns", true);
+        SPAWN_THRALLS = b.comment("Stone Thralls, by night, inside a ruin or an empty hamlet. Needs naturalSpawns on.")
+                .define("spawnStoneThralls", true);
+        SPAWN_WRAITHS = b.comment("Ember Wraiths, by night, under the open sky of the deserts and badlands. Needs naturalSpawns on.")
+                .define("spawnEmberWraiths", true);
+        SPAWN_KEEPERS = b.comment("Drowned Keepers, by night, in the water of swamps and rivers. Needs naturalSpawns on.",
+                        "They are the one that finds its way into a colony's pond, so this is the switch to turn off there.")
+                .define("spawnDrownedKeepers", true);
+        SPAWN_COLONY_MARGIN = b.comment("Extra blocks round a colony (on top of colonyBuffer below) where none of the three ever spawns on",
+                        "its own. A pond inside a colony can sit in a chunk the colony has not claimed, which is how a Keeper",
+                        "ends up in the middle of a town; this keeps them that much further out. Needs MineColonies and",
+                        "protectColonies on.")
+                .defineInRange("spawnColonyMargin", 64, 0, 512);
         b.pop();
         b.push("compat");
         PROTECT_COLONIES = b.comment("MineColonies: leave every colony's land alone. A colony's claimed chunks (and the buffer below) never take",
@@ -550,6 +575,31 @@ public final class WakingConfig {
 
     public static int meteorSafeRadius() {
         return loaded() ? METEOR_SAFE_RADIUS.get() : 64;
+    }
+
+    /** The mod's own creatures turning up on their own at all. */
+    public static boolean naturalSpawns() {
+        return loaded() && NATURAL_SPAWNS.get();
+    }
+
+    /** Stone Thralls on their own (with {@link #naturalSpawns()} and {@link #ruins()}). */
+    public static boolean spawnThralls() {
+        return loaded() && SPAWN_THRALLS.get();
+    }
+
+    /** Ember Wraiths on their own. */
+    public static boolean spawnWraiths() {
+        return loaded() && SPAWN_WRAITHS.get();
+    }
+
+    /** Drowned Keepers on their own. */
+    public static boolean spawnKeepers() {
+        return loaded() && SPAWN_KEEPERS.get();
+    }
+
+    /** Blocks round a colony, on top of the colony buffer, where none of them spawns naturally. */
+    public static int spawnColonyMargin() {
+        return loaded() ? SPAWN_COLONY_MARGIN.get() : 64;
     }
 
     public static boolean protectColonies() {
