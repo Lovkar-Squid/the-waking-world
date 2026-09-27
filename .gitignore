@@ -18,6 +18,7 @@ devpack/
 *.blend*
 
 # internal notes stay local
+STATUS.md
 docs/PLAN.md
 docs/CURSEFORGE.md
 docs/MODRINTH.md
