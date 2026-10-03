@@ -1,0 +1,14 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+[[mods]]
+modId="wwbombcool"
+version="1.0.0"
+displayName="Waking World bomb cooling test"
+description="Headless test: does the lava a molten bomb leaves set into rock after volcanoBombCoolSeconds?"
+[[dependencies.wwbombcool]]
+modId="wakingworld"
+type="required"
+versionRange="*"
+ordering="AFTER"
+side="SERVER"

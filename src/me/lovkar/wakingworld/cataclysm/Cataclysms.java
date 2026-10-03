@@ -65,6 +65,7 @@ public final class Cataclysms extends SavedData {
         if (level.getGameTime() % 20 != 0) return;              // once a second is plenty
         if (WakingConfig.meteorShowers()) get(level).tick(level);
         Volcano.onLevelTick(level);
+        BombLava.onLevelTick(level);
         BloodMoon.onLevelTick(level);
         Weather.onLevelTick(level);
     }

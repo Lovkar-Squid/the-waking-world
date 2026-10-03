@@ -340,6 +340,6 @@ public class MeteorEntity extends Entity {
         for (int i = 0; i < 4 && !server.getBlockState(on).canBeReplaced(); i++) on = on.above();
         if (!server.getBlockState(on).canBeReplaced()) return;
         if (server.getBlockState(on.below()).isAir()) return;               // not hanging in the air
-        Scars.set(server, on, Blocks.LAVA.defaultBlockState());
+        if (Scars.set(server, on, Blocks.LAVA.defaultBlockState())) BombLava.poured(server, on);
     }
 }

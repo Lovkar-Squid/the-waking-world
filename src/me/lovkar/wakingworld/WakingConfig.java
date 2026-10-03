@@ -72,6 +72,8 @@ public final class WakingConfig {
     private static final ModConfigSpec.BooleanValue MOON_COLOSSI;
     private static final ModConfigSpec.IntValue VOLCANO_COOL_MINUTES;
     private static final ModConfigSpec.BooleanValue LAVA_BOMBS;
+    private static final ModConfigSpec.BooleanValue BOMBS_COOL;
+    private static final ModConfigSpec.IntValue BOMB_COOL_SECONDS;
     private static final ModConfigSpec.BooleanValue CATACLYSM_RESTORE;
     private static final ModConfigSpec.BooleanValue BLIGHT;
     private static final ModConfigSpec.BooleanValue GREETING;
@@ -214,6 +216,12 @@ public final class WakingConfig {
                 "and leaves lava where it lands, which then does what lava does. Off: it throws only stone,",
                 "so a volcano in a forest does not set the forest alight.")
                 .define("volcanoLavaBombs", true);
+        BOMBS_COOL = b.comment("The lava a molten bomb leaves sets into rock after a while instead of burning for good,",
+                "so a volcano does not leave the country round it alight and a town can stand within sight of one.",
+                "Off: the old way, the bombs' lava stays. The crater pool glows for good either way.")
+                .define("volcanoBombsCool", true);
+        BOMB_COOL_SECONDS = b.comment("How long a bomb's lava stays molten before it sets, in seconds.")
+                .defineInRange("volcanoBombCoolSeconds", 90, 10, 3600);
         CATACLYSM_RESTORE = b.comment("Write down what each cataclysm changes, so an Hourglass of Restoration can put the country",
                 "back the way it was - the same item and the same gesture that undoes a colossus fight.",
                 "Off: what a cataclysm does to your world is permanent, and the world saves a little smaller.")
@@ -495,6 +503,15 @@ public final class WakingConfig {
     /** Whether a volcano's bombs may be molten. */
     public static boolean lavaBombs() {
         return volcanoes() && LAVA_BOMBS.get();
+    }
+
+    /** Whether the lava a molten bomb leaves sets into rock after {@link #bombCoolSeconds()}. */
+    public static boolean bombsCool() {
+        return loaded() && BOMBS_COOL.get();
+    }
+
+    public static int bombCoolSeconds() {
+        return loaded() ? BOMB_COOL_SECONDS.get() : 90;
     }
 
     public static int volcanoCoolMinutes() {

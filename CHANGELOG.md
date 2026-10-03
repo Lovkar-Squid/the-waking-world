@@ -3,6 +3,22 @@
 All notable changes to The Waking World. The format follows [Keep a Changelog](https://keepachangelog.com/);
 versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-releases.
 
+## [Unreleased]
+
+### Changed
+- **A volcano's molten bombs no longer leave lava for good.** A player building a town in sight of a
+  volcano asked for it: every eruption left a ring of small burning pools round the mountain, and
+  nobody could live near one without fire resistance. Each source of lava a bomb pours is now
+  remembered, and after `volcanoBombCoolSeconds` (default 90) it sets into basalt or blackstone
+  with a hiss; the little flow it fed dries up by itself. A source in an unloaded chunk sets when
+  its chunk is loaded again. The crater pool still glows for good. Two new keys in the
+  `cataclysms` section: `volcanoBombsCool` (default on; off is the old behaviour) and
+  `volcanoBombCoolSeconds` (10-3600).
+
+Checked headless (`tools/bombcool`): six real bombs thrown with the volcano's own `hurl`; their 19
+sources were remembered once each, were still molten before their time, and had all set after it,
+with no flowing lava left and no warnings from the mod.
+
 ## [0.3.0-beta.6] - 2026-10-04
 
 ### Changed
