@@ -3,6 +3,18 @@
 All notable changes to The Waking World. The format follows [Keep a Changelog](https://keepachangelog.com/);
 versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-releases.
 
+## [0.3.0-beta.6] - 2026-10-04
+
+### Changed
+- **The supporter perks are back.** They were switched off in 0.2.0, while the Patreon was down; the Patreon
+  is live again at https://www.patreon.com/cw/Lovkar and so is everything that hangs off it:
+  - `/wwpatreon` links a Minecraft account to a pledge (Mojang confirms the account is yours, then
+    Patreon asks you to log in), and `/wwpatreon aura`, `colossus`, `credits on|off`, `status` and
+    `refresh` work again.
+  - The tiers' auras (Waker, Colossus, Titan), the looks for the colossi a supporter wakes, and the
+    Hall of Wakers in the Almanac.
+- Everything is cosmetic, as before: nothing changes the game for anyone else, and the mod stays free.
+
 ## [0.3.0-beta.5] - 2026-09-23
 
 ### Added

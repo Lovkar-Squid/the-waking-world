@@ -193,7 +193,7 @@ public final class WakingWorldClient {
         NeoForge.EVENT_BUS.addListener(RedSky::render);
         NeoForge.EVENT_BUS.addListener(OmenSky::clientTick);
         NeoForge.EVENT_BUS.addListener(OmenSky::render);
-        // supporter perks (cosmetic): parked with SupporterList.ENABLED - nothing registered, nothing fetched
+        // supporter perks (cosmetic): only with SupporterList.ENABLED - otherwise nothing registered, nothing fetched
         if (me.lovkar.wakingworld.supporter.SupporterList.ENABLED) {
             NeoForge.EVENT_BUS.addListener(SupporterAura::clientTick);
             NeoForge.EVENT_BUS.addListener(SupporterLink::registerClientCommands);

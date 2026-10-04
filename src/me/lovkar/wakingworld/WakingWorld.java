@@ -203,7 +203,7 @@ public class WakingWorld {
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.kingdom.KingdomDressing::tick);  // the town grows into its tier
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.kingdom.KingdomBuild::tick);     // the mason's queue
         NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.kingdom.KingdomSiege::tick);     // the engines and their volleys
-        if (me.lovkar.wakingworld.supporter.SupporterList.ENABLED) {     // parked while the Patreon is down
+        if (me.lovkar.wakingworld.supporter.SupporterList.ENABLED) {     // off only while the perks are parked
             NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.supporter.SupporterList::onServerStarted);
             NeoForge.EVENT_BUS.addListener(me.lovkar.wakingworld.supporter.SupporterList::onServerTick);
         }

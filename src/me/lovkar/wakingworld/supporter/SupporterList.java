@@ -44,15 +44,16 @@ public final class SupporterList {
     }
 
     /**
-     * Whether the supporter perks exist at all. Parked while the Patreon is down: nothing is
-     * fetched, nobody is a supporter, and {@code /wwpatreon} is not registered. Every class below
-     * this stays exactly as it was - flip this one line and the whole thing comes back.
+     * Whether the supporter perks exist at all. They were parked while the Patreon was down (0.2.0 to
+     * 0.3.0-beta.5) and are back since 0.3.0-beta.6. Off, nothing is fetched, nobody is a supporter, and
+     * {@code /wwpatreon} is not registered; every class below this stays exactly as it was, so this
+     * one line parks the whole thing again.
      *
      * <p>It is a constant rather than a config option on purpose, for the same reason the URL is:
      * a switch in the config file would advertise a feature that is meant to be invisible while it
      * is off.</p>
      */
-    public static final boolean ENABLED = false;
+    public static final boolean ENABLED = true;
 
     /** Where the supporter service lives. Deliberately a constant. */
     public static final String BASE_URL = "https://supporters.lovkarsquid.com";
