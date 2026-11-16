@@ -50,6 +50,7 @@ public final class WakingConfig {
     private static final ModConfigSpec.IntValue VOLCANO_HEIGHT;
     private static final ModConfigSpec.IntValue VOLCANO_RADIUS;
     private static final ModConfigSpec.IntValue VOLCANO_MINUTES;
+    private static final ModConfigSpec.ConfigValue<String> VOLCANO_SHAPE;
     private static final ModConfigSpec.BooleanValue BLOOD_MOONS;
     private static final ModConfigSpec.DoubleValue BLOOD_MOON_CHANCE;
     private static final ModConfigSpec.IntValue DAYS_BETWEEN_BLOOD_MOONS;
@@ -207,10 +208,17 @@ public final class WakingConfig {
                 .defineInRange("volcanoChance", 0.06, 0.0, 1.0);
         DAYS_BETWEEN_VOLCANOES = b.comment("Days that must pass after a volcano before another may open.")
                 .defineInRange("daysBetweenVolcanoes", 14, 0, 1000);
-        VOLCANO_HEIGHT = b.comment("How many courses tall the cone grows - roughly its height in blocks above the ground it stands on.")
+        VOLCANO_HEIGHT = b.comment("How many courses tall the cone grows - roughly its height in blocks above the ground it stands on.",
+                "A shield volcano grows half as tall.")
                 .defineInRange("volcanoHeight", 28, 6, 120);
-        VOLCANO_RADIUS = b.comment("The radius of the foot of the cone, in blocks. The cone tapers as it climbs.")
+        VOLCANO_RADIUS = b.comment("The radius of the foot of the cone, in blocks. The cone tapers as it climbs.",
+                "A shield's foot is not set here: it follows from its height and its gentle slope.")
                 .defineInRange("volcanoRadius", 16, 6, 48);
+        VOLCANO_SHAPE = b.comment("What a volcano grows into. cone: the Rising Mountain, steep and tall.",
+                "shield: a low, broad 'Hawaiian' volcano - half the cone's height, flanks you can walk up (about one block",
+                "up for every four out), a wide caldera with a lava lake on top and two or three flows down its sides,",
+                "all of which set into black rock you can build on. mixed: about one in three is a shield, decided when it opens.")
+                .defineInList("volcanoShape", "mixed", java.util.List.of("cone", "shield", "mixed"));
         VOLCANO_MINUTES = b.comment("How long the mountain takes to rise, in minutes. Longer is calmer on the server and better to watch.")
                 .defineInRange("volcanoMinutes", 1, 1, 60);
         LAVA_BOMBS = b.comment("A volcano throws molten rock as well as cold: one bomb in three arcs out of the throat",
@@ -579,6 +587,11 @@ public final class WakingConfig {
 
     public static int volcanoMinutes() {
         return loaded() ? VOLCANO_MINUTES.get() : 4;
+    }
+
+    /** cone, shield or mixed: what a new volcano grows into (see Volcano.shapeFor). */
+    public static String volcanoShape() {
+        return loaded() ? VOLCANO_SHAPE.get() : "mixed";
     }
 
     public static boolean meteorShowers() {
