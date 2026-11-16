@@ -339,7 +339,8 @@ public class RiteStoneEntity extends BlockEntity {
             );
         switch (var4) {
             case "volcano":
-                Volcano.force(var0, var11, 0, 0);
+                // a volcano asked for on a stone is the world's own: volcanoShape decides what it grows into
+                Volcano.force(var0, var11, 0, 0, 0, null);
                 break;
             case "tornado":
                 TornadoEntity.spawn(var0, var12, 0);

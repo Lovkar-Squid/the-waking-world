@@ -306,76 +306,7 @@ public final class WakingCommands {
                                                                                     )
                                                                             ))
                                                                         .then(
-                                                                            ((LiteralArgumentBuilder)Commands.literal("volcano")
-                                                                                    .executes(var0x -> volcano(var0x, null, 0, 0)))
-                                                                                .then(
-                                                                                    ((RequiredArgumentBuilder)Commands.argument(
-                                                                                                "at", BlockPosArgument.blockPos()
-                                                                                            )
-                                                                                            .executes(
-                                                                                                var0x -> volcano(
-                                                                                                        var0x,
-                                                                                                        BlockPosArgument.getSpawnablePos(var0x, "at"),
-                                                                                                        0,
-                                                                                                        0
-                                                                                                    )
-                                                                                            ))
-                                                                                        .then(
-                                                                                            ((RequiredArgumentBuilder)Commands.argument(
-                                                                                                        "height", IntegerArgumentType.integer(6, 120)
-                                                                                                    )
-                                                                                                    .executes(
-                                                                                                        var0x -> volcano(
-                                                                                                                var0x,
-                                                                                                                BlockPosArgument.getSpawnablePos(var0x, "at"),
-                                                                                                                IntegerArgumentType.getInteger(var0x, "height"),
-                                                                                                                0
-                                                                                                            )
-                                                                                                    ))
-                                                                                                .then(
-                                                                                                    ((RequiredArgumentBuilder)Commands.argument(
-                                                                                                                "foot", IntegerArgumentType.integer(6, 48)
-                                                                                                            )
-                                                                                                            .executes(
-                                                                                                                var0x -> volcano(
-                                                                                                                        var0x,
-                                                                                                                        BlockPosArgument.getSpawnablePos(
-                                                                                                                            var0x, "at"
-                                                                                                                        ),
-                                                                                                                        IntegerArgumentType.getInteger(
-                                                                                                                            var0x, "height"
-                                                                                                                        ),
-                                                                                                                        IntegerArgumentType.getInteger(
-                                                                                                                            var0x, "foot"
-                                                                                                                        )
-                                                                                                                    )
-                                                                                                            ))
-                                                                                                        .then(
-                                                                                                            Commands.argument(
-                                                                                                                    "seconds",
-                                                                                                                    IntegerArgumentType.integer(8, 600)
-                                                                                                                )
-                                                                                                                .executes(
-                                                                                                                    var0x -> volcano(
-                                                                                                                            var0x,
-                                                                                                                            BlockPosArgument.getSpawnablePos(
-                                                                                                                                var0x, "at"
-                                                                                                                            ),
-                                                                                                                            IntegerArgumentType.getInteger(
-                                                                                                                                var0x, "height"
-                                                                                                                            ),
-                                                                                                                            IntegerArgumentType.getInteger(
-                                                                                                                                var0x, "foot"
-                                                                                                                            ),
-                                                                                                                            IntegerArgumentType.getInteger(
-                                                                                                                                var0x, "seconds"
-                                                                                                                            )
-                                                                                                                        )
-                                                                                                                )
-                                                                                                        )
-                                                                                                )
-                                                                                        )
-                                                                                )
+                                                                            volcanoCommand()
                                                                         ))
                                                                     .then(Commands.literal("restore").executes(WakingCommands::restore)))
                                                                 .then(
@@ -1267,19 +1198,54 @@ public final class WakingCommands {
         return n;
     }
 
-    /** A mountain, here and now. */
-    private static int volcano(CommandContext<CommandSourceStack> ctx, BlockPos at, int height, int foot) {
-        return volcano(ctx, at, height, foot, 0);
+    /** One way of calling the volcano command, with the shape it was given (null when it was not). */
+    @FunctionalInterface
+    private interface VolcanoCall {
+        int run(CommandContext<CommandSourceStack> ctx, Volcano.Shape shape) throws com.mojang.brigadier.exceptions.CommandSyntaxException;
     }
 
-    /** {@code seconds} > 0 forces the pace of the rise - what the camera uses, and how to preview it. */
-    private static int volcano(CommandContext<CommandSourceStack> ctx, BlockPos at, int height, int foot, int seconds) {
+    /**
+     * {@code /wakingworld volcano [<at> [<height> [<foot> [<seconds>]]]] [cone|shield]}: every form
+     * of it can end in a shape; without one, volcanoShape decides as it does for the world's own.
+     */
+    private static LiteralArgumentBuilder<CommandSourceStack> volcanoCommand() {
+        RequiredArgumentBuilder<CommandSourceStack, Integer> seconds = shaped(Commands.argument("seconds", IntegerArgumentType.integer(8, 600)),
+                (c, s) -> volcano(c, BlockPosArgument.getSpawnablePos(c, "at"), IntegerArgumentType.getInteger(c, "height"),
+                        IntegerArgumentType.getInteger(c, "foot"), IntegerArgumentType.getInteger(c, "seconds"), s));
+        RequiredArgumentBuilder<CommandSourceStack, Integer> foot = shaped(Commands.argument("foot", IntegerArgumentType.integer(6, 48)),
+                (c, s) -> volcano(c, BlockPosArgument.getSpawnablePos(c, "at"), IntegerArgumentType.getInteger(c, "height"),
+                        IntegerArgumentType.getInteger(c, "foot"), 0, s));
+        RequiredArgumentBuilder<CommandSourceStack, Integer> height = shaped(Commands.argument("height", IntegerArgumentType.integer(6, 120)),
+                (c, s) -> volcano(c, BlockPosArgument.getSpawnablePos(c, "at"), IntegerArgumentType.getInteger(c, "height"), 0, 0, s));
+        RequiredArgumentBuilder<CommandSourceStack, net.minecraft.commands.arguments.coordinates.Coordinates> at =
+                shaped(Commands.argument("at", BlockPosArgument.blockPos()),
+                        (c, s) -> volcano(c, BlockPosArgument.getSpawnablePos(c, "at"), 0, 0, 0, s));
+        return shaped(Commands.literal("volcano"), (c, s) -> volcano(c, null, 0, 0, 0, s))
+                .then(at.then(height.then(foot.then(seconds))));
+    }
+
+    /** The node runs the call with no shape, and takes a {@code cone} or {@code shield} after it that runs it with one. */
+    private static <T extends com.mojang.brigadier.builder.ArgumentBuilder<CommandSourceStack, T>> T shaped(T node, VolcanoCall call) {
+        node.executes(c -> call.run(c, null));
+        for (Volcano.Shape s : Volcano.Shape.values()) {
+            node.then(Commands.literal(s.id()).executes(c -> call.run(c, s)));
+        }
+        return node;
+    }
+
+    /**
+     * A mountain, here and now. {@code seconds} > 0 forces the pace of the rise - what the camera
+     * uses, and how to preview it. {@code shape} null lets volcanoShape decide; the roll is made
+     * before the site is looked for, since a shield needs room for a foot three times as wide.
+     */
+    private static int volcano(CommandContext<CommandSourceStack> ctx, BlockPos at, int height, int foot, int seconds, Volcano.Shape shape) {
         net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
+        Volcano.Shape s = shape != null ? shape : Volcano.shapeFor(me.lovkar.wakingworld.WakingConfig.volcanoShape(), level.random);
         BlockPos where = at;
         if (where == null) {
             // dry ground clear of every older cone, as the world's own choice is; a spot named
             // outright is still taken exactly as given
-            where = Volcano.commandSite(level, ctx.getSource().getPosition(), foot, level.random);
+            where = Volcano.commandSite(level, ctx.getSource().getPosition(), foot, height, s, level.random);
             if (where == null) {
                 ctx.getSource().sendFailure(Component.literal("No room for a vent near here - no dry ground that keeps"
                         + " clear of the older cones. Name a spot: /wakingworld volcano <x y z>"));
@@ -1287,12 +1253,13 @@ public final class WakingCommands {
             }
         }
         final String w = where.getX() + " " + where.getY() + " " + where.getZ();
-        if (!me.lovkar.wakingworld.cataclysm.Volcano.force(level, where, height, foot, seconds)) {
+        if (!Volcano.force(level, where, height, foot, seconds, s)) {
             ctx.getSource().sendFailure(Component.literal("That is a colony's land (" + w
                     + ") - nothing opens there. Set compat.protectColonies to false, or name a spot outside it."));
             return 0;
         }
-        ctx.getSource().sendSuccess(() -> Component.literal("A vent opens at " + w
+        final String kind = s == Volcano.Shape.SHIELD ? " (a shield volcano)" : "";
+        ctx.getSource().sendSuccess(() -> Component.literal("A vent opens at " + w + kind
                 + (seconds > 0 ? " - up in " + seconds + " s." : " - stand back.")), true);
         return 1;
     }

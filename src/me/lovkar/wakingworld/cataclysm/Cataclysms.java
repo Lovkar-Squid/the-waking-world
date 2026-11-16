@@ -62,6 +62,7 @@ public final class Cataclysms extends SavedData {
     public static void onLevelTick(LevelTickEvent.Post event) {
         if (!(event.getLevel() instanceof ServerLevel level)) return;
         if (level.dimension() != Level.OVERWORLD) return;
+        Volcano.onEveryTick(level);                             // a shield's courses, a strip a tick
         if (level.getGameTime() % 20 != 0) return;              // once a second is plenty
         if (WakingConfig.meteorShowers()) get(level).tick(level);
         Volcano.onLevelTick(level);

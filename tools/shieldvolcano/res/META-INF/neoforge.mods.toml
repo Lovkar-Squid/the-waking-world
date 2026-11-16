@@ -1,0 +1,14 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+[[mods]]
+modId="wwshieldvolcano"
+version="1.0.0"
+displayName="Waking World shield volcano test"
+description="Headless test: is a shield volcano low, gentle, wide, crowned with a caldera and flows that set, and kept clear of by the next vent?"
+[[dependencies.wwshieldvolcano]]
+modId="wakingworld"
+type="required"
+versionRange="*"
+ordering="AFTER"
+side="SERVER"
