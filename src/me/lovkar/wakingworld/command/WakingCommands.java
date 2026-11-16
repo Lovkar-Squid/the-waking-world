@@ -1277,17 +1277,12 @@ public final class WakingCommands {
         net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
         BlockPos where = at;
         if (where == null) {
-            net.minecraft.world.phys.Vec3 from = ctx.getSource().getPosition();
-            for (int tries = 0; tries < 24 && where == null; tries++) {
-                double angle = level.random.nextDouble() * Math.PI * 2;
-                double dist = 60 + level.random.nextDouble() * 40;
-                BlockPos p = me.lovkar.wakingworld.cataclysm.Cataclysms.surface(level,
-                        from.x + Math.cos(angle) * dist, from.z + Math.sin(angle) * dist);
-                // dry land, or the cone comes up as an island and the shore is a wall of rock
-                if (p.getY() >= level.getSeaLevel() + 2 && level.getFluidState(p.below()).isEmpty()) where = p;
-            }
+            // dry ground clear of every older cone, as the world's own choice is; a spot named
+            // outright is still taken exactly as given
+            where = Volcano.commandSite(level, ctx.getSource().getPosition(), foot, level.random);
             if (where == null) {
-                ctx.getSource().sendFailure(Component.literal("No dry ground near here - name a spot: /wakingworld volcano <x y z>"));
+                ctx.getSource().sendFailure(Component.literal("No room for a vent near here - no dry ground that keeps"
+                        + " clear of the older cones. Name a spot: /wakingworld volcano <x y z>"));
                 return 0;
             }
         }
