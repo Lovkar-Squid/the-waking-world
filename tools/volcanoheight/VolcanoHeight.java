@@ -48,6 +48,13 @@ public class VolcanoHeight {
     private static final int VX = 600, VZ = 40;
     private static final int HEIGHT = 24, FOOT = 48, RISE = 30;
     private static final int PICKS = 300, PICKS_PER_TICK = 5;
+    /**
+     * How many of the PICKS must come back with a site. From 60-120 blocks off the old vent, a pick
+     * 90-160 blocks out clears the remembered cone on well over a third of its bearings, and site()
+     * has 24 tries at it, so nearly every question finds somewhere; a quarter is a floor that only a
+     * site() refusing nearly everything falls through.
+     */
+    private static final int MIN_PICKS = PICKS / 4;
     /** How far out the probe looks for the cone and anything it threw. */
     private static final int LOOK = 80;
 
@@ -111,7 +118,10 @@ public class VolcanoHeight {
                 }
                 case 2 -> {
                     if (!ask(level, Volcano.get(level), listed)) return;
-                    check("site() keeps a new foot off the first cone", listed.overlaps == 0, listed.detail());
+                    // it must also still find somewhere: a site() that refuses everything keeps every
+                    // foot off the cone too, and would pass this on a world where no volcano can open
+                    check("site() keeps a new foot off the first cone", listed.overlaps == 0 && listed.picks >= MIN_PICKS,
+                            listed.detail() + "; at least " + MIN_PICKS + " picks wanted");
                     if (listed.highestOnCone == null) {
                         LOG.info(TAG + "no pick on the first cone, so no second eruption to watch");
                         stage = 4;
@@ -154,8 +164,9 @@ public class VolcanoHeight {
                 }
                 case 5 -> {
                     if (!ask(level, bare, unlisted)) return;
-                    check("with the list wiped, site() still opens no vent on the old cone", bare.vents().isEmpty() && unlisted.onCone == 0,
-                            "list " + bare.vents().size() + " vents; " + unlisted.detail());
+                    check("with the list wiped, site() still opens no vent on the old cone",
+                            bare.vents().isEmpty() && unlisted.onCone == 0 && unlisted.picks >= MIN_PICKS,
+                            "list " + bare.vents().size() + " vents; " + unlisted.detail() + "; at least " + MIN_PICKS + " picks wanted");
                     next();
                 }
                 case 6 -> {
