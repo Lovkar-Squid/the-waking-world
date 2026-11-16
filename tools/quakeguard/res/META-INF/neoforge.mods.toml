@@ -1,0 +1,14 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+[[mods]]
+modId="wwquakeguard"
+version="1.0.0"
+displayName="Waking World earthquake guard test"
+description="Headless test: does an earthquake leave the ground and the people round the world spawn and players' beds alone, and never centre itself there?"
+[[dependencies.wwquakeguard]]
+modId="wakingworld"
+type="required"
+versionRange="*"
+ordering="AFTER"
+side="SERVER"
