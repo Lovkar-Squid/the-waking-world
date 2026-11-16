@@ -19,6 +19,27 @@ Checked headless (`tools/bombcool`): six real bombs thrown with the volcano's ow
 sources were remembered once each, were still molten before their time, and had all set after it,
 with no flowing lava left and no warnings from the mod.
 
+### Fixed
+- **A volcano no longer opens on top of an older one, so `volcanoHeight` holds.** A player on
+  CurseForge set `volcanoHeight` to 24 and `volcanoRadius` to 48 and watched the volcano keep
+  building up past it. One eruption was always exact; the next one was the trouble. The world only
+  remembered the mountain going up, so a new vent knew nothing about the last: the summit of a wide
+  cone, crater and all, is level enough to pass the site test, and a vent opened there counted its
+  height from the summit - two eruptions stood 46 blocks above the plain, and every one after that
+  added the whole height again. Every vent is now remembered with its foot (the last 64), and a new
+  one keeps its own foot, and 8 blocks of open ground, clear of all of them. Cones from before this
+  version are not in that list, so a vent is also kept off the volcano's own rock (basalt, tuff,
+  blackstone, magma, obsidian) under it or under its new foot. `/wakingworld volcano` still opens one
+  exactly where it is asked, and old saves load as they are. The height is a server setting: it lives
+  in `config/wakingworld-server.toml` with the other config files, not in a world's `serverconfig`
+  folder, which only holds a readme on NeoForge 21.1.
+
+Checked headless (`tools/volcanoheight`): a volcano of height 24 and foot 48 on flat ground tops
+out exactly 24 blocks above the grass, crater, bombs and cooling included. Before the fix, 21 of 300
+sites the world chose for the next vent were on that cone, and a second eruption on one stood 46
+blocks high; now none of 300 puts its foot on the cone, the rock test alone keeps every vent off it,
+and the list survives a save.
+
 ## [0.3.0-beta.6] - 2026-10-04
 
 ### Changed

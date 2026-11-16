@@ -7,11 +7,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
@@ -21,6 +24,7 @@ import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -69,6 +73,26 @@ public final class Volcano extends SavedData {
     private int riseSeconds;
     /** The scar this mountain is writing, so an hourglass can put the country back under it. */
     private java.util.UUID scar;
+
+    /** One vent this world has opened: where it stood and how wide its foot was. */
+    public record Vent(int x, int y, int z, int foot) {
+    }
+
+    /**
+     * Every vent this world has opened since 0.3.0-beta.7, oldest first. The save used to hold only
+     * the one mountain going up, so the next vent knew nothing about the last: the summit of a wide
+     * cone is flat enough for the site test, and a vent opened there counted its height from the
+     * summit - two eruptions stood nearly twice volcanoHeight above the plain, and every one after
+     * that added the whole height again. site() keeps a new foot clear of every foot in here.
+     *
+     * <p>Bounded at {@link #VENTS_KEPT}: the save stays small however long the world runs, and a
+     * cone that has dropped off the end is still found by its rock, as the ones from before the list
+     * are (see {@link #oldCone}).</p>
+     */
+    private final List<Vent> vents = new ArrayList<>();
+    private static final int VENTS_KEPT = 64;
+    /** Open ground left between the toes of two cones, so their flanks never merge into one hill. */
+    private static final int VENT_GAP = 8;
 
     private Volcano() {
     }
@@ -223,7 +247,7 @@ public final class Volcano extends SavedData {
     // NOTE: only the IDLE roll needs a player. Once the ground has opened the mountain finishes on
     // its own - leaving a half-built cone standing there because everyone logged off would be worse.
     private void begin(ServerLevel level, ServerPlayer near, RandomSource rnd) {
-        BlockPos site = site(level, near, rnd);
+        BlockPos site = site(level, near, rnd, level.getSeaLevel());
         if (site == null) {                                      // nowhere sensible: try again tomorrow
             cooldownUntilDay = (int) (level.getDayTime() / 24000L) + 1;
             setDirty();
@@ -238,6 +262,7 @@ public final class Volcano extends SavedData {
         spill = rnd.nextFloat() * (float) (Math.PI * 2);
         riseSeconds = 0;                // a volcano the world raised keeps the world's pace
         barren = 0;
+        remember();
         phase = Phase.WARNING;
         phaseTicks = 22 * 20;
         cooldownUntilDay = (int) (level.getDayTime() / 24000L) + WakingConfig.daysBetweenVolcanoes();
@@ -630,15 +655,21 @@ public final class Volcano extends SavedData {
         return Blocks.BLACKSTONE.defaultBlockState();
     }
 
-    /** Open, dry, level-ish ground a good way off - and never on top of anyone's home. */
-    private BlockPos site(ServerLevel level, ServerPlayer near, RandomSource rnd) {
+    /**
+     * Open, dry, level-ish ground a good way off - never on top of anyone's home, and never on or
+     * against an older mountain.
+     */
+    private BlockPos site(ServerLevel level, ServerPlayer near, RandomSource rnd, int sea) {
+        int foot = WakingConfig.volcanoRadius();
         for (int attempt = 0; attempt < 24; attempt++) {
             double angle = rnd.nextDouble() * Math.PI * 2;
             double dist = 90 + rnd.nextDouble() * 70;
             int x = (int) (near.getX() + Math.cos(angle) * dist);
             int z = (int) (near.getZ() + Math.sin(angle) * dist);
+            // the cones this world remembers come first: it is arithmetic, and needs no chunk
+            if (!clearOfVents(x, z, foot)) continue;
             BlockPos top = Cataclysms.surface(level, x, z);
-            if (top.getY() < level.getSeaLevel() + 2) continue;               // not in the sea
+            if (top.getY() < sea + 2) continue;                               // not in the sea
             if (!level.getFluidState(top.below()).is(Fluids.EMPTY)) continue;
             if (!Cataclysms.away(level, top)) continue;
             // a mountain's whole foot must be the world's own ground, not a colony's
@@ -653,9 +684,83 @@ public final class Volcano extends SavedData {
                 }
             }
             if (hi - lo > 10) continue;
+            // and the ones it does not: last, because it reads the ground under the whole new foot
+            if (oldCone(level, x, z, foot)) continue;
             return new BlockPos(x, lo, z);
         }
         return null;
+    }
+
+    /** Writes the vent that has just opened into the list, dropping the oldest past VENTS_KEPT. */
+    private void remember() {
+        vents.add(new Vent(cx, baseY, cz, baseR));
+        while (vents.size() > VENTS_KEPT) vents.remove(0);
+        setDirty();
+    }
+
+    /**
+     * How far from its vent a cone of this foot lays rock. The ridges in {@link #outerAt(double,
+     * double)} swell the bottom course by up to a fifth on some bearings and its edge is ragged by
+     * under a block; on a small foot the skirt laid in the warning, four blocks past the foot, is
+     * wider still.
+     */
+    private static int reach(int foot) {
+        return Math.max((int) Math.ceil(foot * 1.2) + 1, foot + 4);
+    }
+
+    /** True when a vent here, with this foot, keeps its rock and VENT_GAP of open ground off every remembered cone. */
+    private boolean clearOfVents(int x, int z, int foot) {
+        for (Vent v : vents) {
+            long dx = x - v.x(), dz = z - v.z();
+            long need = reach(v.foot()) + reach(foot) + VENT_GAP;
+            if (dx * dx + dz * dz < need * need) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Whether an older cone stands under or beside this vent: one from before this world remembered
+     * its vents, or one that has dropped off the end of the list. Hardly anything else in the
+     * Overworld is floored with this rock - basalt deltas are a Nether biome, and a ruined portal or
+     * a lava pool is a few blocks across - so ground that is the volcano's own stone is a volcano.
+     *
+     * <p>It reads the 25 columns of the flatness test under the vent, a ring of 12 half-way out and
+     * a ring of 24 where the new cone's rock will end ({@link #reach}), so it finds a cone under the
+     * vent and one the new foot would lap onto. Three of the 61 are enough to refuse. A cone floors
+     * its ground solid, so one beside the new foot shows on several bearings of the outer ring at
+     * once; what its bombs threw lies a block or a small set pool here and there, and a foot that
+     * takes in much of that is reaching back onto the cone anyway. It stops at the third: every
+     * sample may load a chunk, and a spot already refused needs no more of them.</p>
+     */
+    private static boolean oldCone(ServerLevel level, int x, int z, int foot) {
+        int rock = 0;
+        for (int dx = -8; dx <= 8; dx += 4) {
+            for (int dz = -8; dz <= 8; dz += 4) {
+                if (coneGround(level, x + dx, z + dz) && ++rock >= 3) return true;
+            }
+        }
+        int edge = reach(foot);
+        for (int i = 0; i < 12; i++) {
+            double a = i * Math.PI / 6.0;
+            if (coneGround(level, x + Math.cos(a) * edge * 0.5, z + Math.sin(a) * edge * 0.5) && ++rock >= 3) return true;
+        }
+        for (int i = 0; i < 24; i++) {
+            double a = i * Math.PI / 12.0;
+            if (coneGround(level, x + Math.cos(a) * edge, z + Math.sin(a) * edge) && ++rock >= 3) return true;
+        }
+        return false;
+    }
+
+    /**
+     * The top of this column is what a volcano leaves: its rock, the obsidian and magma of a set
+     * flow, or the crater's lava. Snow is looked under, or a cone in a cold country would hide.
+     */
+    private static boolean coneGround(ServerLevel level, double x, double z) {
+        BlockPos ground = Cataclysms.surface(level, x, z).below();
+        BlockState s = level.getBlockState(ground);
+        if (s.is(BlockTags.SNOW)) s = level.getBlockState(ground.below());
+        return s.is(Blocks.BASALT) || s.is(Blocks.TUFF) || s.is(Blocks.BLACKSTONE) || s.is(Blocks.GILDED_BLACKSTONE)
+                || s.is(Blocks.MAGMA_BLOCK) || s.is(Blocks.OBSIDIAN) || s.is(Blocks.LAVA);
     }
 
     // ---- saved with the world --------------------------------------------------------------
@@ -676,6 +781,13 @@ public final class Volcano extends SavedData {
         v.cooledTo = tag.getInt("CooledTo");
         v.riseSeconds = tag.getInt("RiseSeconds");
         v.spill = tag.getFloat("Spill");
+        // a save from before 0.3.0-beta.7 has no list: it loads empty, and the rock test covers its cones
+        ListTag list = tag.getList("Vents", Tag.TAG_COMPOUND);
+        for (int i = 0; i < list.size(); i++) {
+            CompoundTag t = list.getCompound(i);
+            v.vents.add(new Vent(t.getInt("X"), t.getInt("Y"), t.getInt("Z"), t.getInt("Foot")));
+        }
+        while (v.vents.size() > VENTS_KEPT) v.vents.remove(0);   // trims a list saved under a larger bound
         return v;
     }
 
@@ -695,6 +807,16 @@ public final class Volcano extends SavedData {
         tag.putInt("CooledTo", cooledTo);
         tag.putInt("RiseSeconds", riseSeconds);
         tag.putFloat("Spill", spill);
+        ListTag list = new ListTag();
+        for (Vent vent : vents) {
+            CompoundTag t = new CompoundTag();
+            t.putInt("X", vent.x());
+            t.putInt("Y", vent.y());
+            t.putInt("Z", vent.z());
+            t.putInt("Foot", vent.foot());
+            list.add(t);
+        }
+        tag.put("Vents", list);
         return tag;
     }
 
@@ -722,6 +844,8 @@ public final class Volcano extends SavedData {
         v.baseR = foot > 0 ? foot : WakingConfig.volcanoRadius();
         v.courses = height > 0 ? height : Math.max(6, WakingConfig.volcanoHeight());
         v.course = 0;
+        // a forced vent still opens exactly where it was asked, but the world's own next one keeps off it
+        v.remember();
         v.phase = Phase.WARNING;
         v.phaseTicks = 5 * 20;
         v.scar = Scars.begin(level, at, "a volcano");   // a forced one is written down like any other
@@ -729,5 +853,38 @@ public final class Volcano extends SavedData {
         v.barren = 0;
         v.setDirty();
         return true;
+    }
+
+    // ---- for the headless probe (tools/volcanoheight) --------------------------------------
+
+    /**
+     * Where the world would open its next vent near {@code near}, without opening anything. Only the
+     * headless probe calls this: nobody can join the test server, so the morning roll that would
+     * call {@link #site} never comes round, and the probe asks it directly with a fake player. It
+     * passes its own sea level because the test world is a flat one with its grass at y=-1, and in
+     * 1.21.1 {@code Level.getSeaLevel()} answers 63 whatever the generator says - every spot on it
+     * would be "in the sea".
+     */
+    public BlockPos siteFor(ServerLevel level, ServerPlayer near, RandomSource rnd, int sea) {
+        return site(level, near, rnd, sea);
+    }
+
+    /** The remembered vents, oldest first, as a copy. For the headless probe. */
+    public List<Vent> vents() {
+        return List.copyOf(vents);
+    }
+
+    /** {@link #oldCone}, for the headless probe: it asks it on, beside and well away from a cone it raised. */
+    public static boolean oldConeFor(ServerLevel level, int x, int z, int foot) {
+        return oldCone(level, x, z, foot);
+    }
+
+    /**
+     * Reads a saved tag into a Volcano of its own, outside the world's data storage. For the headless
+     * probe: it checks that the vent list survives a save and that a tag without one loads empty, and
+     * asks site() of a copy with no list to show the rock test working alone.
+     */
+    public static Volcano loadFor(CompoundTag tag, HolderLookup.Provider registries) {
+        return load(tag, registries);
     }
 }

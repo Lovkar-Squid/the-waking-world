@@ -1,0 +1,14 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+[[mods]]
+modId="wwvolcanoheight"
+version="1.0.0"
+displayName="Waking World volcano height test"
+description="Headless test: does a volcano stay within volcanoHeight of the ground, and does a new vent keep off an old cone?"
+[[dependencies.wwvolcanoheight]]
+modId="wakingworld"
+type="required"
+versionRange="*"
+ordering="AFTER"
+side="SERVER"
