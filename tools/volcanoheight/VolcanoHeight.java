@@ -4,6 +4,8 @@ import me.lovkar.wakingworld.WakingConfig;
 import me.lovkar.wakingworld.cataclysm.Cataclysms;
 import me.lovkar.wakingworld.cataclysm.Volcano;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
@@ -20,15 +22,23 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 /**
  * Headless check for the volcano height report ("the volcano keeps building up ignoring the 24
  * height configuration"). On the flat rig a volcano of height 24 and foot 48 is forced at a known
- * spot and left to rise, crown and cool; then the highest block it left is measured against the
- * ground it rose from, and site() - the world's own choice of where the next vent opens - is asked
- * PICKS times by a fake player standing 60-120 blocks from the old vent. A pick whose foot overlaps
- * the old cone is the bug: if one lands on the cone itself, a second volcano is raised there the
- * way the world would raise it, to show how high the two stand together. Prints CHECK lines and
- * RESULT, then stops the server.
+ * spot and left to rise, crown and cool; then:
+ * <ul>
+ *   <li>the highest block it left is measured against the ground it rose from;</li>
+ *   <li>site() - the world's own choice of where the next vent opens - is asked PICKS times by a
+ *       fake player standing 60-120 blocks from the old vent, and no pick may put its foot on the
+ *       old cone. If one lands on the cone itself, a second volcano is raised there the way the world
+ *       would raise it, to show how high the two stand together;</li>
+ *   <li>the rock test that finds cones the list does not hold is asked on, beside and well away from
+ *       the cone, and site() is asked PICKS times more of a copy whose list has been wiped;</li>
+ *   <li>the vent list must survive a save, and a tag from before it must load with an empty one.</li>
+ * </ul>
+ * Prints CHECK lines and RESULT, then stops the server.
  */
 @Mod("wwvolcanoheight")
 public class VolcanoHeight {
@@ -49,11 +59,13 @@ public class VolcanoHeight {
     /** The flat world's own sea level, under its ground: see Volcano.siteFor. */
     private int sea;
     private int failures;
+    /** How far the first cone's rock goes, measured once it has cooled. */
     private double reach;
     private int asked;
-    private int picks, nulls, overlaps, onCone;
-    private double closest = Double.MAX_VALUE;
-    private BlockPos highestOnCone;
+    private final Tally listed = new Tally();
+    private final Tally unlisted = new Tally();
+    /** A copy of the volcano's data with its vent list wiped, so only the rock test stands in the way. */
+    private Volcano bare;
 
     public VolcanoHeight(final IEventBus modBus) {
         NeoForge.EVENT_BUS.addListener(this::onTick);
@@ -98,23 +110,18 @@ public class VolcanoHeight {
                     next();
                 }
                 case 2 -> {
-                    final Volcano v = Volcano.get(level);
-                    final FakePlayer fake = FakePlayerFactory.getMinecraft(level);
-                    for (int n = 0; n < PICKS_PER_TICK && asked < PICKS; n++, asked++) {
-                        final BlockPos pick = v.siteFor(level, stand(fake, asked), RandomSource.create(7000L + asked), sea);
-                        tally(pick);
-                    }
-                    if (asked < PICKS) return;
-                    check("site() keeps a new foot off the first cone", overlaps == 0, picksDetail());
-                    if (highestOnCone == null) {
+                    if (!ask(level, Volcano.get(level), listed)) return;
+                    check("site() keeps a new foot off the first cone", listed.overlaps == 0, listed.detail());
+                    if (listed.highestOnCone == null) {
                         LOG.info(TAG + "no pick on the first cone, so no second eruption to watch");
-                        stage = 50;
+                        stage = 4;
                         return;
                     }
                     // what the world would do with that pick: open a vent there, at the pick's height
-                    check("the second volcano opens where site() chose", Volcano.force(level, highestOnCone, HEIGHT, FOOT, RISE),
-                            "forced at " + highestOnCone.getX() + " " + highestOnCone.getY() + " " + highestOnCone.getZ()
-                                    + ", " + Math.round(dist(highestOnCone.getX(), highestOnCone.getZ(), VX, VZ)) + " from the first vent");
+                    final BlockPos at = listed.highestOnCone;
+                    check("the second volcano opens where site() chose", Volcano.force(level, at, HEIGHT, FOOT, RISE),
+                            "forced at " + at.getX() + " " + at.getY() + " " + at.getZ() + ", "
+                                    + Math.round(dist(at.getX(), at.getZ(), VX, VZ)) + " from the first vent");
                     next();
                 }
                 case 3 -> {
@@ -123,6 +130,51 @@ public class VolcanoHeight {
                     check("two eruptions together stand at most volcanoHeight above the ground", top.getY() <= y0 + HEIGHT - 1,
                             "highest block y=" + top.getY() + " at " + top.getX() + " " + top.getZ() + ", "
                                     + (top.getY() - y0 + 1) + " blocks above the grass; allowed y<=" + (y0 + HEIGHT - 1));
+                    next();
+                }
+                case 4 -> {
+                    // the rock test on its own, which knows nothing of the list: on the summit beside the
+                    // crater, half-way down the flank, and a vent off the cone whose foot would lap some 25
+                    // blocks onto it; then grass far off, and grass in among the rock the bombs threw
+                    final boolean summit = Volcano.oldConeFor(level, VX + 14, VZ, FOOT);
+                    final boolean flank = Volcano.oldConeFor(level, VX - 35, VZ, FOOT);
+                    final boolean lapping = Volcano.oldConeFor(level, VX, VZ + 90, FOOT);
+                    final boolean far = Volcano.oldConeFor(level, VX + 300, VZ, FOOT);
+                    final boolean bombs = Volcano.oldConeFor(level, VX - 140, VZ, FOOT);
+                    check("the rock test finds the cone the list is not asked about", summit && flank && lapping,
+                            "summit (14 from the vent) " + summit + ", flank (35) " + flank + ", a foot lapping onto it (90) " + lapping);
+                    check("the rock test leaves plain grass alone", !far && !bombs,
+                            "grass 300 from the vent " + far + ", grass 140 from it among the thrown rock " + bombs);
+                    final HolderLookup.Provider registries = level.registryAccess();
+                    final CompoundTag saved = Volcano.get(level).save(new CompoundTag(), registries);
+                    saved.remove("Vents");
+                    bare = Volcano.loadFor(saved, registries);
+                    asked = 0;
+                    next();
+                }
+                case 5 -> {
+                    if (!ask(level, bare, unlisted)) return;
+                    check("with the list wiped, site() still opens no vent on the old cone", bare.vents().isEmpty() && unlisted.onCone == 0,
+                            "list " + bare.vents().size() + " vents; " + unlisted.detail());
+                    next();
+                }
+                case 6 -> {
+                    final HolderLookup.Provider registries = level.registryAccess();
+                    final Volcano live = Volcano.get(level);
+                    final CompoundTag saved = live.save(new CompoundTag(), registries);
+                    final List<Volcano.Vent> back = Volcano.loadFor(saved, registries).vents();
+                    final Volcano.Vent first = new Volcano.Vent(VX, y0, VZ, FOOT);
+                    check("a save and load keeps the vent list", live.vents().contains(first) && back.equals(live.vents()),
+                            "saved " + live.vents() + ", loaded " + back);
+                    // a tag as 0.3.0-beta.6 wrote it: the same keys, no list
+                    final CompoundTag beta6 = saved.copy();
+                    beta6.remove("Vents");
+                    final List<Volcano.Vent> none = Volcano.loadFor(beta6, registries).vents();
+                    check("a save from before the list loads with an empty one", none.isEmpty()
+                                    && beta6.getInt("X") == VX && beta6.getInt("Y") == y0 && beta6.getInt("Z") == VZ
+                                    && beta6.getInt("Foot") == FOOT && beta6.getInt("Courses") == HEIGHT,
+                            "loaded " + none.size() + " vents; X Y Z Foot Courses = " + beta6.getInt("X") + " " + beta6.getInt("Y") + " "
+                                    + beta6.getInt("Z") + " " + beta6.getInt("Foot") + " " + beta6.getInt("Courses"));
                     stage = 50;
                 }
                 case 50 -> {
@@ -168,6 +220,18 @@ public class VolcanoHeight {
         return tick - idleAt >= 200;
     }
 
+    /**
+     * A few more of the PICKS questions to site(), a handful a tick so the chunks it reads are
+     * generated over several ticks rather than in one. True once all of them have been asked.
+     */
+    private boolean ask(final ServerLevel level, final Volcano v, final Tally into) {
+        final FakePlayer fake = FakePlayerFactory.getMinecraft(level);
+        for (int n = 0; n < PICKS_PER_TICK && asked < PICKS; n++, asked++) {
+            into.add(v.siteFor(level, stand(fake, asked), RandomSource.create(7000L + asked), sea));
+        }
+        return asked >= PICKS;
+    }
+
     /** The fake player for one question: 60-120 blocks from the old vent, on its own bearing. */
     private FakePlayer stand(final FakePlayer fake, final int i) {
         final java.util.Random r = new java.util.Random(31L * i + 5);
@@ -178,31 +242,37 @@ public class VolcanoHeight {
     }
 
     /**
-     * One answer from site(). A cone of foot 48 lays its bottom course out to 1.2 x the foot on its
+     * The answers site() gave. A cone of foot 48 lays its bottom course out to 1.2 x the foot on its
      * ridges (Volcano.outerAt), so a new vent nearer to the old one than the old cone's measured
      * reach plus that has a foot that overlaps the old cone.
      */
-    private void tally(final BlockPos pick) {
-        if (pick == null) {
-            nulls++;
-            return;
-        }
-        picks++;
-        final double d = dist(pick.getX(), pick.getZ(), VX, VZ);
-        closest = Math.min(closest, d);
-        if (d < reach + FOOT * 1.2 + 1) overlaps++;
-        if (d < reach) {
-            onCone++;
-            if (highestOnCone == null || pick.getY() > highestOnCone.getY()) highestOnCone = pick;
-        }
-    }
+    private final class Tally {
+        int picks, nulls, overlaps, onCone;
+        double closest = Double.MAX_VALUE;
+        BlockPos highestOnCone;
 
-    private String picksDetail() {
-        return "asked " + PICKS + ": picks " + picks + ", nulls " + nulls + ", feet overlapping the first cone " + overlaps
-                + " (closest vent " + (picks == 0 ? "-" : Math.round(closest)) + " from the old one; overlap below "
-                + Math.round(reach + FOOT * 1.2 + 1) + "), vents on the cone itself " + onCone
-                + (highestOnCone == null ? "" : " (highest pick y=" + highestOnCone.getY() + ", " + (highestOnCone.getY() - y0)
-                + " above the ground: a cone of " + HEIGHT + " opened there tops out at y=" + (highestOnCone.getY() + HEIGHT - 1) + ")");
+        void add(final BlockPos pick) {
+            if (pick == null) {
+                nulls++;
+                return;
+            }
+            picks++;
+            final double d = dist(pick.getX(), pick.getZ(), VX, VZ);
+            closest = Math.min(closest, d);
+            if (d < reach + FOOT * 1.2 + 1) overlaps++;
+            if (d < reach) {
+                onCone++;
+                if (highestOnCone == null || pick.getY() > highestOnCone.getY()) highestOnCone = pick;
+            }
+        }
+
+        String detail() {
+            return "asked " + PICKS + ": picks " + picks + ", nulls " + nulls + ", feet overlapping the first cone " + overlaps
+                    + " (closest vent " + (picks == 0 ? "-" : Math.round(closest)) + " from the old one; overlap below "
+                    + Math.round(reach + FOOT * 1.2 + 1) + "), vents on the cone itself " + onCone
+                    + (highestOnCone == null ? "" : " (highest pick y=" + highestOnCone.getY() + ", " + (highestOnCone.getY() - y0)
+                    + " above the ground: a cone of " + HEIGHT + " opened there tops out at y=" + (highestOnCone.getY() + HEIGHT - 1) + ")");
+        }
     }
 
     /** The highest non-air block within LOOK of the vent. */
