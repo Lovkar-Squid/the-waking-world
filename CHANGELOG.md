@@ -9,7 +9,8 @@ versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-re
 - **Shield volcanoes: low, broad mountains you can walk up and build on.** A player on CurseForge
   asked for the gentle Hawaiian kind instead of a tall spire: slopes he could walk up and build a
   colony on, and a summit crater to cut lava channels from once it had cooled. A shield grows half
-  as tall as the cone the same `volcanoHeight` makes (14 blocks at the default 28), and its flank
+  as tall as the cone the same `volcanoHeight` makes (14 blocks at the default 28, never more than
+  20 however high the setting goes, so a shield stays a hill and not a small country), and its flank
   climbs in broad treads, about one block up for every four or five out and never more than one
   block at a step, so its foot spreads some 60 blocks past its rim; `volcanoRadius` does not cap
   it. On top is a shallow caldera 13 to 15 blocks across holding a lake of lava, and two or three

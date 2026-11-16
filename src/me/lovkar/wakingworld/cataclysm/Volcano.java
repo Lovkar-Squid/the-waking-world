@@ -685,9 +685,18 @@ public final class Volcano extends SavedData {
     /** How far a flow wanders either side of its bearing as it goes down, in radians. */
     private static final double MEANDER = 0.10;
 
-    /** A shield grows half as tall as the cone the same setting makes. */
+    /**
+     * The tallest a shield may grow, whatever volcanoHeight says. A shield is half the cone's height
+     * and four and a half times that again out to its foot, so its size goes with the square of the
+     * setting: at the cone's maximum of 120 it would be sixty high, some six hundred blocks across and
+     * six million blocks, half an hour rising and far more than an hourglass can remember. Twenty
+     * keeps the biggest one about 170 blocks across, still a mountain you walk up in a minute.
+     */
+    static final int SHIELD_MAX_COURSES = 20;
+
+    /** A shield grows half as tall as the cone the same setting makes, up to SHIELD_MAX_COURSES. */
     static int shieldCourses(int height) {
-        return Math.max(6, height / 2);
+        return Math.min(SHIELD_MAX_COURSES, Math.max(6, height / 2));
     }
 
     /** The widest a shield of this many courses can be at its foot, on any bearing and whatever its spill. */
