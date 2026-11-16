@@ -20,12 +20,12 @@ versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-re
 
 Checked headless (`tools/quakeguard`): with the world spawn 30 blocks from the epicentre and the
 fault aimed straight through it, not one block within 48 blocks of the spawn changed, a wheat field
-there included, while 166 columns of ground outside were opened and a field outside was blighted.
-Villagers inside were never shoved and those outside were, the wave threw none of its 13 blocks
-inside, a bed counted as a home only in its own dimension, and none of 200 quake sites chosen for a
-player standing on the spawn was inside the radius. With MineColonies on the same server, a quake
-20 blocks from a colony's land changed nothing on it, threw none of its wave onto it and left the
-villager standing there where he stood.
+there included, while some 150 to 200 columns of ground outside were opened (the fault wanders
+differently every run) and a field outside was blighted. Villagers inside were never shoved and
+those outside were, the wave threw none of its 13 blocks inside, a bed counted as a home only in
+its own dimension, and none of 200 quake sites chosen for a player standing on the spawn was inside
+the radius. With MineColonies on the same server, a quake 20 blocks from a colony's land changed
+nothing on it, threw none of its wave onto it and left the villager standing there where he stood.
 
 ### Changed
 - **A volcano's molten bombs no longer leave lava for good.** A player building a town in sight of a
