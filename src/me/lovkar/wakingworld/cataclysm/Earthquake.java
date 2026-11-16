@@ -452,14 +452,16 @@ public final class Earthquake {
         /**
          * The world spawn, and the bed or anchor of every player online whose respawn point is in this
          * level. A player who is offline is not asked: the server does not hold their respawn point.
+         * Everybody online is asked and not only those standing in this level - somebody off in the
+         * Nether still has a house in the overworld.
          */
         public static List<BlockPos> homes(ServerLevel level) {
-            return homes(level, level.players());
+            return homes(level, level.getServer().getPlayerList().getPlayers());
         }
 
         /**
          * The same, with the players named. They are a parameter for the headless probe, whose fake
-         * players are never in {@code level.players()}.
+         * players are never in the server's player list.
          */
         public static List<BlockPos> homes(ServerLevel level, List<? extends ServerPlayer> players) {
             List<BlockPos> homes = new ArrayList<>();

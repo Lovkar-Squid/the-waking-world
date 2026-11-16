@@ -87,6 +87,8 @@ public class QuakeGuard {
     private final List<Villager> farFolk = new ArrayList<>();
     private int shovesIn;
     private int shovesOut;
+    /** Villager-seconds of the main shock spent on the ground inside the radius: no shoves only counts if this is above 0. */
+    private int groundedIn;
     private int mainSeconds;
     private int quakeTicks;
     private int total;
@@ -104,6 +106,7 @@ public class QuakeGuard {
     private Villager stranger;
     private int colonistShoves;
     private int strangerShoves;
+    private int colonistGrounded;
 
     public QuakeGuard(final IEventBus modBus) {
         NeoForge.EVENT_BUS.addListener(this::onTick);
@@ -212,6 +215,7 @@ public class QuakeGuard {
                     final boolean[] grounded = {colonist.onGround(), stranger.onGround()};
                     final double[] dy = {colonist.getDeltaMovement().y, stranger.getDeltaMovement().y};
                     Earthquake.second(level, colonyQuake(), strength);
+                    if (grounded[0] && strength >= 0.9F) colonistGrounded++;
                     if (grounded[0] && colonist.getDeltaMovement().y - dy[0] > 0.01) colonistShoves++;
                     if (grounded[1] && stranger.getDeltaMovement().y - dy[1] > 0.01) strangerShoves++;
                     if (quakeTicks <= 0) {
@@ -299,8 +303,9 @@ public class QuakeGuard {
         check("a quake beside a colony changes no block on its land", changedOn == 0 && opened > 0,
                 "changed on the colony's land " + changedOn + (first == null ? "" : " (first " + first + ")")
                         + "; columns opened beside it " + opened);
-        check("a villager on the colony's land is not shoved, one beside it is", colonistShoves == 0 && strangerShoves > 0,
-                "on the land " + colonistShoves + ", beside it " + strangerShoves);
+        check("a villager on the colony's land is not shoved, one beside it is", colonistShoves == 0 && strangerShoves > 0 && colonistGrounded > 0,
+                "on the land " + colonistShoves + ", beside it " + strangerShoves + " (seconds of the main shock the one on the land stood through "
+                        + colonistGrounded + ")");
         Earthquake.rippleUnwatched(level, colonyQuake(), OUT + 8, 1.0F, RandomSource.create(78));
         int on = 0, off = 0;
         final AABB box = new AABB(edgeX - INTO, y0 - 10, CZ - WIDE, edgeX + OUT + 60, y0 + 10, CZ + WIDE);
@@ -416,6 +421,8 @@ public class QuakeGuard {
         if (strength >= 0.9F) mainSeconds++;
         for (int i = 0; i < folk.size(); i++) {
             if (!grounded[i]) continue;
+            // one inside standing on the ground through the main shock is one the shove would have reached
+            if (i < homeFolk.size() && strength >= 0.9F) groundedIn++;
             final boolean shoved = folk.get(i).getDeltaMovement().y - dy[i] > 0.01;
             if (!shoved) continue;
             if (i < homeFolk.size()) shovesIn++;
@@ -465,8 +472,9 @@ public class QuakeGuard {
                         + (first == null ? "" : "; first " + first) + "); changed in the box outside it " + changedRing);
         check("the quake still opened ground outside the radius", opened > 0, "opened columns outside " + opened);
         check("the blight still reached the field outside the radius", blighted > 0, "farmland ploughed under " + blighted + " of 91");
-        check("no villager inside the radius was shoved, and villagers outside were", shovesIn == 0 && shovesOut > 0,
-                "shoves inside " + shovesIn + ", outside " + shovesOut + " (" + mainSeconds + " seconds of the main shock)");
+        check("no villager inside the radius was shoved, and villagers outside were", shovesIn == 0 && shovesOut > 0 && groundedIn > 0,
+                "shoves inside " + shovesIn + ", outside " + shovesOut + " (" + mainSeconds + " seconds of the main shock, villagers inside on the ground through it "
+                        + groundedIn + ")");
     }
 
     /** The wave across the edge of the radius, through its probe seam: a ring of 30 round E passes through S. */
