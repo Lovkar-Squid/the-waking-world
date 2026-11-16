@@ -3,6 +3,8 @@
 All notable changes to The Waking World. The format follows [Keep a Changelog](https://keepachangelog.com/);
 versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-releases.
 
+## [Unreleased]
+
 ## [0.3.0-beta.7] - 2026-11-16
 
 The first round of ideas from the Discord server: thank you to everyone who posted them.
