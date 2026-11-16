@@ -1,0 +1,7 @@
+[cataclysms]
+	meteorShowers = false
+	volcanoes = false
+	bloodMoons = false
+	tornadoes = false
+	earthquakes = false
+	earthquakeSafeRadius = 48

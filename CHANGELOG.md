@@ -5,6 +5,28 @@ versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-re
 
 ## [Unreleased]
 
+### Added
+- **Earthquakes leave people's homes alone.** A player on Discord, building towns near volcanoes in a
+  TerraFirmaCraft pack with no MineColonies in it, asked for protection from earthquakes. Within
+  `earthquakeSafeRadius` blocks (default 48) of the world spawn and of every online player's bed or
+  respawn point, a quake no longer opens its fault, heaves up a bank, throws the ground up in its
+  wave or blights the fields, and nobody standing there is thrown about. The shaking, the dust and
+  the noise still reach you at home; only the ground and the shove are held back. A colony's land
+  was already spared the fault and the blight, and is now spared the wave and the shove as well.
+  The world also never centres a quake on any of that ground: when nothing near the player will do,
+  it looks further out, and failing that the quake waits for another day. `/wakingworld earthquake`
+  still goes where it is sent, but leaves the same ground alone. New key in the `cataclysms`
+  section: `earthquakeSafeRadius` (0-512, 0 = off).
+
+Checked headless (`tools/quakeguard`): with the world spawn 30 blocks from the epicentre and the
+fault aimed straight through it, not one block within 48 blocks of the spawn changed, a wheat field
+there included, while some 150 to 200 columns of ground outside were opened (the fault wanders
+differently every run) and a field outside was blighted. Villagers inside were never shoved and
+those outside were, the wave threw none of its 13 blocks inside, a bed counted as a home only in
+its own dimension, and none of 200 quake sites chosen for a player standing on the spawn was inside
+the radius. With MineColonies on the same server, a quake 20 blocks from a colony's land changed
+nothing on it, threw none of its wave onto it and left the villager standing there where he stood.
+
 ### Changed
 - **A volcano's molten bombs no longer leave lava for good.** A player building a town in sight of a
   volcano asked for it: every eruption left a ring of small burning pools round the mountain, and

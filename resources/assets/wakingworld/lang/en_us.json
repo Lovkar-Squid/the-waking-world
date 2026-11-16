@@ -679,6 +679,8 @@
   "wakingworld.configuration.dragonEggIndestructible.tooltip": "A dropped Dragon Egg cannot burn, blow up or despawn, and one that falls into the void is set back on its island. The Titan's rite needs the egg.",
   "wakingworld.configuration.earthquakeChance": "Chance of an earthquake",
   "wakingworld.configuration.earthquakeChance.tooltip": "The chance, rolled once a day on any day that is allowed one, that the ground turns.",
+  "wakingworld.configuration.earthquakeSafeRadius": "Safe radius round homes",
+  "wakingworld.configuration.earthquakeSafeRadius.tooltip": "Earthquakes leave the ground alone within this many blocks of the world spawn and of every online player's bed or respawn point: no fault opens there, nothing is thrown up and nobody is shoved, and no quake is centred there. The shaking is still felt. A colony's land is spared as well. 0 = off.",
   "wakingworld.configuration.earthquakeSeconds": "Shaking (seconds)",
   "wakingworld.configuration.earthquakeSeconds.tooltip": "How long the shaking lasts, in seconds.",
   "wakingworld.configuration.earthquakes": "Earthquakes",

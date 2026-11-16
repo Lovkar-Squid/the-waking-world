@@ -63,6 +63,7 @@ public final class WakingConfig {
     private static final ModConfigSpec.DoubleValue EARTHQUAKE_CHANCE;
     private static final ModConfigSpec.IntValue DAYS_BETWEEN_EARTHQUAKES;
     private static final ModConfigSpec.IntValue EARTHQUAKE_SECONDS;
+    private static final ModConfigSpec.IntValue EARTHQUAKE_SAFE_RADIUS;
     private static final ModConfigSpec.BooleanValue OMENS;
     private static final ModConfigSpec.IntValue OMEN_SECONDS;
     private static final ModConfigSpec.BooleanValue UNREST;
@@ -253,6 +254,11 @@ public final class WakingConfig {
                 .defineInRange("daysBetweenEarthquakes", 11, 0, 1000);
         EARTHQUAKE_SECONDS = b.comment("How long the shaking lasts, in seconds.")
                 .defineInRange("earthquakeSeconds", 26, 5, 300);
+        EARTHQUAKE_SAFE_RADIUS = b.comment("Earthquakes leave the ground alone within this many blocks of the world spawn and of every",
+                "online player's bed or respawn point: no fault opens there, nothing is thrown up and nobody is shoved,",
+                "and no quake is centred there. The shaking is still felt. A colony's land is spared as well (see compat).",
+                "0 = off.")
+                .defineInRange("earthquakeSafeRadius", 48, 0, 512);
         OMENS = b.comment("Warn the world before a cataclysm: a low note out of the ground, the light going wrong,",
                 "the animals leaving, and a line in the chat. Off: they simply begin.").define("omens", true);
         OMEN_SECONDS = b.comment("How long the warning runs before the cataclysm itself, in seconds.")
@@ -473,6 +479,11 @@ public final class WakingConfig {
 
     public static int earthquakeSeconds() {
         return loaded() ? EARTHQUAKE_SECONDS.get() : 26;
+    }
+
+    /** How far round the world spawn and every online player's bed a quake leaves the ground alone; 0 = nowhere. */
+    public static int earthquakeSafeRadius() {
+        return loaded() ? EARTHQUAKE_SAFE_RADIUS.get() : 48;
     }
 
     public static boolean unrest() {
