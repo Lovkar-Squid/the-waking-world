@@ -184,13 +184,19 @@ public class ShieldVolcano {
 
     // ---- the checks ------------------------------------------------------------------------
 
-    /** volcanoShape's default, and mixed mode rolled ROLLS times through the seam with fixed random sources. */
+    /**
+     * volcanoShape's default, and mixed mode rolled ROLLS times through the seam on one random source
+     * with a fixed seed, as the world rolls its own one volcano after another. (A fresh source for
+     * each roll, seeded 4000, 4001, ..., is no good: the first numbers of neighbouring seeds lean
+     * together, and a coin tossed that way came up heads 78 times in a hundred.)
+     */
     private void rolls() {
         int mixed = 0, cone = 0, shield = 0;
+        final RandomSource rnd = RandomSource.create(4000L);
         for (int i = 0; i < ROLLS; i++) {
-            if (Volcano.shapeFor("mixed", RandomSource.create(4000L + i)) == Volcano.Shape.SHIELD) mixed++;
-            if (Volcano.shapeFor("cone", RandomSource.create(4000L + i)) == Volcano.Shape.SHIELD) cone++;
-            if (Volcano.shapeFor("shield", RandomSource.create(4000L + i)) == Volcano.Shape.SHIELD) shield++;
+            if (Volcano.shapeFor("mixed", rnd) == Volcano.Shape.SHIELD) mixed++;
+            if (Volcano.shapeFor("cone", rnd) == Volcano.Shape.SHIELD) cone++;
+            if (Volcano.shapeFor("shield", rnd) == Volcano.Shape.SHIELD) shield++;
         }
         final double share = mixed / (double) ROLLS;
         check("volcanoShape is mixed when nothing sets it", "mixed".equals(WakingConfig.volcanoShape()),
