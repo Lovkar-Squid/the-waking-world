@@ -5,6 +5,30 @@ versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-re
 
 ## [Unreleased]
 
+### Changed
+- **`/wakingworld volcano` without a position keeps off older cones too.** Since beta.7 the world
+  never opens a vent on or against an older mountain, but the command, run with no position, still
+  looked only for dry ground 60 to 100 blocks away - so a second call from the same spot could open
+  its vent on the summit of the first cone. It now keeps the new foot clear of the remembered vents
+  and the old volcanic rock exactly as the world does, and when none of the 48 spots it looks at is
+  clear, nothing opens and it says there is no room for a vent near you. `/wakingworld volcano
+  <x y z>` still opens one exactly where it is asked.
+
+### Fixed
+- **Volcanoes now open on superflat worlds and on worlds whose ground lies low.** The world's choice
+  of a site took the sea level from Minecraft's own answer, which is 63 on every world in 1.21.1
+  whatever the world was generated with, and refused anything below 65 as sea. A superflat world, or
+  one whose generator puts its sea and its ground lower down, never had a natural volcano, and
+  `/wakingworld volcano` with no position said there was no dry ground. Both now ask the world's
+  generator for its own sea level (a superflat world's is -63, under the whole of its surface).
+
+Checked headless (`tools/volcanosite`) on a flat world whose grass lies at y=-1: the world's site
+choice found ground on 100 of 100 tries, and none with the old sea level. From 70 blocks off a
+finished cone the command opened 50 vents out of 50 tries and none put its foot on the cone; with
+the vent list wiped, the rock test alone kept every one of 50 vents off it; a named spot on the
+cone's flank opened exactly there; and a caller ringed by remembered vents got the message and
+nothing opened.
+
 ## [0.3.0-beta.7] - 2026-11-16
 
 The first round of ideas from the Discord server: thank you to everyone who posted them.
