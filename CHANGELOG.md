@@ -3,7 +3,9 @@
 All notable changes to The Waking World. The format follows [Keep a Changelog](https://keepachangelog.com/);
 versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-releases.
 
-## [Unreleased]
+## [0.3.0-beta.7] - 2026-11-16
+
+The first round of ideas from the Discord server: thank you to everyone who posted them.
 
 ### Added
 - **Earthquakes leave people's homes alone.** A player on Discord, building towns near volcanoes in a
@@ -34,8 +36,8 @@ nothing on it, threw none of its wave onto it and left the villager standing the
   remembered, and after `volcanoBombCoolSeconds` (default 90) it sets into basalt or blackstone
   with a hiss; the little flow it fed dries up by itself. A source in an unloaded chunk sets when
   its chunk is loaded again. The crater pool still glows for good, and so does lava that was there
-  before a bomb came down in it: a lava lake or a player's pit is not the bomb's to cool. Two new keys in the
-  `cataclysms` section: `volcanoBombsCool` (default on; off is the old behaviour) and
+  before a bomb came down in it: a lava lake or a player's pit is not the bomb's to cool. Two new
+  keys in the `cataclysms` section: `volcanoBombsCool` (default on; off is the old behaviour) and
   `volcanoBombCoolSeconds` (10-3600).
 
 Checked headless (`tools/bombcool`): six real bombs thrown with the volcano's own `hurl`; their 19
@@ -52,8 +54,9 @@ with no flowing lava left and no warnings from the mod.
   added the whole height again. Every vent is now remembered with its foot (the last 64), and a new
   one keeps its own foot, and 8 blocks of open ground, clear of all of them. Cones from before this
   version are not in that list, so a vent is also kept off the volcano's own rock (basalt, tuff,
-  blackstone, gilded blackstone, magma, obsidian) under it or under its new foot. `/wakingworld volcano` still opens one
-  exactly where it is asked, and old saves load as they are. The height is a server setting: it lives
+  blackstone, gilded blackstone, magma, obsidian) under it or under its new foot. `/wakingworld
+  volcano` still opens one exactly where it is asked, and old saves load as they are. The height is a
+  server setting: it lives
   in `config/wakingworld-server.toml` with the other config files, not in a world's `serverconfig`
   folder, which only holds a readme on NeoForge 21.1.
 
@@ -62,6 +65,11 @@ out exactly 24 blocks above the grass, crater, bombs and cooling included. Befor
 sites the world chose for the next vent were on that cone, and a second eruption on one stood 46
 blocks high; now none of 300 puts its foot on the cone, the rock test alone keeps every vent off it,
 and the list survives a save.
+
+Also played in a full MineColonies pack of 238 mods, in a new world and in an old world with a
+colony of 54: the bombs' lava set into rock after a minute and a half, three volcanoes rose exactly
+`volcanoHeight` above their ground, a quake 30 blocks from a bed changed nothing within 48 blocks of
+it, and quakes and a volcano right next to the colony changed nothing on its land.
 
 ## [0.3.0-beta.6] - 2026-10-04
 
