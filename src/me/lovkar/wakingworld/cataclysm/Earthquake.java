@@ -22,6 +22,11 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.item.FallingBlockEntity;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
+import me.lovkar.wakingworld.compat.Colonies;
+import net.minecraft.world.level.Level;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public final class Earthquake {
     /** Which second of the shaking this is, so the loop is restarted and not stacked. */
@@ -43,7 +48,7 @@ public final class Earthquake {
         heading = rnd.nextDouble() * Math.PI * 2;
         headX = at.x;
         headZ = at.z;
-        int opened = fault(level, at, heading, 8, rnd);
+        int opened = fault(level, at, heading, 8, rnd, Shelter.of(level));
 
         for (ServerPlayer p : level.players()) {
             if (p.distanceToSqr(at) > 220 * 220) continue;
@@ -64,7 +69,7 @@ public final class Earthquake {
      * one side of the line a metre or two higher than the other, a scarp you can walk along. Every
      * few steps the fault heaves one bank up, taking whatever was standing on it with it.</p>
      */
-    private static void heave(ServerLevel level, double px, double pz, double along, RandomSource rnd) {
+    private static void heave(ServerLevel level, double px, double pz, double along, RandomSource rnd, Shelter home) {
         double nx = Math.sin(along), nz = -Math.cos(along);
         for (int side = 2; side <= 4; side++) {
             int ix = (int) Math.floor(px + nx * side), iz = (int) Math.floor(pz + nz * side);
@@ -72,6 +77,7 @@ public final class Earthquake {
             if (top <= level.getMinBuildHeight() + 1) continue;
             BlockPos on = new BlockPos(ix, top - 1, iz);
             if (!natural(level, on)) continue;
+            if (home.holds(level, on)) continue;                          // nobody's garden is pushed up into a bank
             BlockState state = level.getBlockState(on);
             int lift = 1 + rnd.nextInt(2);
             for (int k = 1; k <= lift; k++) {
@@ -85,11 +91,16 @@ public final class Earthquake {
     /**
      * The moment it stops: one hard shock, a ring of dust going out, and a last stretch of fault torn
      * open all at once. An event that simply fades out has no end - this gives it one.
+     *
+     * <p>The blight comes with it now. It used to be laid by the scheduler after this, knowing
+     * nothing of anybody's home, so a farm the fault had been kept off was ploughed under anyway;
+     * here it is spared the same ground as the fault.</p>
      */
     public static void climax(ServerLevel level, Vec3 at, RandomSource rnd) {
+        Shelter home = Shelter.of(level);
         WakingWorld.hooks.shakeAt(at, 9.0F, 260);
         WakingWorld.hooks.wave(at, 30.0, 260.0, 7.0F);
-        for (int i = 0; i < 3; i++) crack(level, at, 1.4F, rnd);
+        for (int i = 0; i < 3; i++) crack(level, at, 1.4F, rnd, home);
         for (int ring = 0; ring < 3; ring++) {
             double r = 10 + ring * 16;
             for (int i = 0; i < 44; i++) {
@@ -108,13 +119,21 @@ public final class Earthquake {
         }
         level.playSound(null, at.x, at.y, at.z, me.lovkar.wakingworld.WakingSounds.QUAKE_RUMBLE.get(),
                 SoundSource.WEATHER, 10.0F, 0.62F);
+        // until now the quake was the only one of the five that left nothing at all
+        if (WakingConfig.blight()) {
+            Aftermath.blight(level, BlockPos.containing(at.x, at.y, at.z), 34, 0.45, rnd, p -> home.holds(level, p));
+        }
     }
 
     /**
      * The next length of fault, opened while somebody is watching, and the ground thrown up along
      * it. Called once a second for as long as the quake lasts.
+     *
+     * <p>It stops short of sheltered ground, and where it runs within a throw of it the turf goes
+     * straight up instead of out to the side, so it comes down in its own crack rather than in
+     * somebody's garden.</p>
      */
-    public static void crack(ServerLevel level, Vec3 at, float strength, RandomSource rnd) {
+    private static void crack(ServerLevel level, Vec3 at, float strength, RandomSource rnd, Shelter home) {
         int length = 3 + (int) (5 * strength);
         double x = headX, z = headZ;
         for (int step = 0; step < length; step++) {
@@ -130,7 +149,7 @@ public final class Earthquake {
                         level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                                 (int) Math.floor(px), (int) Math.floor(pz)) - 1, (int) Math.floor(pz));
                 if (!natural(level, top)) continue;
-                if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, top)) continue;   // the fault stops at a colony's border
+                if (home.holds(level, top)) continue;             // the fault stops at a colony's border, and short of anybody's home
                 // the top of it is thrown into the air rather than deleted: that is the whole
                 // difference between ground that cracked and ground that was always cracked
                 BlockState surface = level.getBlockState(top);
@@ -140,8 +159,11 @@ public final class Earthquake {
                     net.minecraft.world.entity.item.FallingBlockEntity fb =
                             net.minecraft.world.entity.item.FallingBlockEntity.fall(level, top, surface);
                     fb.setHurtsEntities(1.0F, 6);
-                    fb.setDeltaMovement((rnd.nextDouble() - 0.5) * 0.28, 0.42 + rnd.nextDouble() * 0.35,
-                            (rnd.nextDouble() - 0.5) * 0.28);
+                    double sx = (rnd.nextDouble() - 0.5) * 0.28;
+                    double up = 0.42 + rnd.nextDouble() * 0.35;
+                    double sz = (rnd.nextDouble() - 0.5) * 0.28;
+                    if (home.holds(level, top, Shelter.THROW)) sx = sz = 0;
+                    fb.setDeltaMovement(sx, up, sz);
                 }
                 for (int d = 1; d < depth; d++) {
                     BlockPos p = top.below(d);
@@ -156,7 +178,7 @@ public final class Earthquake {
                         10, 0.5, 0.4, 0.5, 0.3);
             }
             // and one bank of it pushed up, every few paces
-            if (step % 3 == 0) heave(level, x, z, heading, rnd);
+            if (step % 3 == 0) heave(level, x, z, heading, rnd, home);
         }
         headX = x;
         headZ = z;
@@ -167,7 +189,7 @@ public final class Earthquake {
      * heightmap, so it follows the surface up and down hills instead of cutting a straight trench
      * through them.
      */
-    private static int fault(ServerLevel level, Vec3 at, double angle, int length, RandomSource rnd) {
+    private static int fault(ServerLevel level, Vec3 at, double angle, int length, RandomSource rnd, Shelter home) {
         double x = at.x, z = at.z;
         int opened = 0;
         for (int step = 0; step < length; step++) {
@@ -181,6 +203,7 @@ public final class Earthquake {
                 double pz = z - Math.cos(angle) * w;
                 BlockPos top = Cataclysms.surface(level, px, pz).below();
                 if (!natural(level, top)) continue;
+                if (home.holds(level, top)) continue;
                 for (int d = 0; d < depth; d++) {
                     BlockPos p = top.below(d);
                     if (!natural(level, p)) break;
@@ -221,7 +244,8 @@ public final class Earthquake {
     public static void second(ServerLevel level, Vec3 at, float strength) {
         WakingWorld.hooks.shakeAt(at, 3.5F * strength, 200);
         RandomSource rnd = level.random;
-        if (strength > 0.2F) crack(level, at, strength, rnd);   // the fault opens while it shakes, not while it holds its breath
+        Shelter home = Shelter.of(level);                       // once a second, not once a block
+        if (strength > 0.2F) crack(level, at, strength, rnd, home);   // the fault opens while it shakes, not while it holds its breath
         // dust off the ground in a wide ring - thicker near the middle, thinner at the edges
         for (int i = 0; i < 40; i++) {
             double a = rnd.nextDouble() * Math.PI * 2;
@@ -239,7 +263,7 @@ public final class Earthquake {
         }
         // the wave: a ring going out, one step further every second, restarting every seventh
         if (strength > 0.45F) {
-            ripple(level, at, 7 + (beat % 7) * 13, strength, rnd);
+            ripple(level, at, 7 + (beat % 7) * 13, strength, rnd, home, true);
             // The vents go near the middle rather than at the fault's head. The head walks a few
             // blocks a second and is a long way outside the frame by the time anybody looks;
             // the middle is where the camera is pointed and where somebody standing in it is.
@@ -258,6 +282,8 @@ public final class Earthquake {
         AABB box = new AABB(at, at).inflate(90);
         for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, box)) {
             if (!e.onGround()) continue;
+            // a colonist in the town, or anybody at their own door, feels it and is not thrown about
+            if (home.holds(level, e.blockPosition())) continue;
             double d = Math.sqrt(e.distanceToSqr(at));
             double push = (1.0 - d / 90.0) * strength;
             if (push <= 0) continue;
@@ -293,9 +319,13 @@ public final class Earthquake {
      * the arc are thrown up a few tenths of a block as falling blocks and land back where they came
      * from, so a hillside visibly rolls and is still a hillside afterwards. Only ground the world
      * made itself is moved, only near somebody who can see it, and only a few dozen blocks a second
-     * - it is a ripple, not a demolition.</p>
+     * - it is a ripple, not a demolition. Over sheltered ground the smoke and the dust still go by,
+     * and the ground stays where it is.</p>
+     *
+     * @return how many blocks it threw
      */
-    private static void ripple(ServerLevel level, Vec3 at, double radius, float strength, RandomSource rnd) {
+    private static int ripple(ServerLevel level, Vec3 at, double radius, float strength, RandomSource rnd,
+                              Shelter home, boolean onlyWatched) {
         int spawned = 0;
         int samples = (int) Math.min(120, Math.max(36, radius * 2.2));
         double start = rnd.nextDouble() * Math.PI * 2;
@@ -303,7 +333,7 @@ public final class Earthquake {
             double a = start + i / (double) samples * Math.PI * 2;
             double px = at.x + Math.cos(a) * (radius + rnd.nextDouble() * 1.6 - 0.8);
             double pz = at.z + Math.sin(a) * (radius + rnd.nextDouble() * 1.6 - 0.8);
-            if (!watched(level, px, pz, 96)) continue;
+            if (onlyWatched && !watched(level, px, pz, 96)) continue;
             int top = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                     (int) Math.floor(px), (int) Math.floor(pz));
             if (top <= level.getMinBuildHeight() + 1) continue;
@@ -321,6 +351,7 @@ public final class Earthquake {
             Cataclysms.puff(level, new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, ground),
                     px, top + 0.35, pz, 3, 0.45, 0.3, 0.45, 0.18);
             if (!natural(level, on) || rnd.nextDouble() > 0.55 * strength) continue;
+            if (home.holds(level, on)) continue;
             if (!level.getBlockState(on.above()).isAir()) continue;
             net.minecraft.world.entity.item.FallingBlockEntity fb =
                     net.minecraft.world.entity.item.FallingBlockEntity.fall(level, on, ground);
@@ -328,6 +359,16 @@ public final class Earthquake {
             fb.time = 1;
             spawned++;
         }
+        return spawned;
+    }
+
+    /**
+     * The wave with nobody watching it - for the headless probe only. The test server has no
+     * players, so {@link #watched} is never true there and the real wave would throw nothing to
+     * check; this throws what it would throw if somebody stood on every arc of it.
+     */
+    public static int rippleUnwatched(ServerLevel level, Vec3 at, double radius, float strength, RandomSource rnd) {
+        return ripple(level, at, radius, strength, rnd, Shelter.of(level), false);
     }
 
     /**
@@ -369,18 +410,86 @@ public final class Earthquake {
         return WakingConfig.earthquakeSeconds();
     }
 
-    /** Somewhere on the surface near a player, for the scheduler. */
-    public static Vec3 site(ServerLevel level, ServerPlayer near, RandomSource rnd) {
-        Vec3 last = null;
-        for (int attempt = 0; attempt < 8; attempt++) {
-            double angle = rnd.nextDouble() * Math.PI * 2;
-            double dist = 20 + rnd.nextDouble() * 60;
-            double x = near.getX() + Math.cos(angle) * dist;
-            double z = near.getZ() + Math.sin(angle) * dist;
-            BlockPos ground = Cataclysms.surface(level, x, z);
-            last = new Vec3(x, ground.getY(), z);
-            if (!me.lovkar.wakingworld.compat.Colonies.keepOff(level, ground, 48)) return last;
+    /**
+     * Ground a quake leaves alone: a colony's land, and the country round the world spawn and round
+     * every online player's bed.
+     *
+     * <p>A player on Discord building towns under volcanoes, in a pack with no colonies in it, asked
+     * for this. A colony's land was already spared the fault; a player's own home never was, and
+     * nothing at all was spared the wave or the shove. The shaking, the dust and the noise still
+     * reach a player at home - a quake you cannot feel from your bed is not a quake - but the ground
+     * stays as it was and nobody standing on it is thrown about.</p>
+     *
+     * <p>It is asked for every block the fault walks over, so the homes are gathered once for each
+     * second of shaking and the question itself is a few multiplications. The distance is measured
+     * across the ground and not through the air: a bed at the top of a tower keeps the tower's
+     * footing as safe as its roof.</p>
+     */
+    public static final class Shelter {
+        /** How far a block the fault throws out to the side can carry before it comes down. */
+        public static final int THROW = 6;
+
+        private final int radius;
+        private final int[] xs;
+        private final int[] zs;
+
+        /** These homes, kept {@code radius} blocks round. The headless probe builds its own. */
+        public Shelter(int radius, List<BlockPos> homes) {
+            this.radius = radius;
+            this.xs = new int[homes.size()];
+            this.zs = new int[homes.size()];
+            for (int i = 0; i < homes.size(); i++) {
+                xs[i] = homes.get(i).getX();
+                zs[i] = homes.get(i).getZ();
+            }
         }
-        return last;
+
+        /** What this level has to keep safe right now, {@code earthquakeSafeRadius} round each of it. */
+        public static Shelter of(ServerLevel level) {
+            return new Shelter(WakingConfig.earthquakeSafeRadius(), homes(level));
+        }
+
+        /**
+         * The world spawn, and the bed or anchor of every player online whose respawn point is in this
+         * level. A player who is offline is not asked: the server does not hold their respawn point.
+         */
+        public static List<BlockPos> homes(ServerLevel level) {
+            return homes(level, level.players());
+        }
+
+        /**
+         * The same, with the players named. They are a parameter for the headless probe, whose fake
+         * players are never in {@code level.players()}.
+         */
+        public static List<BlockPos> homes(ServerLevel level, List<? extends ServerPlayer> players) {
+            List<BlockPos> homes = new ArrayList<>();
+            if (level.dimension() == Level.OVERWORLD) homes.add(level.getSharedSpawnPos());   // the world spawn is an overworld place
+            for (ServerPlayer p : players) {
+                BlockPos bed = p.getRespawnPosition();
+                if (bed != null && p.getRespawnDimension() == level.dimension()) homes.add(bed);
+            }
+            return homes;
+        }
+
+        /** True where the quake must leave the ground, and whoever stands on it, alone. */
+        public boolean holds(ServerLevel level, BlockPos at) {
+            return holds(level, at, 0);
+        }
+
+        /** The same, with the sheltered ground reaching {@code margin} blocks further out. */
+        public boolean holds(ServerLevel level, BlockPos at, int margin) {
+            return nearHome(at.getX(), at.getZ(), margin) || Colonies.keepOff(level, at, margin);
+        }
+
+        /** Within the radius (and the margin) of one of the homes, across the ground. Colonies are not asked. */
+        public boolean nearHome(int x, int z, int margin) {
+            if (radius <= 0) return false;                    // 0 is off, whatever the margin
+            long r = radius + Math.max(0, margin);
+            for (int i = 0; i < xs.length; i++) {
+                long dx = x - xs[i], dz = z - zs[i];
+                if (dx * dx + dz * dz < r * r) return true;
+            }
+            return false;
+        }
     }
 }

@@ -226,6 +226,12 @@ public final class Aftermath {
      * keeps - so a house in the path loses its garden and not its walls.</p>
      */
     public static int blight(ServerLevel level, BlockPos at, double radius, double strength, RandomSource rnd) {
+        return blight(level, at, radius, strength, rnd, null);
+    }
+
+    /** The same, passing over every column {@code spare} answers true for. The earthquake's blight keeps off people's homes. */
+    public static int blight(ServerLevel level, BlockPos at, double radius, double strength, RandomSource rnd,
+                             java.util.function.Predicate<BlockPos> spare) {
         int hit = 0;
         int r = (int) Math.ceil(radius);
         for (int dx = -r; dx <= r; dx++) {
@@ -237,6 +243,7 @@ public final class Aftermath {
                 int top = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
                 if (top <= level.getMinBuildHeight() + 1) continue;
                 BlockPos on = new BlockPos(x, top - 1, z);
+                if (spare != null && spare.test(on)) continue;
                 BlockState state = level.getBlockState(on);
                 if (state.is(BlockTags.CROPS) || state.is(Blocks.MELON) || state.is(Blocks.PUMPKIN)
                         || state.is(Blocks.SUGAR_CANE) || state.is(BlockTags.FLOWERS) || state.is(BlockTags.SAPLINGS)) {

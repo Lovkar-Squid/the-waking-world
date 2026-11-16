@@ -112,7 +112,7 @@ public final class Cataclysms extends SavedData {
     /**
      * Open ground near a player: dry, above the sea, level enough, and not under a wood.
      *
-     * <p>{@link Earthquake#site} was one unfiltered sample - an angle, a distance and whatever was
+     * <p>The earthquake's first site was one unfiltered sample - an angle, a distance and whatever was
      * there. Most of the time that is a field and it is fine; the rest of the time it is a lake, a
      * cliff or the middle of a jungle, and a tornado in a jungle is sixteen seconds of leaves. That
      * is exactly what cost the trailer its second shot.</p>
@@ -129,6 +129,18 @@ public final class Cataclysms extends SavedData {
      */
     public static Vec3 openSite(ServerLevel level, Vec3 from, RandomSource rnd,
                                 double minOut, double maxOut) {
+        return openSite(level, from, rnd, minOut, maxOut, null);
+    }
+
+    /**
+     * The same, kept off the ground {@code refuse} answers true for exactly as it is kept off a
+     * colony's land: a spot there is not taken, not even as the fallback. The earthquake asks this
+     * with the country round the world spawn and players' beds, and for it there is one more rule -
+     * when even the ground under {@code from} is refused, there is no site and the answer is null.
+     * With {@code refuse} null it is the plain search above, draw for draw.
+     */
+    public static Vec3 openSite(ServerLevel level, Vec3 from, RandomSource rnd,
+                                double minOut, double maxOut, java.util.function.Predicate<BlockPos> refuse) {
         Vec3 fallback = null;
         Vec3 best = null;
         int bestScore = Integer.MAX_VALUE;
@@ -140,6 +152,7 @@ public final class Cataclysms extends SavedData {
             BlockPos ground = surface(level, x, z);              // loads the chunk
             Vec3 here = new Vec3(x, ground.getY(), z);
             if (me.lovkar.wakingworld.compat.Colonies.keepOff(level, ground, 48)) continue;   // a colony's land: not even the fallback
+            if (refuse != null && refuse.test(ground)) continue;                    // nor whatever the caller must keep off
             if (fallback == null) fallback = here;
             if (ground.getY() <= level.getSeaLevel() + 1) continue;                  // water, or a shore
             if (!level.getFluidState(ground.below()).isEmpty()) continue;            // a lake or a river
@@ -163,11 +176,15 @@ public final class Cataclysms extends SavedData {
             }
             if (spread <= 4) break;                              // good enough; stop paying for better
         }
-        if (best == null) {
-            WakingWorld.LOGGER.info("cataclysm: no open ground found near {} {} - taking what there is",
-                    (int) from.x, (int) from.z);
+        if (best != null) return best;
+        BlockPos under = fallback == null ? surface(level, from.x, from.z) : null;
+        if (under != null && refuse != null && refuse.test(under)) {
+            WakingWorld.LOGGER.info("cataclysm: no open ground near {} {} that is not kept safe", (int) from.x, (int) from.z);
+            return null;
         }
-        return best != null ? best : (fallback != null ? fallback : Vec3.atBottomCenterOf(surface(level, from.x, from.z)));
+        WakingWorld.LOGGER.info("cataclysm: no open ground found near {} {} - taking what there is",
+                (int) from.x, (int) from.z);
+        return fallback != null ? fallback : Vec3.atBottomCenterOf(under);
     }
 
     /** True while the sky is falling - the other cataclysms wait their turn. */

@@ -86,13 +86,9 @@ public final class Weather extends SavedData {
             float progress = Math.min(1.0F, 1.0F - quakeTicks / (float) total);
             Earthquake.second(level, new Vec3(qx, qy, qz), Earthquake.envelope(progress));
             if (quakeTicks <= 0) {
-                Earthquake.climax(level, new Vec3(qx, qy, qz), level.random);
+                Earthquake.climax(level, new Vec3(qx, qy, qz), level.random);   // and its blight, which spares people's homes
                 for (ServerPlayer p : level.players()) {
                     p.sendSystemMessage(Component.translatable("cataclysm.wakingworld.earthquake.over").withStyle(ChatFormatting.GRAY));
-                }
-                // until now the quake was the only one of the five that left nothing at all
-                if (WakingConfig.blight()) {
-                    Aftermath.blight(level, BlockPos.containing(qx, qy, qz), 34, 0.45, level.random);
                 }
                 Survived.near(level, Omen.Kind.EARTHQUAKE, new Vec3(qx, qy, qz));
                 Scars.close();
@@ -136,8 +132,16 @@ public final class Weather extends SavedData {
         if (WakingConfig.earthquakes() && day >= quakeCooldownDay && t >= 2000 && t <= 2600) {
             if (rnd.nextDouble() <= WakingConfig.earthquakeChance() * Unrest.factor(level)) {
                 ServerPlayer near = players.get(rnd.nextInt(players.size()));
-                quakeCooldownDay = day + WakingConfig.daysBetweenEarthquakes();
-                warn(level, where(level, near, rnd), false);
+                Vec3 at = quakeSite(level, near, rnd);
+                if (at == null) {
+                    // everywhere near them is somebody's home: not today, and the roll comes round again tomorrow
+                    quakeCooldownDay = day + 1;
+                    WakingWorld.LOGGER.info("cataclysm: no ground near {} {} that a quake may have - it waits for another day",
+                            (int) near.getX(), (int) near.getZ());
+                } else {
+                    quakeCooldownDay = day + WakingConfig.daysBetweenEarthquakes();
+                    warn(level, at, false);
+                }
             } else {
                 quakeCooldownDay = day + 1;
             }
@@ -154,18 +158,44 @@ public final class Weather extends SavedData {
      * comes back to the field where they killed something a week ago.</p>
      */
     private static Vec3 where(ServerLevel level, ServerPlayer near, RandomSource rnd) {
+        return where(level, near, rnd, null);
+    }
+
+    /** The same, never on ground {@code refuse} answers true for; null when it found none. */
+    private static Vec3 where(ServerLevel level, ServerPlayer near, RandomSource rnd,
+                              java.util.function.Predicate<BlockPos> refuse) {
         double unquiet = Unrest.at(level, near.blockPosition());
         BlockPos scar = Unrest.worst(level, near, WakingConfig.landSize() * 2.0);
-        if (scar == null) return Cataclysms.openSite(level, near.position(), rnd, 30, 90);
+        if (scar == null) return Cataclysms.openSite(level, near.position(), rnd, 30, 90, refuse);
         double pull = Math.max(unquiet, Unrest.at(level, scar));
-        if (rnd.nextDouble() > pull * 0.8) return Cataclysms.openSite(level, near.position(), rnd, 30, 90);
+        if (rnd.nextDouble() > pull * 0.8) return Cataclysms.openSite(level, near.position(), rnd, 30, 90, refuse);
         // somewhere inside that land, not exactly on its middle stone. Still open ground: the
         // unquiet country is a reason to go there, not a reason to put a tornado in a jungle.
         int size = WakingConfig.landSize();
         int x = scar.getX() + rnd.nextInt(size / 2) - size / 4;
         int z = scar.getZ() + rnd.nextInt(size / 2) - size / 4;
         Vec3 mid = Vec3.atBottomCenterOf(Cataclysms.surface(level, x, z));
-        return Cataclysms.openSite(level, mid, rnd, 0, 60);
+        return Cataclysms.openSite(level, mid, rnd, 0, 60, refuse);
+    }
+
+    /**
+     * Where a quake is centred: where {@link #where} would put it, but never on ground the quake
+     * has to leave alone - a colony's land, or within {@code earthquakeSafeRadius} of the world spawn
+     * or of a player's bed.
+     *
+     * <p>{@code where} on its own fell back to the player's own column when nothing round them
+     * passed, which for a player at home is their own house. Now a refused spot is not even a
+     * fallback: when nothing near them will do, it looks once more, further out but still well
+     * within earshot, and when that fails too there is no quake today.</p>
+     *
+     * @return the epicentre, or null to let the day go by
+     */
+    public static Vec3 quakeSite(ServerLevel level, ServerPlayer near, RandomSource rnd) {
+        Earthquake.Shelter home = Earthquake.Shelter.of(level);
+        java.util.function.Predicate<BlockPos> refuse = p -> home.holds(level, p);
+        Vec3 at = where(level, near, rnd, refuse);
+        if (at == null) at = Cataclysms.openSite(level, near.position(), rnd, 90, 160, refuse);
+        return at;
     }
 
     /** Hold the thing back and sound the warning; the tick above lets it go when the time is up. */
