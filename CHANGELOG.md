@@ -17,21 +17,22 @@ versions follow [Semantic Versioning](https://semver.org/) with `-beta.N` pre-re
   into basalt and blackstone you can walk and build on, all but a small glowing heart in the middle
   of the caldera. The rest is as for a cone - the omen, the warning, the ash, the cooling, the
   hourglass, and the bombs, thrown past its wider foot, whose lava still sets - and the world keeps
-  every new vent and every colony clear of a shield's whole foot. New key in the `cataclysms`
+  every new vent and every colony clear of a shield's whole foot, and keeps its toe as far from the
+  world spawn and the beds as `meteorSafeRadius` keeps a cone's vent. New key in the `cataclysms`
   section: `volcanoShape` = `cone`, `shield` or `mixed` (default `mixed`: about one in three
   volcanoes is a shield, decided when each one opens). `/wakingworld volcano` takes `cone` or
   `shield` after any of its other arguments; without one, `volcanoShape` decides.
 
 Checked headless (`tools/shieldvolcano`) on a flat world: a shield opened with the command at height
 28 stood 14 blocks above the grass, and along 16 radial lines no tread between two steps up was
-shorter than 4 blocks; its foot lay 56 to 64 blocks past its rim, 67 to 73 from its vent, against
-a `volcanoRadius` of 48. At its crown the caldera was 13 to 16 blocks across and full of lava, and
-two flows ran from its rim nearly to its foot. Once it had cooled, every one of the 321 blocks they
-had lain in was basalt or blackstone, the caldera was black rock round 9 glowing blocks, and no lava
-was left anywhere on the mountain. A save kept its shape, and a save from before shapes loads as a
-cone; mixed made 988 shields in 3000 rolls; and the world's choice of a site, asked 150 times for a
-cone and 150 for another shield from beside it, never put a new foot on it. Its courses go down a
-strip every tick, and no tick of its work took more than about 23 ms on the test server.
+shorter than 4 blocks; its foot lay 54 to 65 blocks past its rim, 67 to 74 from its vent, against
+a `volcanoRadius` of 48. At its crown the caldera was 14 to 15 blocks across and full of lava, and
+three flows ran from its rim nearly to its foot. Once it had cooled, every one of the 464 blocks
+they had lain in was basalt or blackstone, the caldera was black rock round 9 glowing blocks, and no
+other lava was left on the mountain. A save kept its shape, and a save from before shapes loads as
+a cone; mixed made 988 shields in 3000 rolls; and the world's choice of a site, asked 150 times for
+a cone and 150 for another shield from beside it, never put a new foot on it. Its courses go down a
+strip every tick, and no tick of its work took more than about 26 ms on the test server.
 
 ### Changed
 - **`/wakingworld volcano` without a position keeps off older cones too.** Since beta.7 the world

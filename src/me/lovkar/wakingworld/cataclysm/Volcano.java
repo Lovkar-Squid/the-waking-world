@@ -678,6 +678,8 @@ public final class Volcano extends SavedData {
      * tick can run a strip over.
      */
     private static final int SHIELD_BUDGET = 160;
+    /** Strips read in one game tick at the most, whatever they lay: a bottom-course strip is some 160 columns. */
+    private static final int SHIELD_ROWS = 24;
     /** How far past the bottom course the scorched ring and a flow's toe go. */
     private static final int SHIELD_TOE = 4;
     /** How far a flow wanders either side of its bearing as it goes down, in radians. */
@@ -735,7 +737,9 @@ public final class Volcano extends SavedData {
         double climbed = (double) h / courses;
         int r = shieldRowReach(h);
         int budget = SHIELD_BUDGET;
-        while (layRow <= r && budget > 0) {
+        // and no more than SHIELD_ROWS strips a tick: a strip a colony refuses lays nothing and spends
+        // none of the budget, so a course standing on one would otherwise be read whole in one tick
+        for (int rows = 0; layRow <= r && budget > 0 && rows < SHIELD_ROWS; rows++) {
             int dx = layRow++;
             for (int dz = -r; dz <= r; dz++) {
                 double d = Math.sqrt(dx * dx + dz * dz);
@@ -1258,7 +1262,7 @@ public final class Volcano extends SavedData {
             if (!clearOfVents(x, z, reach)) continue;
             BlockPos top = Cataclysms.surface(level, x, z);
             if (!dry(level, top, sea)) continue;
-            if (!Cataclysms.away(level, top)) continue;
+            if (!shieldAway(level, top, reach)) continue;
             // the ground before the colonies, not after as for a cone: it reads sixty-one columns,
             // and the colony test loads every chunk out to the toe
             Integer lo = shieldGround(level, x, z, reach);
@@ -1267,6 +1271,25 @@ public final class Volcano extends SavedData {
             return new BlockPos(x, lo, z);
         }
         return null;
+    }
+
+    /**
+     * Cataclysms.away for a shield. That measures from the vent, and its distances keep a cone's whole
+     * foot off the world spawn, the beds and the players' heads; a shield's foot runs out four times
+     * as far, and one opened just outside them would bury a bed or the spawn under its lower treads.
+     * Here the same distances are kept from the shield's toe.
+     */
+    private static boolean shieldAway(ServerLevel level, BlockPos at, int reach) {
+        if (!Cataclysms.away(level, at)) return false;
+        int keep = WakingConfig.meteorSafeRadius();
+        if (keep <= 0) return true;                                   // the config says nowhere is safe
+        if (level.getSharedSpawnPos().closerThan(at, keep + reach)) return false;
+        for (ServerPlayer p : level.players()) {
+            if (p.distanceToSqr(at.getX(), at.getY(), at.getZ()) < sq(24 + reach)) return false;
+            BlockPos bed = p.getRespawnPosition();
+            if (bed != null && p.getRespawnDimension() == level.dimension() && bed.closerThan(at, keep + reach)) return false;
+        }
+        return true;
     }
 
     /**

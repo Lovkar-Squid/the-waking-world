@@ -47,7 +47,8 @@ import java.util.Set;
  *   <li>mixed mode, rolled through Volcano.shapeFor with fixed random sources, makes about one in
  *       three a shield, and volcanoShape is mixed when nothing sets it;</li>
  *   <li>the world's site choice, asked by a fake player near the finished shield for a cone and for
- *       another shield, never puts the new foot on it;</li>
+ *       another shield, never puts the new foot on it; asked for a shield by one standing on the world
+ *       spawn, it keeps the shield's toe meteorSafeRadius off the spawn;</li>
  *   <li>the cost of the volcano's work in each server tick is logged by phase (rig timings are noisy:
  *       it is never a failure).</li>
  * </ul>
@@ -86,6 +87,9 @@ public class ShieldVolcano {
     private final Set<BlockPos> flowCells = new HashSet<>();
     private final Tally cones = new Tally("a cone");
     private final Tally shields = new Tally("another shield");
+    private final SpawnTally atSpawn = new SpawnTally();
+    /** Where the world spawn is moved for the last site questions: some 600 blocks from the shield. */
+    private static final int SPAWN_X = 100, SPAWN_Z = 200, SPAWN_PICKS = 60;
 
     public ShieldVolcano(final IEventBus modBus) {
         NeoForge.EVENT_BUS.addListener(this::onTick);
@@ -163,6 +167,18 @@ public class ShieldVolcano {
                             cones.detail() + "; at least " + PICKS / 4 + " picks wanted");
                     check("site() keeps another shield's foot off the shield", shields.overlaps == 0 && shields.picks >= PICKS / 4,
                             shields.detail() + "; at least " + PICKS / 4 + " picks wanted");
+                    asked = 0;
+                    next();
+                }
+                case 4 -> {
+                    if (!askAtSpawn(level)) return;
+                    final int keep = WakingConfig.meteorSafeRadius() + footBound + 4;
+                    check("site() keeps a shield's toe meteorSafeRadius off the world spawn",
+                            atSpawn.picks >= SPAWN_PICKS / 4 && atSpawn.closest >= keep,
+                            "asked " + SPAWN_PICKS + " for a fake player standing on the spawn: picks " + atSpawn.picks + ", nulls "
+                                    + atSpawn.nulls + ", the closest vent " + (atSpawn.picks == 0 ? "-" : Math.round(atSpawn.closest))
+                                    + " from the spawn; " + keep + " wanted = meteorSafeRadius " + WakingConfig.meteorSafeRadius()
+                                    + " + the shield's foot " + footBound + " + its toe 4");
                     saves(level);
                     stage = 50;
                 }
@@ -480,6 +496,36 @@ public class ShieldVolcano {
             shields.add(v.siteFor(level, stand(fake, asked), RandomSource.create(9000L + asked), Volcano.Shape.SHIELD), footBound + 4);
         }
         return asked >= PICKS;
+    }
+
+    /**
+     * The world spawn moved under a fake player far from the shield, and a few of the shield's site
+     * questions asked for it: a shield opens 129-199 blocks from whoever it opens near, so a toe kept
+     * only meteorSafeRadius off the vent, as a cone's is, would come down on the spawn about one time
+     * in five. True once all are asked.
+     */
+    private boolean askAtSpawn(final ServerLevel level) {
+        final BlockPos spawn = new BlockPos(SPAWN_X, y0, SPAWN_Z);
+        if (asked == 0) level.setDefaultSpawnPos(spawn, 0.0F);
+        final FakePlayer fake = FakePlayerFactory.getMinecraft(level);
+        fake.setPos(SPAWN_X + 0.5, y0, SPAWN_Z + 0.5);
+        final Volcano v = Volcano.get(level);
+        for (int n = 0; n < PICKS_PER_TICK && asked < SPAWN_PICKS; n++, asked++) {
+            final BlockPos pick = v.siteFor(level, fake, RandomSource.create(11000L + asked), Volcano.Shape.SHIELD);
+            if (pick == null) {
+                atSpawn.nulls++;
+                continue;
+            }
+            atSpawn.picks++;
+            atSpawn.closest = Math.min(atSpawn.closest, dist(pick.getX(), pick.getZ(), SPAWN_X, SPAWN_Z));
+        }
+        return asked >= SPAWN_PICKS;
+    }
+
+    /** What the spawn questions answered: how many sites, how many nulls, and the nearest vent to the spawn. */
+    private static final class SpawnTally {
+        int picks, nulls;
+        double closest = Double.MAX_VALUE;
     }
 
     /** The fake player for one question: 60-120 blocks from the shield's vent, on its own bearing. */
