@@ -907,7 +907,7 @@ public final class Volcano extends SavedData {
         return true;
     }
 
-    // ---- for the headless probe (tools/volcanoheight) --------------------------------------
+    // ---- for the headless probes (tools/volcanoheight, tools/volcanosite) ------------------
 
     /**
      * Where the world would open its next vent near {@code near}, without opening anything, asked
@@ -919,9 +919,9 @@ public final class Volcano extends SavedData {
     }
 
     /**
-     * The same at a sea level of the caller's choosing. tools/volcanoheight passed the flat world's
-     * own here before site() read the generator's itself, and tools/volcanosite passes 63 - what
-     * {@code Level.getSeaLevel()} answers - to show that the old way found nowhere on a flat world.
+     * The same at a sea level of the caller's choosing. tools/volcanoheight passes the flat world's
+     * own, as it had to before site() read the generator's itself, and tools/volcanosite passes 63 -
+     * what {@code Level.getSeaLevel()} answers - to show that the old way found nowhere on a flat world.
      */
     public BlockPos siteFor(ServerLevel level, ServerPlayer near, RandomSource rnd, int sea) {
         return site(level, near, rnd, sea);
