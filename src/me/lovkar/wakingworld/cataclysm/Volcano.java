@@ -223,7 +223,7 @@ public final class Volcano extends SavedData {
     // NOTE: only the IDLE roll needs a player. Once the ground has opened the mountain finishes on
     // its own - leaving a half-built cone standing there because everyone logged off would be worse.
     private void begin(ServerLevel level, ServerPlayer near, RandomSource rnd) {
-        BlockPos site = site(level, near, rnd);
+        BlockPos site = site(level, near, rnd, level.getSeaLevel());
         if (site == null) {                                      // nowhere sensible: try again tomorrow
             cooldownUntilDay = (int) (level.getDayTime() / 24000L) + 1;
             setDirty();
@@ -631,14 +631,14 @@ public final class Volcano extends SavedData {
     }
 
     /** Open, dry, level-ish ground a good way off - and never on top of anyone's home. */
-    private BlockPos site(ServerLevel level, ServerPlayer near, RandomSource rnd) {
+    private BlockPos site(ServerLevel level, ServerPlayer near, RandomSource rnd, int sea) {
         for (int attempt = 0; attempt < 24; attempt++) {
             double angle = rnd.nextDouble() * Math.PI * 2;
             double dist = 90 + rnd.nextDouble() * 70;
             int x = (int) (near.getX() + Math.cos(angle) * dist);
             int z = (int) (near.getZ() + Math.sin(angle) * dist);
             BlockPos top = Cataclysms.surface(level, x, z);
-            if (top.getY() < level.getSeaLevel() + 2) continue;               // not in the sea
+            if (top.getY() < sea + 2) continue;                               // not in the sea
             if (!level.getFluidState(top.below()).is(Fluids.EMPTY)) continue;
             if (!Cataclysms.away(level, top)) continue;
             // a mountain's whole foot must be the world's own ground, not a colony's
@@ -729,5 +729,19 @@ public final class Volcano extends SavedData {
         v.barren = 0;
         v.setDirty();
         return true;
+    }
+
+    // ---- for the headless probe (tools/volcanoheight) --------------------------------------
+
+    /**
+     * Where the world would open its next vent near {@code near}, without opening anything. Only the
+     * headless probe calls this: nobody can join the test server, so the morning roll that would
+     * call {@link #site} never comes round, and the probe asks it directly with a fake player. It
+     * passes its own sea level because the test world is a flat one with its grass at y=-1, and in
+     * 1.21.1 {@code Level.getSeaLevel()} answers 63 whatever the generator says - every spot on it
+     * would be "in the sea".
+     */
+    public BlockPos siteFor(ServerLevel level, ServerPlayer near, RandomSource rnd, int sea) {
+        return site(level, near, rnd, sea);
     }
 }
