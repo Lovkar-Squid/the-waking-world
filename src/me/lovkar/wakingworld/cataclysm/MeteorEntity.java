@@ -340,6 +340,12 @@ public class MeteorEntity extends Entity {
         for (int i = 0; i < 4 && !server.getBlockState(on).canBeReplaced(); i++) on = on.above();
         if (!server.getBlockState(on).canBeReplaced()) return;
         if (server.getBlockState(on.below()).isAir()) return;               // not hanging in the air
+        // Lava counts as replaceable, so a bomb that comes down in a lava lake, a player's pit or a
+        // flow channel lands ON lava that was there before it. That lava is not the bomb's to cool:
+        // remembering it would set somebody's lava pool into basalt a minute and a half later.
+        // Flowing lava is still overwritten with the bomb's own source, which does cool.
+        net.minecraft.world.level.material.FluidState before = server.getFluidState(on);
+        if (before.is(net.minecraft.tags.FluidTags.LAVA) && before.isSource()) return;
         if (Scars.set(server, on, Blocks.LAVA.defaultBlockState())) BombLava.poured(server, on);
     }
 }

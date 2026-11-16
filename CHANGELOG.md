@@ -33,7 +33,8 @@ nothing on it, threw none of its wave onto it and left the villager standing the
   nobody could live near one without fire resistance. Each source of lava a bomb pours is now
   remembered, and after `volcanoBombCoolSeconds` (default 90) it sets into basalt or blackstone
   with a hiss; the little flow it fed dries up by itself. A source in an unloaded chunk sets when
-  its chunk is loaded again. The crater pool still glows for good. Two new keys in the
+  its chunk is loaded again. The crater pool still glows for good, and so does lava that was there
+  before a bomb came down in it: a lava lake or a player's pit is not the bomb's to cool. Two new keys in the
   `cataclysms` section: `volcanoBombsCool` (default on; off is the old behaviour) and
   `volcanoBombCoolSeconds` (10-3600).
 
