@@ -40,6 +40,15 @@ import java.util.List;
  * <p>Nothing here flows: the only lava placed is the pool inside the crater, and the "flows" down
  * the flanks are magma and obsidian that have already set. A volcano changes the map; it does not
  * chase anybody's house down a hill.</p>
+ *
+ * <p>A shield is the other kind (0.3.0-beta.8, {@code volcanoShape}): a player on CurseForge wanted
+ * the gentle Hawaiian sort, slopes you can walk up and build a colony on, with a summit crater he
+ * could cut lava channels from once it had cooled. It is half the cone's height and four times as
+ * wide for every block it climbs, so each course is a ring four or so blocks inside the one below
+ * and the flank is a staircase of broad treads. On top is a wide, shallow caldera holding a lava
+ * lake, and two or three flows lie in grooves down the treads; when it cools, all of it sets into
+ * black rock except a small glowing heart in the middle of the caldera. Its lava stands still as
+ * the cone's does: every block of it is enclosed by rock on all four sides before it is poured.</p>
  */
 public final class Volcano extends SavedData {
     public static final String NAME = "wakingworld_volcano";
@@ -74,8 +83,38 @@ public final class Volcano extends SavedData {
     /** The scar this mountain is writing, so an hourglass can put the country back under it. */
     private java.util.UUID scar;
 
-    /** One vent this world has opened: where it stood and how wide its foot was. */
-    public record Vent(int x, int y, int z, int foot) {
+    /** What a volcano grows into. Rolled once when it opens and saved with it. */
+    public enum Shape {
+        CONE, SHIELD;
+
+        /** The word the config and the command use. */
+        public String id() {
+            return name().toLowerCase(java.util.Locale.ROOT);
+        }
+    }
+
+    /** The shape of the one going up (or the last one). A save from before 0.3.0-beta.8 has none: a cone. */
+    private Shape shape = Shape.CONE;
+    /** How many flows a shield runs down its flanks: two or three. */
+    private int flows;
+    /**
+     * A shield's course is laid a strip at a time: {@link #layRow} is the next strip, and
+     * {@link #courseLaid} how many blocks of the course have gone down so far, so a course that a
+     * colony refuses whole is still told apart from one that is half laid.
+     */
+    private boolean laying;
+    private int layRow;
+    private int courseLaid;
+
+    /**
+     * One vent this world has opened: where it stood and how wide its foot was. A shield's foot is
+     * its real outer edge, wider than any cone's; {@link #reach(Vent)} reads the two differently.
+     */
+    public record Vent(int x, int y, int z, int foot, boolean shield) {
+        /** A cone's vent, as every vent was before shields. */
+        public Vent(int x, int y, int z, int foot) {
+            this(x, y, z, foot, false);
+        }
     }
 
     /**
@@ -115,8 +154,32 @@ public final class Volcano extends SavedData {
         // forced cone would stand half-built for ever.
         Volcano v = get(level);
         if (!WakingConfig.volcanoes() && v.phase == Phase.IDLE) return;
+        long t0 = System.nanoTime();
         v.tick(level);
+        slowest = Math.max(slowest, System.nanoTime() - t0);
     }
+
+    /**
+     * Every game tick, between the once-a-second ticks: the next strips of a shield's course, while
+     * one is being laid. Laid once a second, a course of fifteen thousand blocks was a 60 ms hitch
+     * every second on the test server; a twentieth of it every tick is not felt.
+     */
+    public static void onEveryTick(ServerLevel level) {
+        Volcano v = get(level);
+        if (v.phase != Phase.RISING || !v.laying) return;
+        long t0 = System.nanoTime();
+        Scars.writing(level, v.scar);
+        try {
+            v.layShield(level, level.random);
+            v.setDirty();
+        } finally {
+            Scars.close();
+        }
+        slowest = Math.max(slowest, System.nanoTime() - t0);
+    }
+
+    /** The longest one call of {@link #onLevelTick} or {@link #onEveryTick} has taken since the last reset, in nanoseconds. */
+    private static long slowest;
 
     private void tick(ServerLevel level) {
         Scars.writing(level, scar);
@@ -155,9 +218,10 @@ public final class Volcano extends SavedData {
                 smoke(level);
                 Omen.tick(level, new Vec3(cx, baseY, cz), Omen.Kind.VOLCANO, phaseTicks / 20);
                 // the skirt is thousands of columns; laid in one go it is a two-second freeze in the
-                // middle of the shot, so it goes down in strips, one a second, under the smoke
+                // middle of the shot, so it goes down in strips, one a second, under the smoke. A
+                // shield has no separate skirt: its bottom course is laid down to the ground as it goes.
                 int slice = FOOT_SLICES - 1 - Math.max(0, Math.min(FOOT_SLICES - 1, phaseTicks / 20));
-                if (slice >= 0 && slice < FOOT_SLICES) {
+                if (shape == Shape.CONE && slice >= 0 && slice < FOOT_SLICES) {
                     foot(level, rnd, (int) Math.ceil(outerAt(0.0)) + 1, slice, FOOT_SLICES);
                 }
                 if (phaseTicks % 60 == 0) {
@@ -168,13 +232,35 @@ public final class Volcano extends SavedData {
                     phase = Phase.RISING;
                     nextPulse = 0;
                     // whatever the strips did not reach - a short warning, or a reload part way through
-                    for (int i = 0; i < FOOT_SLICES; i++) foot(level, rnd, (int) Math.ceil(outerAt(0.0)) + 1, i, FOOT_SLICES);
+                    if (shape == Shape.CONE) {
+                        for (int i = 0; i < FOOT_SLICES; i++) foot(level, rnd, (int) Math.ceil(outerAt(0.0)) + 1, i, FOOT_SLICES);
+                    }
                     setDirty();
                 }
             }
             case RISING -> {
                 nextPulse -= 20;
                 smoke(level);
+                if (shape == Shape.SHIELD) {
+                    // A shield's bottom course is fifteen thousand blocks. This only starts a course:
+                    // onEveryTick lays it a strip at a time, SHIELD_BUDGET blocks a tick, and the next
+                    // course waits for it as well as for its turn - the pace is the config's wherever
+                    // the budget keeps up with it.
+                    if (!laying && nextPulse <= 0 && course < courses) {
+                        laying = true;
+                        layRow = -shieldRowReach(course);
+                        courseLaid = 0;
+                        int rise = riseSeconds > 0 ? riseSeconds : WakingConfig.volcanoMinutes() * 60;
+                        nextPulse = Math.max(1, Math.round(rise / (float) Math.max(1, courses))) * 20;
+                    }
+                    setDirty();
+                    if (phase == Phase.RISING && !laying && course >= courses) {
+                        phase = Phase.SETTLING;
+                        phaseTicks = 10 * 20;
+                        crownShield(level, rnd);
+                    }
+                    return;
+                }
                 if (nextPulse <= 0) {
                     pulse(level, rnd);
                     // this runs once every 20 ticks and takes 20 off, so anything that is not a whole
@@ -218,6 +304,24 @@ public final class Volcano extends SavedData {
             case COOLING -> {
                 phaseTicks -= 20;
                 smoke(level);
+                if (shape == Shape.SHIELD) {
+                    int total = Math.max(60, WakingConfig.volcanoCoolMinutes() * 60) * 20;
+                    float done = 1.0F - Math.max(0, phaseTicks) / (float) total;
+                    // The last COOL_SLICES seconds sweep every slice once more and set whatever is
+                    // still molten. The flows are what people will walk and build on, so unlike the
+                    // cone's flank nothing of them is left to chance at the end of the cooling.
+                    boolean sure = phaseTicks <= COOL_SLICES * 20;
+                    int setBlocks = coolShield(level, 0.05 + 0.55 * done, sure, level.random);
+                    coolSlice = (coolSlice + 1) % COOL_SLICES;
+                    cooledBlocks += setBlocks;
+                    if (setBlocks > 0) {
+                        Cataclysms.puff(level, ParticleTypes.LARGE_SMOKE, cx, baseY + courses * 0.5, cz, 20,
+                                baseR * 0.4, 1.0, baseR * 0.4, 0.02);
+                    }
+                    setDirty();
+                    if (phaseTicks <= 0) end(level);
+                    return;
+                }
                 int rim = baseY + courses;
                 int pool = rim - 4;                              // crown() lays the pool at rim-3 and rim-2
                 int total = Math.max(60, WakingConfig.volcanoCoolMinutes() * 60) * 20;
@@ -247,7 +351,11 @@ public final class Volcano extends SavedData {
     // NOTE: only the IDLE roll needs a player. Once the ground has opened the mountain finishes on
     // its own - leaving a half-built cone standing there because everyone logged off would be worse.
     private void begin(ServerLevel level, ServerPlayer near, RandomSource rnd) {
-        BlockPos site = site(level, near, rnd);
+        // the shape first: a shield's foot is three or four times a cone's, and the site has to be
+        // chosen for the foot that will actually go down
+        Shape s = shapeFor(WakingConfig.volcanoShape(), rnd);
+        int h = s == Shape.SHIELD ? shieldCourses(WakingConfig.volcanoHeight()) : Math.max(6, WakingConfig.volcanoHeight());
+        BlockPos site = site(level, near, rnd, seaLevel(level), s, h);
         if (site == null) {                                      // nowhere sensible: try again tomorrow
             cooldownUntilDay = (int) (level.getDayTime() / 24000L) + 1;
             setDirty();
@@ -256,8 +364,11 @@ public final class Volcano extends SavedData {
         cx = site.getX();
         cz = site.getZ();
         baseY = site.getY();
-        baseR = WakingConfig.volcanoRadius();
-        courses = Math.max(6, WakingConfig.volcanoHeight());
+        shape = s;
+        courses = h;
+        baseR = s == Shape.SHIELD ? shieldFoot(h) : WakingConfig.volcanoRadius();
+        flows = 2 + rnd.nextInt(2);
+        laying = false;
         course = 0;
         spill = rnd.nextFloat() * (float) (Math.PI * 2);
         riseSeconds = 0;                // a volcano the world raised keeps the world's pace
@@ -274,7 +385,7 @@ public final class Volcano extends SavedData {
         }
         // the chronicle is what the kings read: a mountain coming up in their country is news
         me.lovkar.wakingworld.story.Chronicle.record(level, "cataclysm", "volcano", new BlockPos(cx, baseY, cz), null);
-        WakingWorld.LOGGER.info("cataclysm: a volcano opens at {} {} {} ({} courses, foot {})", cx, baseY, cz, courses, baseR);
+        WakingWorld.LOGGER.info("cataclysm: a volcano opens at {} {} {} ({}, {} courses, foot {})", cx, baseY, cz, shape.id(), courses, baseR);
     }
 
     /** One course of the cone: a ring of rock at the current height, and something thrown out of it. */
@@ -381,7 +492,8 @@ public final class Volcano extends SavedData {
             double bz = cz + 0.5 + Math.sin(angle) * 0.6;
             // aim for open country beyond the foot, and work the speed back from that. A falling
             // block keeps 98% of its speed a tick, which comes to about 43 blocks of ground for
-            // every 1.0 of horizontal it leaves with.
+            // every 1.0 of horizontal it leaves with. A shield's baseR is its own wide foot, so its
+            // bombs come down past the toe of it and not on the treads.
             double reach = baseR + 14 + rnd.nextDouble() * 46;
             double speed = reach / 43.0;
 
@@ -539,6 +651,418 @@ public final class Volcano extends SavedData {
         cooledBlocks = 0;
     }
 
+    // ---- the shield ------------------------------------------------------------------------
+
+    /** The caldera's radius, about which it swells and narrows by half a block: 13 to 15 blocks across. */
+    private static final double CALDERA_R = 6.8;
+    /** How wide the rim's lip stands round the caldera. */
+    private static final double RIM_W = 2.6;
+    /**
+     * How far each course of a shield stands inside the one below it, on its narrowest bearing. The
+     * design is one block up for four out, but the rings are circles drawn on a grid: along a
+     * diagonal the last block of a ring can fall most of a block short of the true circle, and a
+     * tread drawn four wide then comes out under three. At 4.45 the narrowest tread on any bearing is
+     * still three and a half blocks, and the flank as a whole rises about one in four and a half.
+     */
+    private static final double TREAD = 4.45;
+    /** How much wider than TREAD the treads run on the shield's broad lobes. */
+    private static final double LOBES = 0.12;
+    /** The throat up the middle while it rises. */
+    private static final double THROAT_R = 2.5;
+    /** The heart still glowing once it has cooled: lava within HEART_LAVA of the middle, magma out to HEART_R. */
+    private static final double HEART_LAVA = 1.0, HEART_R = 1.5;
+    /**
+     * Blocks laid in one game tick of a shield's rise, three thousand-odd a second. A shield is some
+     * eighty thousand blocks against a default cone's ten thousand, and its bottom course alone is
+     * fifteen thousand; written in one go that is a long freeze. A strip is never cut short, so a
+     * tick can run a strip over.
+     */
+    private static final int SHIELD_BUDGET = 160;
+    /** How far past the bottom course the scorched ring and a flow's toe go. */
+    private static final int SHIELD_TOE = 4;
+    /** How far a flow wanders either side of its bearing as it goes down, in radians. */
+    private static final double MEANDER = 0.10;
+
+    /** A shield grows half as tall as the cone the same setting makes. */
+    static int shieldCourses(int height) {
+        return Math.max(6, height / 2);
+    }
+
+    /** The widest a shield of this many courses can be at its foot, on any bearing and whatever its spill. */
+    static int shieldFoot(int courses) {
+        return (int) Math.ceil(CALDERA_R + 0.5 + RIM_W + TREAD * (courses - 1) * (1.0 + LOBES));
+    }
+
+    /** The caldera's edge at one bearing: a little wider one way than the other, turned by the spill. */
+    private double calderaAt(double a) {
+        return CALDERA_R + 0.5 * Math.sin(2 * a + spill);
+    }
+
+    /** The outer edge of the rim round the caldera. */
+    private double rimAt(double a) {
+        return calderaAt(a) + RIM_W;
+    }
+
+    /**
+     * How much wider than TREAD the treads run at one bearing, 1 to 1 + LOBES. A shield whose rings
+     * are all true circles is a stack of plates; a real one spreads further where more lava ran, so
+     * its foot bulges out in two or three broad lobes. A lobe only ever widens a tread.
+     */
+    private double lobe(double a) {
+        return 1.0 + LOBES * (0.5 + 0.3 * Math.sin(2 * a + 2 * spill) + 0.2 * Math.cos(3 * a - spill));
+    }
+
+    /** The outer edge of one course of a shield at one bearing. The top course is the rim. */
+    private double shieldEdge(int h, double a) {
+        if (h >= courses - 1) return rimAt(a);
+        return rimAt(a) + TREAD * (courses - 1 - h) * lobe(a);
+    }
+
+    /** How far out the strips of course h run: past its widest bearing, and past the toe for the bottom one. */
+    private int shieldRowReach(int h) {
+        int widest = (int) Math.ceil(CALDERA_R + 0.5 + RIM_W + TREAD * Math.max(0, courses - 1 - h) * (1.0 + LOBES));
+        return widest + 1 + (h == 0 ? SHIELD_TOE : 0);
+    }
+
+    /**
+     * Lays the next strips of the course in hand, up to SHIELD_BUDGET blocks, and finishes the course
+     * once its last strip is down. The bottom course also fills in under itself wherever the ground
+     * dips below the foot, and scorches a ring round it.
+     */
+    private void layShield(ServerLevel level, RandomSource rnd) {
+        int h = course;
+        int y = baseY + h;
+        double climbed = (double) h / courses;
+        int r = shieldRowReach(h);
+        int budget = SHIELD_BUDGET;
+        while (layRow <= r && budget > 0) {
+            int dx = layRow++;
+            for (int dz = -r; dz <= r; dz++) {
+                double d = Math.sqrt(dx * dx + dz * dz);
+                if (d > r) continue;
+                double a = Math.atan2(dz, dx);
+                double edge = shieldEdge(h, a);
+                if (d > edge) {
+                    if (h == 0 && d <= edge + SHIELD_TOE && rnd.nextDouble() < 0.4) budget -= scorch(level, rnd, cx + dx, cz + dz);
+                    continue;
+                }
+                if (h == courses - 1 && d <= calderaAt(a)) continue;     // the caldera: its lake goes in at the end
+                if (d < THROAT_R && h < courses - 1) continue;           // the throat: poured once the ring round it is whole
+                if (h == 0) budget -= underfill(level, rnd, cx + dx, cz + dz);
+                BlockPos at = new BlockPos(cx + dx, y, cz + dz);
+                BlockState state = level.getBlockState(at);
+                if (!state.isAir() && state.getFluidState().isEmpty() && h > 0 && rnd.nextDouble() < 0.35) continue;
+                // whether a course above will cover it: what stays open is the tread people walk on
+                boolean covered = h < courses - 1 && d <= shieldEdge(h + 1, a);
+                if (Scars.set(level, at, shieldRock(rnd, climbed, covered))) {
+                    courseLaid++;
+                    budget--;
+                }
+            }
+        }
+        if (layRow > r) finishCourse(level, rnd);
+    }
+
+    /**
+     * Where the ground dips below a shield's bottom course: rock from the ground up to it, so the
+     * foot does not stand on a lip of air, and water in the hollow goes, as under a cone. Returns the
+     * blocks written.
+     */
+    private int underfill(ServerLevel level, RandomSource rnd, int x, int z) {
+        int top = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+        int n = 0;
+        for (int y = Math.max(level.getMinBuildHeight() + 1, top - 1); y < baseY; y++) {
+            BlockPos at = new BlockPos(x, y, z);
+            if (level.getBlockState(at).isAir() || !level.getFluidState(at).isEmpty()) {
+                if (Scars.set(level, at, wall(rnd, 0.0))) n++;
+            }
+        }
+        return n;
+    }
+
+    /**
+     * Ground burnt round a shield's foot: the top of it turned to tuff or basalt where it stands,
+     * never raised, so the plain round the foot stays as flat as it was. Returns the blocks written.
+     */
+    private int scorch(ServerLevel level, RandomSource rnd, int x, int z) {
+        int top = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+        if (top > baseY + 3 || top < baseY - 3) return 0;          // a bank or a hollow, not the plain at the foot
+        BlockPos ground = new BlockPos(x, top - 1, z);
+        if (!scorchable(level.getBlockState(ground))) return 0;
+        int n = 0;
+        BlockState above = level.getBlockState(ground.above());
+        if (above.is(BlockTags.REPLACEABLE) && !above.isAir() && Scars.set(level, ground.above(), Blocks.AIR.defaultBlockState())) n++;
+        if (Scars.set(level, ground, rnd.nextBoolean() ? Blocks.TUFF.defaultBlockState() : Blocks.BASALT.defaultBlockState())) n++;
+        return n;
+    }
+
+    /** Ground that burns to rock round the foot: earth, sand, gravel and the country's own stone, never anything laid. */
+    private static boolean scorchable(BlockState s) {
+        return s.is(BlockTags.DIRT) || s.is(BlockTags.SAND) || s.is(Blocks.GRAVEL) || s.is(BlockTags.BASE_STONE_OVERWORLD);
+    }
+
+    /**
+     * A shield's rock: the cone's, except that a block left open on a tread is never magma. The
+     * treads are what a shield is for - somebody is going to walk up them and build on them.
+     */
+    private static BlockState shieldRock(RandomSource rnd, double climbed, boolean covered) {
+        BlockState s = wall(rnd, climbed);
+        return !covered && s.is(Blocks.MAGMA_BLOCK) ? Blocks.BASALT.defaultBlockState() : s;
+    }
+
+    /** From this course up, a finished course runs the flows down every tread below it. */
+    private int flowsFrom() {
+        return Math.max(2, (int) Math.round(courses * 0.4));
+    }
+
+    /**
+     * The course in hand is down: its throat is poured, the flows are run down the treads under it,
+     * and the mountain makes its noise and throws its bombs - once the course is there to have done
+     * it, as the cone does.
+     */
+    private void finishCourse(ServerLevel level, RandomSource rnd) {
+        laying = false;
+        int h = course;
+        int y = baseY + h;
+        if (courseLaid == 0) {
+            // as for a cone: not one block of the course could go down, so it is standing on a colony
+            barren++;
+            course++;
+            if (barren >= 3) {
+                WakingWorld.LOGGER.info("cataclysm: the mountain at {} {} {} can raise nothing (a colony's land) - it is called off", cx, baseY, cz);
+                end(level);
+            }
+            return;
+        }
+        barren = 0;
+        if (h < courses - 1) {
+            // the shaft glows all the way up, as the cone's does
+            java.util.Set<BlockPos> throat = new java.util.LinkedHashSet<>();
+            for (int dx = -2; dx <= 2; dx++) {
+                for (int dz = -2; dz <= 2; dz++) {
+                    if (dx * dx + dz * dz < THROAT_R * THROAT_R) throat.add(new BlockPos(cx + dx, y, cz + dz));
+                }
+            }
+            pour(level, throat, false);
+        }
+        if (h >= flowsFrom()) cutFlows(level, h);
+        level.playSound(null, cx, y, cz, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, 15.0F, 0.28F + rnd.nextFloat() * 0.12F);
+        Cataclysms.puff(level, ParticleTypes.LARGE_SMOKE, cx + 0.5, y + 1.5, cz + 0.5, 60, CALDERA_R * 0.6, 2.0, CALDERA_R * 0.6, 0.05);
+        Cataclysms.puff(level, ParticleTypes.LAVA, cx + 0.5, y + 1.0, cz + 0.5, 24, THROAT_R, 0.5, THROAT_R, 0.0);
+        WakingWorld.hooks.shakeAt(new Vec3(cx, y, cz), 2.2F, 200);
+        bombs(level, rnd, y, THROAT_R);
+        course++;
+    }
+
+    /**
+     * Pours lava into every planned block that will hold it: rock or lava on its four sides and
+     * under it. A planned block with an open side is left out and the rest are asked again, until
+     * all that is left is enclosed, so not one block of a shield's lava can run. With {@code lips},
+     * what was left out on an open tread is made magma: the edge of the step down to the next tread,
+     * glowing between one pool of a flow and the next.
+     */
+    private static int pour(ServerLevel level, java.util.Set<BlockPos> plan, boolean lips) {
+        java.util.Set<BlockPos> left = new java.util.LinkedHashSet<>();
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            java.util.Iterator<BlockPos> it = plan.iterator();
+            while (it.hasNext()) {
+                BlockPos at = it.next();
+                if (holds(level, at, plan)) continue;
+                it.remove();
+                left.add(at);
+                changed = true;
+            }
+        }
+        int n = 0;
+        for (BlockPos at : plan) {
+            if (level.getBlockState(at).is(Blocks.LAVA)) continue;
+            if (Scars.set(level, at, Blocks.LAVA.defaultBlockState())) n++;
+        }
+        if (lips) {
+            for (BlockPos at : left) {
+                BlockState s = level.getBlockState(at);
+                if (s.isAir() || !s.getFluidState().isEmpty() || s.is(Blocks.MAGMA_BLOCK)) continue;
+                if (!level.getBlockState(at.above()).isAir()) continue;
+                Scars.set(level, at, Blocks.MAGMA_BLOCK.defaultBlockState());
+            }
+        }
+        return n;
+    }
+
+    /** Whether lava poured here would stay: every side and the floor seal it. */
+    private static boolean holds(ServerLevel level, BlockPos at, java.util.Set<BlockPos> plan) {
+        if (!seals(level, at.below(), plan)) return false;
+        for (net.minecraft.core.Direction side : net.minecraft.core.Direction.Plane.HORIZONTAL) {
+            if (!seals(level, at.relative(side), plan)) return false;
+        }
+        return true;
+    }
+
+    /** Lava cannot get out through this block: it is lava already, or about to be, or solid and not in the way of a fluid. */
+    private static boolean seals(ServerLevel level, BlockPos at, java.util.Set<BlockPos> plan) {
+        if (plan.contains(at)) return true;
+        BlockState s = level.getBlockState(at);
+        if (s.is(Blocks.LAVA)) return true;
+        return !s.isAir() && s.getFluidState().isEmpty() && !s.canBeReplaced();
+    }
+
+    /** The bearing flow f leaves the summit on: spread evenly round the compass from the spill, a little off true. */
+    private double flowBearing(int f) {
+        return spill + f * (Math.PI * 2) / Math.max(1, flows) + 0.35 * Math.sin(spill * 3.0 + f * 1.7);
+    }
+
+    /** Where flow f runs at distance r from the vent: it wanders a little either side of its bearing. */
+    private double flowAt(int f, double r) {
+        return flowBearing(f) + MEANDER * Math.sin(r / 7.0 + spill * 5.0 + f * 2.1);
+    }
+
+    /**
+     * The flows down every tread below course {@code upTo}. They are cut afresh each time a course
+     * goes up, from the top down to the foot, so the lava is seen to come down from the summit as
+     * it climbs; the line of each is fixed by the spill, so a groove already cut is simply found
+     * full.
+     */
+    private void cutFlows(ServerLevel level, int upTo) {
+        for (int f = 0; f < flows; f++) {
+            for (int k = Math.min(upTo, courses - 1) - 1; k >= 0; k--) pour(level, groove(f, k), true);
+        }
+    }
+
+    /**
+     * Flow f's groove on tread k - the open top of course k, between the riser of the course above
+     * and the step down: three blocks wide along the flow's line, sunk into the tread so its lava
+     * lies level with the rock either side. The step's own edge is not poured (see {@link #pour}).
+     */
+    private java.util.Set<BlockPos> groove(int f, int k) {
+        java.util.Set<BlockPos> cells = new java.util.LinkedHashSet<>();
+        int y = baseY + k;
+        double b = flowBearing(f);
+        double from = Math.max(0.0, shieldEdge(k + 1, b) - 1.5), to = shieldEdge(k, b) + 1.5;
+        for (double r = from; r <= to; r += 0.25) {
+            double a = flowAt(f, r);
+            double px = Math.cos(a) * r, pz = Math.sin(a) * r;
+            double nx = -Math.sin(a), nz = Math.cos(a);
+            for (double w = -1.0; w <= 1.0; w += 0.5) {
+                int dx = (int) Math.floor(px + nx * w + 0.5);
+                int dz = (int) Math.floor(pz + nz * w + 0.5);
+                double d = Math.sqrt(dx * dx + dz * dz);
+                double at = Math.atan2(dz, dx);
+                if (d > shieldEdge(k, at) || d <= shieldEdge(k + 1, at)) continue;   // not on this tread
+                cells.add(new BlockPos(cx + dx, y, cz + dz));
+            }
+        }
+        return cells;
+    }
+
+    /**
+     * The summit, once the rim is up: the lake poured into the caldera, the rim cut away where each
+     * flow leaves and the lake let out under the notch, every flow run one last time from the lake
+     * to the foot, the toes, and the ash.
+     */
+    private void crownShield(ServerLevel level, RandomSource rnd) {
+        int rimY = baseY + courses - 1;
+        int lakeY = rimY - 1;
+        java.util.Set<BlockPos> lake = new java.util.LinkedHashSet<>();
+        int r = (int) Math.ceil(CALDERA_R + 0.5) + 1;
+        for (int dx = -r; dx <= r; dx++) {
+            for (int dz = -r; dz <= r; dz++) {
+                double d = Math.sqrt(dx * dx + dz * dz);
+                double edge = calderaAt(Math.atan2(dz, dx));
+                if (d > edge) continue;
+                lake.add(new BlockPos(cx + dx, lakeY, cz + dz));
+                if (d <= edge * 0.6) lake.add(new BlockPos(cx + dx, lakeY - 1, cz + dz));   // deeper in the middle
+            }
+        }
+        pour(level, lake, false);
+        for (int f = 0; f < flows; f++) {
+            java.util.Set<BlockPos> spillway = new java.util.LinkedHashSet<>();
+            for (double rr = CALDERA_R - 1.5; rr <= CALDERA_R + 0.5 + RIM_W + 1.0; rr += 0.25) {
+                double a = flowAt(f, rr);
+                double px = Math.cos(a) * rr, pz = Math.sin(a) * rr;
+                double nx = -Math.sin(a), nz = Math.cos(a);
+                for (double w = -1.0; w <= 1.0; w += 0.5) {
+                    int dx = (int) Math.floor(px + nx * w + 0.5);
+                    int dz = (int) Math.floor(pz + nz * w + 0.5);
+                    double d = Math.sqrt(dx * dx + dz * dz);
+                    double at = Math.atan2(dz, dx);
+                    if (d <= calderaAt(at) || d > rimAt(at)) continue;          // only under the rim itself
+                    BlockPos notch = new BlockPos(cx + dx, rimY, cz + dz);
+                    if (!level.getBlockState(notch).isAir()) Scars.set(level, notch, Blocks.AIR.defaultBlockState());
+                    spillway.add(notch.below());
+                }
+            }
+            pour(level, spillway, false);
+        }
+        cutFlows(level, courses);
+        for (int f = 0; f < flows; f++) toe(level, rnd, f);
+        level.playSound(null, cx, rimY, cz, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, 18.0F, 0.3F);
+        // ash as for a cone, carried off on the far side from the spill; it reaches as far past the
+        // foot as a default cone's ash reaches past its vent (a cone's 2.6 feet would be 190 blocks)
+        Aftermath.ashfall(level, new BlockPos(cx, baseY, cz), spill + Math.PI, baseR + 48, rnd);
+    }
+
+    /** Where a flow reaches the plain: a small fan of basalt let into the grass, a few blocks past the foot. */
+    private void toe(ServerLevel level, RandomSource rnd, int f) {
+        double foot = shieldEdge(0, flowBearing(f));
+        for (int i = 0; i < 16; i++) {
+            double rr = foot + 1.0 + rnd.nextDouble() * (SHIELD_TOE - 1);
+            double a = flowAt(f, rr) + (rnd.nextDouble() - 0.5) * 5.0 / rr;
+            int x = (int) Math.floor(cx + 0.5 + Math.cos(a) * rr);
+            int z = (int) Math.floor(cz + 0.5 + Math.sin(a) * rr);
+            int top = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+            if (top > baseY + 3 || top < baseY - 3) continue;
+            BlockPos ground = new BlockPos(x, top - 1, z);
+            BlockState s = level.getBlockState(ground);
+            if (!scorchable(s) && !s.is(Blocks.TUFF)) continue;
+            Scars.set(level, ground, rnd.nextDouble() < 0.7 ? Blocks.BASALT.defaultBlockState() : Blocks.BLACKSTONE.defaultBlockState());
+        }
+    }
+
+    /**
+     * One slice of a shield's cooling: the lava inside the foot sets, the toe first. Flows and lake
+     * set into basalt with some blackstone - no magma or obsidian, since people are meant to walk on
+     * them - except the heart in the middle of the lake, which stays lava ringed with magma. The magma
+     * lips left open on the treads set with the flows. With {@code sure}, every block of it sets.
+     */
+    private int coolShield(ServerLevel level, double chance, boolean sure, RandomSource rnd) {
+        int set = 0;
+        int r = baseR + 2;
+        int top = baseY + courses - 1;
+        int lakeY = top - 1;
+        int n = -1;
+        for (int dx = -r; dx <= r; dx++) {
+            for (int dz = -r; dz <= r; dz++) {
+                if (dx * dx + dz * dz > r * r) continue;
+                if (++n % COOL_SLICES != coolSlice) continue;
+                int x = cx + dx, z = cz + dz;
+                double d = Math.sqrt(dx * dx + dz * dz);
+                int colTop = Math.min(top, level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) - 1);
+                for (int y = baseY - 1; y <= colTop; y++) {
+                    BlockPos at = new BlockPos(x, y, z);
+                    BlockState s = level.getBlockState(at);
+                    boolean lava = s.is(Blocks.LAVA);
+                    if (!lava && !(y == colTop && s.is(Blocks.MAGMA_BLOCK))) continue;
+                    if (y == lakeY && d <= HEART_R) {
+                        // the heart: lava in the very middle with a ring of magma round it, for good
+                        if (lava && d > HEART_LAVA && Scars.set(level, at, Blocks.MAGMA_BLOCK.defaultBlockState())) set++;
+                        continue;
+                    }
+                    double deep = (top - y) / (double) Math.max(1, top - baseY + 1);
+                    if (!sure && rnd.nextDouble() > chance * (0.35 + 0.65 * deep)) continue;
+                    if (!Scars.set(level, at, (rnd.nextDouble() < 0.8 ? Blocks.BASALT : Blocks.BLACKSTONE).defaultBlockState())) continue;
+                    set++;
+                    if (rnd.nextInt(5) == 0) {
+                        Cataclysms.puff(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, x + 0.5, y + 1.0, z + 0.5, 2, 0.22, 0.10, 0.22, 0.012);
+                        if (rnd.nextInt(4) == 0) Cataclysms.puff(level, ParticleTypes.LAVA, x + 0.5, y + 1.0, z + 0.5, 1, 0.15, 0.05, 0.15, 0.0);
+                    }
+                }
+            }
+        }
+        return set;
+    }
+
     /** Ash and smoke drifting over anyone near enough to be under it. */
     /**
      * The plume. The first version put a dozen particles over the vent and was invisible from any
@@ -548,7 +1072,8 @@ public final class Volcano extends SavedData {
      */
     private void smoke(ServerLevel level) {
         int top = baseY + Math.max(1, course);
-        double vent = Math.max(2.0, ventAt(courses == 0 ? 0 : (double) course / courses));
+        // a shield's plume rises out of its caldera; ventAt follows the cone's foot, three times too wide for one
+        double vent = shape == Shape.SHIELD ? CALDERA_R * 0.5 : Math.max(2.0, ventAt(courses == 0 ? 0 : (double) course / courses));
         // the column: eight stations up the sky, each wider and slower than the one below it
         for (int i = 0; i < 11; i++) {
             double up = 3 + i * 6.5;
@@ -687,7 +1212,7 @@ public final class Volcano extends SavedData {
             int x = (int) (near.getX() + Math.cos(angle) * dist);
             int z = (int) (near.getZ() + Math.sin(angle) * dist);
             // the cones this world remembers come first: it is arithmetic, and needs no chunk
-            if (!clearOfVents(x, z, foot)) continue;
+            if (!clearOfVents(x, z, reach(foot))) continue;
             BlockPos top = Cataclysms.surface(level, x, z);
             if (!dry(level, top, sea)) continue;                              // not in the sea
             if (!Cataclysms.away(level, top)) continue;
@@ -704,10 +1229,75 @@ public final class Volcano extends SavedData {
             }
             if (hi - lo > 10) continue;
             // and the ones it does not: last, because it reads the ground under the whole new foot
-            if (oldCone(level, x, z, foot)) continue;
+            if (oldCone(level, x, z, reach(foot))) continue;
             return new BlockPos(x, lo, z);
         }
         return null;
+    }
+
+    /** Where a volcano of this shape and this many courses would open near {@code near}: a cone's choice, or a shield's. */
+    private BlockPos site(ServerLevel level, ServerPlayer near, RandomSource rnd, int sea, Shape shape, int courses) {
+        return shape == Shape.SHIELD ? shieldSite(level, near, rnd, sea, courses) : site(level, near, rnd, sea);
+    }
+
+    /**
+     * The same choice for a shield, made over the ground its own foot will cover. Everything a cone
+     * keeps off within its foot, a shield keeps off within its own: the remembered vents, a colony's
+     * land, the rock of an older cone, and ground too rough to stand on - a foot sixty blocks out over
+     * country that falls away leaves the toe of it hanging off a cliff, so the ground is read right
+     * out to the toe and not only round the vent. It opens further from the player than a cone, so
+     * that its toe comes no nearer than fifty blocks to whoever it opened near.
+     */
+    private BlockPos shieldSite(ServerLevel level, ServerPlayer near, RandomSource rnd, int sea, int courses) {
+        int reach = shieldReach(courses);
+        for (int attempt = 0; attempt < 24; attempt++) {
+            double angle = rnd.nextDouble() * Math.PI * 2;
+            double dist = Math.max(90, reach + 50) + rnd.nextDouble() * 70;
+            int x = (int) (near.getX() + Math.cos(angle) * dist);
+            int z = (int) (near.getZ() + Math.sin(angle) * dist);
+            if (!clearOfVents(x, z, reach)) continue;
+            BlockPos top = Cataclysms.surface(level, x, z);
+            if (!dry(level, top, sea)) continue;
+            if (!Cataclysms.away(level, top)) continue;
+            // the ground before the colonies, not after as for a cone: it reads sixty-one columns,
+            // and the colony test loads every chunk out to the toe
+            Integer lo = shieldGround(level, x, z, reach);
+            if (lo == null) continue;
+            if (me.lovkar.wakingworld.compat.Colonies.keepOffLoading(level, top, reach + 6)) continue;
+            return new BlockPos(x, lo, z);
+        }
+        return null;
+    }
+
+    /**
+     * The ground under a shield's foot, read at 61 columns: the 25 round the vent the cone reads, 12
+     * half-way out and 24 at the toe. Null when it is too rough - more than 10 blocks between the
+     * highest and the lowest, the cone's own limit - or when three of them are the rock of an older
+     * cone (as {@link #oldCone} reads it); otherwise the lowest of them, which is where the foot is
+     * laid. It stops at the first refusal: every column may load a chunk.
+     */
+    private static Integer shieldGround(ServerLevel level, int x, int z, int reach) {
+        List<double[]> columns = new ArrayList<>();
+        for (int dx = -8; dx <= 8; dx += 4) {
+            for (int dz = -8; dz <= 8; dz += 4) columns.add(new double[]{x + dx, z + dz});
+        }
+        for (int i = 0; i < 12; i++) {
+            double a = i * Math.PI / 6.0;
+            columns.add(new double[]{x + Math.cos(a) * reach * 0.5, z + Math.sin(a) * reach * 0.5});
+        }
+        for (int i = 0; i < 24; i++) {
+            double a = i * Math.PI / 12.0;
+            columns.add(new double[]{x + Math.cos(a) * reach, z + Math.sin(a) * reach});
+        }
+        int lo = Integer.MAX_VALUE, hi = Integer.MIN_VALUE, rock = 0;
+        for (double[] c : columns) {
+            int y = Cataclysms.surface(level, c[0], c[1]).getY();
+            lo = Math.min(lo, y);
+            hi = Math.max(hi, y);
+            if (hi - lo > 10) return null;
+            if (coneGround(level, c[0], c[1]) && ++rock >= 3) return null;
+        }
+        return lo;
     }
 
     /** How many spots the command looks at before it says there is no room. */
@@ -725,27 +1315,54 @@ public final class Volcano extends SavedData {
      * @return the ground to open on, or null when every spot looked at is wet or taken by a cone
      */
     public static BlockPos commandSite(ServerLevel level, Vec3 from, int foot, RandomSource rnd) {
+        return commandSite(level, from, foot, 0, Shape.CONE, rnd);
+    }
+
+    /**
+     * The same for a volcano of the given shape and height (0 = the config's). A shield is looked
+     * for further out by as much as its foot is wider, or whoever asked would be standing on it, and
+     * kept off the older cones by its own foot.
+     */
+    public static BlockPos commandSite(ServerLevel level, Vec3 from, int foot, int height, Shape shape, RandomSource rnd) {
         Volcano v = get(level);
-        int f = foot > 0 ? foot : WakingConfig.volcanoRadius();
+        boolean shield = shape == Shape.SHIELD;
+        int reach = shield ? shieldReach(coursesFor(shape, height)) : reach(foot > 0 ? foot : WakingConfig.volcanoRadius());
+        int out = shield ? Math.max(60, reach + 12) : 60;
         int sea = seaLevel(level);
         for (int tries = 0; tries < COMMAND_TRIES; tries++) {
             double angle = rnd.nextDouble() * Math.PI * 2;
-            double dist = 60 + rnd.nextDouble() * 40;
+            double dist = out + rnd.nextDouble() * 40;
             int x = net.minecraft.util.Mth.floor(from.x + Math.cos(angle) * dist);
             int z = net.minecraft.util.Mth.floor(from.z + Math.sin(angle) * dist);
             // in the same order as site(): the list is arithmetic, the rock test reads the most ground
-            if (!v.clearOfVents(x, z, f)) continue;
+            if (!v.clearOfVents(x, z, reach)) continue;
             BlockPos top = Cataclysms.surface(level, x, z);
             if (!dry(level, top, sea)) continue;
-            if (oldCone(level, x, z, f)) continue;
+            if (oldCone(level, x, z, reach)) continue;
             return top;
         }
         return null;
     }
 
+    /** How many courses a volcano of this shape is given for this height (0 = the config's). */
+    static int coursesFor(Shape shape, int height) {
+        if (shape == Shape.SHIELD) return shieldCourses(height > 0 ? height : WakingConfig.volcanoHeight());
+        return height > 0 ? height : Math.max(6, WakingConfig.volcanoHeight());
+    }
+
+    /**
+     * The shape a new volcano takes under this volcanoShape setting: cone, shield, or for mixed (and
+     * for anything else, which the config does not let through) a shield one time in three.
+     */
+    public static Shape shapeFor(String setting, RandomSource rnd) {
+        if ("cone".equals(setting)) return Shape.CONE;
+        if ("shield".equals(setting)) return Shape.SHIELD;
+        return rnd.nextInt(3) == 0 ? Shape.SHIELD : Shape.CONE;
+    }
+
     /** Writes the vent that has just opened into the list, dropping the oldest past VENTS_KEPT. */
     private void remember() {
-        vents.add(new Vent(cx, baseY, cz, baseR));
+        vents.add(new Vent(cx, baseY, cz, baseR, shape == Shape.SHIELD));
         while (vents.size() > VENTS_KEPT) vents.remove(0);
         setDirty();
     }
@@ -760,11 +1377,21 @@ public final class Volcano extends SavedData {
         return Math.max((int) Math.ceil(foot * 1.2) + 1, foot + 4);
     }
 
-    /** True when a vent here, with this foot, keeps its rock and VENT_GAP of open ground off every remembered cone. */
-    private boolean clearOfVents(int x, int z, int foot) {
+    /** How far from its vent a shield of this many courses lays rock: its widest foot, and the toes of its flows past it. */
+    private static int shieldReach(int courses) {
+        return shieldFoot(courses) + SHIELD_TOE;
+    }
+
+    /** How far a remembered vent's rock goes: a shield's foot is its true edge, a cone's is swelled by its ridges. */
+    private static int reach(Vent v) {
+        return v.shield() ? v.foot() + SHIELD_TOE : reach(v.foot());
+    }
+
+    /** True when a vent here, whose rock reaches this far, keeps it and VENT_GAP of open ground off every remembered one. */
+    private boolean clearOfVents(int x, int z, int reach) {
         for (Vent v : vents) {
             long dx = x - v.x(), dz = z - v.z();
-            long need = reach(v.foot()) + reach(foot) + VENT_GAP;
+            long need = reach(v) + reach + VENT_GAP;
             if (dx * dx + dz * dz < need * need) return false;
         }
         return true;
@@ -783,15 +1410,16 @@ public final class Volcano extends SavedData {
      * once; what its bombs threw lies a block or a small set pool here and there, and a foot that
      * takes in much of that is reaching back onto the cone anyway. It stops at the third: every
      * sample may load a chunk, and a spot already refused needs no more of them.</p>
+     *
+     * @param edge how far the new vent's rock will reach: {@link #reach(int)} of a cone's foot, or a shield's own
      */
-    private static boolean oldCone(ServerLevel level, int x, int z, int foot) {
+    private static boolean oldCone(ServerLevel level, int x, int z, int edge) {
         int rock = 0;
         for (int dx = -8; dx <= 8; dx += 4) {
             for (int dz = -8; dz <= 8; dz += 4) {
                 if (coneGround(level, x + dx, z + dz) && ++rock >= 3) return true;
             }
         }
-        int edge = reach(foot);
         for (int i = 0; i < 12; i++) {
             double a = i * Math.PI / 6.0;
             if (coneGround(level, x + Math.cos(a) * edge * 0.5, z + Math.sin(a) * edge * 0.5) && ++rock >= 3) return true;
@@ -833,11 +1461,17 @@ public final class Volcano extends SavedData {
         v.cooledTo = tag.getInt("CooledTo");
         v.riseSeconds = tag.getInt("RiseSeconds");
         v.spill = tag.getFloat("Spill");
+        // a save from before 0.3.0-beta.8 has no shape: everything it held was a cone
+        v.shape = Shape.SHIELD.id().equals(tag.getString("Shape")) ? Shape.SHIELD : Shape.CONE;
+        v.flows = tag.getInt("Flows");
+        v.laying = tag.getBoolean("Laying");
+        v.layRow = tag.getInt("Row");
+        v.courseLaid = tag.getInt("Laid");
         // a save from before 0.3.0-beta.7 has no list: it loads empty, and the rock test covers its cones
         ListTag list = tag.getList("Vents", Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size(); i++) {
             CompoundTag t = list.getCompound(i);
-            v.vents.add(new Vent(t.getInt("X"), t.getInt("Y"), t.getInt("Z"), t.getInt("Foot")));
+            v.vents.add(new Vent(t.getInt("X"), t.getInt("Y"), t.getInt("Z"), t.getInt("Foot"), t.getBoolean("Shield")));
         }
         while (v.vents.size() > VENTS_KEPT) v.vents.remove(0);   // trims a list saved under a larger bound
         return v;
@@ -859,6 +1493,11 @@ public final class Volcano extends SavedData {
         tag.putInt("CooledTo", cooledTo);
         tag.putInt("RiseSeconds", riseSeconds);
         tag.putFloat("Spill", spill);
+        tag.putString("Shape", shape.id());
+        tag.putInt("Flows", flows);
+        tag.putBoolean("Laying", laying);
+        tag.putInt("Row", layRow);
+        tag.putInt("Laid", courseLaid);
         ListTag list = new ListTag();
         for (Vent vent : vents) {
             CompoundTag t = new CompoundTag();
@@ -866,35 +1505,50 @@ public final class Volcano extends SavedData {
             t.putInt("Y", vent.y());
             t.putInt("Z", vent.z());
             t.putInt("Foot", vent.foot());
+            if (vent.shield()) t.putBoolean("Shield", true);
             list.add(t);
         }
         tag.put("Vents", list);
         return tag;
     }
 
-    /** For the debug command: open one here, now. */
+    /** For the debug command: open one here, now. A cone, as it always was. */
     public static boolean force(ServerLevel level, BlockPos at, int height, int foot) {
-        return force(level, at, height, foot, 0);
+        return force(level, at, height, foot, 0, Shape.CONE);
     }
 
     /**
      * The same, at a pace of the caller's choosing: {@code riseSeconds} is how long the whole cone
-     * should take to come up (0 = the config's minutes). The camera uses it.
+     * should take to come up (0 = the config's minutes). The camera uses it, and its shots are
+     * framed for a cone, so this is always one.
      */
     public static boolean force(ServerLevel level, BlockPos at, int height, int foot, int riseSeconds) {
+        return force(level, at, height, foot, riseSeconds, Shape.CONE);
+    }
+
+    /**
+     * The same in the shape asked for; null lets volcanoShape decide, as it does for one the world
+     * opens. For a shield, {@code height} is the cone height it is half of (0 = the config's) and
+     * {@code foot} is not used: a shield's foot follows from its height and its slope.
+     */
+    public static boolean force(ServerLevel level, BlockPos at, int height, int foot, int riseSeconds, Shape shape) {
         if (me.lovkar.wakingworld.compat.Colonies.keepOffLoading(level, at, 8)) {
             WakingWorld.LOGGER.info("cataclysm: a volcano was called at {} {} {} - that is a colony's land, nothing opens",
                     at.getX(), at.getY(), at.getZ());
             return false;
         }
         Volcano v = get(level);
+        Shape s = shape != null ? shape : shapeFor(WakingConfig.volcanoShape(), level.random);
         v.riseSeconds = riseSeconds;
         v.spill = level.random.nextFloat() * (float) (Math.PI * 2);
         v.cx = at.getX();
         v.cz = at.getZ();
         v.baseY = at.getY();
-        v.baseR = foot > 0 ? foot : WakingConfig.volcanoRadius();
-        v.courses = height > 0 ? height : Math.max(6, WakingConfig.volcanoHeight());
+        v.shape = s;
+        v.courses = coursesFor(s, height);
+        v.baseR = s == Shape.SHIELD ? shieldFoot(v.courses) : foot > 0 ? foot : WakingConfig.volcanoRadius();
+        v.flows = 2 + level.random.nextInt(2);
+        v.laying = false;
         v.course = 0;
         // a forced vent still opens exactly where it was asked, but the world's own next one keeps off it
         v.remember();
@@ -927,6 +1581,44 @@ public final class Volcano extends SavedData {
         return site(level, near, rnd, sea);
     }
 
+    /** The morning roll's question for a volcano of this shape at the configured height. For tools/shieldvolcano. */
+    public BlockPos siteFor(ServerLevel level, ServerPlayer near, RandomSource rnd, Shape shape) {
+        return site(level, near, rnd, seaLevel(level), shape, coursesFor(shape, 0));
+    }
+
+    /** The shape of the one going up, or of the last one. For the headless probes. */
+    public Shape shape() {
+        return shape;
+    }
+
+    /** How many courses it is given. For the headless probes. */
+    public int courses() {
+        return courses;
+    }
+
+    /** Its foot: a cone's configured radius, or a shield's widest edge. For the headless probes. */
+    public int foot() {
+        return baseR;
+    }
+
+    /** IDLE, WARNING, RISING, SETTLING or COOLING. For the headless probes, which watch for the crown. */
+    public String phaseName() {
+        return phase.name();
+    }
+
+    /**
+     * The longest one call of the volcano's tick has taken since {@link #resetSlowest}, in
+     * nanoseconds. For tools/shieldvolcano, which logs it: a shield writes far more blocks than a cone
+     * and its rise is budgeted per second so that no second of it is a freeze.
+     */
+    public static long slowestTickNanos() {
+        return slowest;
+    }
+
+    public static void resetSlowest() {
+        slowest = 0;
+    }
+
     /** The remembered vents, oldest first, as a copy. For the headless probe. */
     public List<Vent> vents() {
         return List.copyOf(vents);
@@ -934,7 +1626,7 @@ public final class Volcano extends SavedData {
 
     /** {@link #oldCone}, for the headless probe: it asks it on, beside and well away from a cone it raised. */
     public static boolean oldConeFor(ServerLevel level, int x, int z, int foot) {
-        return oldCone(level, x, z, foot);
+        return oldCone(level, x, z, reach(foot));
     }
 
     /**
