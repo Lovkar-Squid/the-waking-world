@@ -218,7 +218,10 @@ public final class WakingConfig {
                 "shield: a low, broad 'Hawaiian' volcano - half the cone's height, flanks you can walk up (about one block",
                 "up for every four out), a wide caldera with a lava lake on top and two or three flows down its sides,",
                 "all of which set into black rock you can build on. mixed: about one in three is a shield, decided when it opens.")
-                .defineInList("volcanoShape", "mixed", java.util.List.of("cone", "shield", "mixed"));
+                // Arrays.asList, not List.of: a config written before this key existed is corrected by
+                // asking the list whether it contains the missing value, null, and List.of answers that
+                // by throwing - the server crashed on start with every world from beta.7
+                .defineInList("volcanoShape", "mixed", java.util.Arrays.asList("cone", "shield", "mixed"));
         VOLCANO_MINUTES = b.comment("How long the mountain takes to rise, in minutes. Longer is calmer on the server and better to watch.")
                 .defineInRange("volcanoMinutes", 1, 1, 60);
         LAVA_BOMBS = b.comment("A volcano throws molten rock as well as cold: one bomb in three arcs out of the throat",

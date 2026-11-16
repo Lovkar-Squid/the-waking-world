@@ -31,6 +31,14 @@ public final class ConfigCheck {
         // the shape sits with the other volcano settings, and with no config loaded it is the default
         if (!server.contains("cataclysms.volcanoShape")) throw new AssertionError("missing: cataclysms.volcanoShape");
         if (!"mixed".equals(WakingConfig.volcanoShape())) throw new AssertionError("volcanoShape with no config loaded");
+        // A world's config file written before a key existed is corrected on load, every missing key
+        // to its default - an empty file is the far end of that. A list of allowed values that cannot
+        // be asked about null (List.of) threw right here, and the server would not start.
+        com.electronwill.nightconfig.core.CommentedConfig empty = com.electronwill.nightconfig.core.CommentedConfig.inMemory();
+        WakingConfig.SPEC.correct(empty);
+        if (!"mixed".equals(empty.get("cataclysms.volcanoShape"))) {
+            throw new AssertionError("an empty config was corrected to volcanoShape " + empty.get("cataclysms.volcanoShape"));
+        }
         // nothing is unloaded-safe by accident: with no config loaded every part answers false, and
         // every switch under a part answers false with it
         if (WakingConfig.colossi() || WakingConfig.cataclysms() || WakingConfig.kingdoms()
