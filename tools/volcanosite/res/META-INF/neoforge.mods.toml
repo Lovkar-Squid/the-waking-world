@@ -1,0 +1,14 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+[[mods]]
+modId="wwvolcanosite"
+version="1.0.0"
+displayName="Waking World volcano site test"
+description="Headless test: does the world find volcano sites on a flat world, and does the volcano command keep off older cones?"
+[[dependencies.wwvolcanosite]]
+modId="wakingworld"
+type="required"
+versionRange="*"
+ordering="AFTER"
+side="SERVER"

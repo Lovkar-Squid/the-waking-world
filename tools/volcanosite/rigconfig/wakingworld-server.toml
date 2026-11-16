@@ -1,0 +1,4 @@
+[cataclysms]
+	volcanoHeight = 12
+	volcanoRadius = 24
+	volcanoCoolMinutes = 1

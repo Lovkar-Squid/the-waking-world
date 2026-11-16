@@ -247,7 +247,7 @@ public final class Volcano extends SavedData {
     // NOTE: only the IDLE roll needs a player. Once the ground has opened the mountain finishes on
     // its own - leaving a half-built cone standing there because everyone logged off would be worse.
     private void begin(ServerLevel level, ServerPlayer near, RandomSource rnd) {
-        BlockPos site = site(level, near, rnd, level.getSeaLevel());
+        BlockPos site = site(level, near, rnd);
         if (site == null) {                                      // nowhere sensible: try again tomorrow
             cooldownUntilDay = (int) (level.getDayTime() / 24000L) + 1;
             setDirty();
@@ -655,6 +655,26 @@ public final class Volcano extends SavedData {
         return Blocks.BLACKSTONE.defaultBlockState();
     }
 
+    /** {@link #site(ServerLevel, ServerPlayer, RandomSource, int)} at the sea level the world was made with. */
+    private BlockPos site(ServerLevel level, ServerPlayer near, RandomSource rnd) {
+        return site(level, near, rnd, seaLevel(level));
+    }
+
+    /**
+     * The sea level the world was generated with. {@code Level.getSeaLevel()} is no help: in 1.21.1
+     * it answers 63 on every world, so on a superflat world, or one whose generator lays its sea and
+     * its ground lower down, every spot looked like open water and no volcano ever opened there. The
+     * generator knows its own water line - a superflat one says -63, under its whole surface.
+     */
+    private static int seaLevel(ServerLevel level) {
+        return level.getChunkSource().getGenerator().getSeaLevel();
+    }
+
+    /** Dry land, or the cone comes up as an island and the shore is a wall of rock. */
+    private static boolean dry(ServerLevel level, BlockPos top, int sea) {
+        return top.getY() >= sea + 2 && level.getFluidState(top.below()).is(Fluids.EMPTY);
+    }
+
     /**
      * Open, dry, level-ish ground a good way off - never on top of anyone's home, and never on or
      * against an older mountain.
@@ -669,8 +689,7 @@ public final class Volcano extends SavedData {
             // the cones this world remembers come first: it is arithmetic, and needs no chunk
             if (!clearOfVents(x, z, foot)) continue;
             BlockPos top = Cataclysms.surface(level, x, z);
-            if (top.getY() < sea + 2) continue;                               // not in the sea
-            if (!level.getFluidState(top.below()).is(Fluids.EMPTY)) continue;
+            if (!dry(level, top, sea)) continue;                              // not in the sea
             if (!Cataclysms.away(level, top)) continue;
             // a mountain's whole foot must be the world's own ground, not a colony's
             if (me.lovkar.wakingworld.compat.Colonies.keepOffLoading(level, top, WakingConfig.volcanoRadius() + 6)) continue;
@@ -687,6 +706,39 @@ public final class Volcano extends SavedData {
             // and the ones it does not: last, because it reads the ground under the whole new foot
             if (oldCone(level, x, z, foot)) continue;
             return new BlockPos(x, lo, z);
+        }
+        return null;
+    }
+
+    /** How many spots the command looks at before it says there is no room. */
+    private static final int COMMAND_TRIES = 48;
+
+    /**
+     * Where {@code /wakingworld volcano} opens when it is not told where: dry ground 60 to 100 blocks
+     * from whoever asked, kept off the remembered vents and the old volcanic rock exactly as the
+     * world's own choice is. It used to look only for dry ground, so a second call from the same
+     * spot could put its vent on the summit of the first cone and stack one mountain on another -
+     * the very thing beta.7 stopped the world itself from doing. It is nearer in than {@link #site},
+     * and it does not keep off players or the world spawn: whoever runs it wants to watch it.
+     *
+     * @param foot the foot the vent will have; 0 for the config's
+     * @return the ground to open on, or null when every spot looked at is wet or taken by a cone
+     */
+    public static BlockPos commandSite(ServerLevel level, Vec3 from, int foot, RandomSource rnd) {
+        Volcano v = get(level);
+        int f = foot > 0 ? foot : WakingConfig.volcanoRadius();
+        int sea = seaLevel(level);
+        for (int tries = 0; tries < COMMAND_TRIES; tries++) {
+            double angle = rnd.nextDouble() * Math.PI * 2;
+            double dist = 60 + rnd.nextDouble() * 40;
+            int x = net.minecraft.util.Mth.floor(from.x + Math.cos(angle) * dist);
+            int z = net.minecraft.util.Mth.floor(from.z + Math.sin(angle) * dist);
+            // in the same order as site(): the list is arithmetic, the rock test reads the most ground
+            if (!v.clearOfVents(x, z, f)) continue;
+            BlockPos top = Cataclysms.surface(level, x, z);
+            if (!dry(level, top, sea)) continue;
+            if (oldCone(level, x, z, f)) continue;
+            return top;
         }
         return null;
     }
@@ -855,15 +907,21 @@ public final class Volcano extends SavedData {
         return true;
     }
 
-    // ---- for the headless probe (tools/volcanoheight) --------------------------------------
+    // ---- for the headless probes (tools/volcanoheight, tools/volcanosite) ------------------
 
     /**
-     * Where the world would open its next vent near {@code near}, without opening anything. Only the
-     * headless probe calls this: nobody can join the test server, so the morning roll that would
-     * call {@link #site} never comes round, and the probe asks it directly with a fake player. It
-     * passes its own sea level because the test world is a flat one with its grass at y=-1, and in
-     * 1.21.1 {@code Level.getSeaLevel()} answers 63 whatever the generator says - every spot on it
-     * would be "in the sea".
+     * Where the world would open its next vent near {@code near}, without opening anything, asked
+     * exactly as the morning roll asks it. Only the headless probes call this: nobody can join the
+     * test server, so that roll never comes round, and they ask it directly with a fake player.
+     */
+    public BlockPos siteFor(ServerLevel level, ServerPlayer near, RandomSource rnd) {
+        return site(level, near, rnd);
+    }
+
+    /**
+     * The same at a sea level of the caller's choosing. tools/volcanoheight passes the flat world's
+     * own, as it had to before site() read the generator's itself, and tools/volcanosite passes 63 -
+     * what {@code Level.getSeaLevel()} answers - to show that the old way found nowhere on a flat world.
      */
     public BlockPos siteFor(ServerLevel level, ServerPlayer near, RandomSource rnd, int sea) {
         return site(level, near, rnd, sea);
