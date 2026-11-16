@@ -29,7 +29,7 @@ with no flowing lava left and no warnings from the mod.
   added the whole height again. Every vent is now remembered with its foot (the last 64), and a new
   one keeps its own foot, and 8 blocks of open ground, clear of all of them. Cones from before this
   version are not in that list, so a vent is also kept off the volcano's own rock (basalt, tuff,
-  blackstone, magma, obsidian) under it or under its new foot. `/wakingworld volcano` still opens one
+  blackstone, gilded blackstone, magma, obsidian) under it or under its new foot. `/wakingworld volcano` still opens one
   exactly where it is asked, and old saves load as they are. The height is a server setting: it lives
   in `config/wakingworld-server.toml` with the other config files, not in a world's `serverconfig`
   folder, which only holds a readme on NeoForge 21.1.
