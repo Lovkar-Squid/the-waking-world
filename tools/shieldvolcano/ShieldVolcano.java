@@ -226,11 +226,14 @@ public class ShieldVolcano {
     private void erupting(final ServerLevel level) {
         final int rimY = y0 + COURSES - 1, lakeY = rimY - 1;
         // the caldera: from the middle, how far each way at the rim's height before the rim itself
+        // Sixteen bearings, not four: the flows leave the caldera through notches in the rim on
+        // bearings the eruption picks at random, and four fixed lines could all run through one, which
+        // measured nothing and failed a shield that was fine (seen on 16 Nov 2026, three of four).
         final List<String> across = new ArrayList<>();
         boolean widthOk = true;
         int measured = 0;
-        for (int b = 0; b < 4; b++) {
-            final double a = b * Math.PI / 4;
+        for (int b = 0; b < 16; b++) {
+            final double a = b * Math.PI / 16;
             final double one = toRim(level, a, rimY), other = toRim(level, a + Math.PI, rimY);
             if (one < 0 || other < 0) {
                 across.add(Math.round(Math.toDegrees(a)) + " deg: through a notch");
@@ -238,7 +241,8 @@ public class ShieldVolcano {
             }
             measured++;
             final double w = one + other;
-            widthOk &= w >= 12 && w <= 16;
+            // "about 12-16": a ring on the block grid measures up to half a block either way
+            widthOk &= w >= 11.5 && w <= 16.5;
             across.add(Math.round(Math.toDegrees(a)) + " deg: " + String.format("%.1f", w));
         }
         int lake = 0, cells = 0, deep = 0;
