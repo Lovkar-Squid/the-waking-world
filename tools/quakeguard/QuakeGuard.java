@@ -4,6 +4,7 @@ import me.lovkar.wakingworld.WakingConfig;
 import me.lovkar.wakingworld.cataclysm.Cataclysms;
 import me.lovkar.wakingworld.cataclysm.Earthquake;
 import me.lovkar.wakingworld.cataclysm.Weather;
+import me.lovkar.wakingworld.compat.Colonies;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -51,8 +52,11 @@ import java.util.List;
  *   <li>the scheduler's site for a quake near a player standing at S, asked with many seeds, is
  *       never inside the radius.</li>
  * </ul>
- * MineColonies is not on this rig; the colony half of the guard is Colonies.keepOff, which earlier
- * versions proved. Prints CHECK lines and RESULT, then stops the server.
+ * Then MineColonies, which rigmods.txt puts on the server: a colony is founded far from S and a
+ * quake is centred 20 blocks outside its land (the claim and colonyBuffer round it) with the fault
+ * aimed at the town hall. No block on its land may change, a villager standing on it is never
+ * shoved while one outside is, and the wave across its edge throws nothing onto it. Prints CHECK
+ * lines and RESULT, then stops the server.
  */
 @Mod("wwquakeguard")
 public class QuakeGuard {
@@ -68,6 +72,10 @@ public class QuakeGuard {
     /** Where opened ground is counted outside the radius: the fault walks west from E for a long way. */
     private static final int WEST = 230, EAST = 120, SIDE = 110;
     private static final int PICKS = 200, PICKS_PER_TICK = 5;
+    /** The colony's town hall, a long way from S and from the first quake's fault. */
+    private static final int CX = -480, CZ = 32;
+    /** The colony quake: this far outside the colony's land, and the snapshot this far into it. */
+    private static final int OUT = 20, INTO = 110, WIDE = 60;
 
     private int tick;
     private int stage;
@@ -88,6 +96,14 @@ public class QuakeGuard {
     private int picksInside;
     private double closest = Double.MAX_VALUE;
     private FakePlayer fake;
+    /** The first block east of the town hall that is no longer the colony's land. */
+    private int edgeX;
+    private BlockState[] colonyBefore;
+    private boolean[] colonyLand;
+    private Villager colonist;
+    private Villager stranger;
+    private int colonistShoves;
+    private int strangerShoves;
 
     public QuakeGuard(final IEventBus modBus) {
         NeoForge.EVENT_BUS.addListener(this::onTick);
@@ -166,6 +182,46 @@ public class QuakeGuard {
                     final Vec3 refused = Cataclysms.openSite(level, from, RandomSource.create(5), 30, 90, p -> true);
                     check("with everything refused there is no site, and the plain search still answers", refused == null && plain != null,
                             "everything refused: " + refused + "; nothing refused: " + plain);
+                    next();
+                }
+                case 7 -> {
+                    final int id = ColonyPart.found(level, new BlockPos(CX, y0, CZ));
+                    LOG.info(TAG + "colony {} founded at {} {} {}", id, CX, y0, CZ);
+                    next();
+                }
+                case 8 -> {
+                    // its claims settle, then the ground beside it is measured and photographed
+                    if (tick - stageTick < 100) return;
+                    if (!colonySetUp(level)) {
+                        stage = 50;
+                        return;
+                    }
+                    next();
+                }
+                case 9 -> {
+                    if (tick - stageTick < 60) return;
+                    quakeTicks = total;
+                    Earthquake.shake(level, colonyQuake(), WakingConfig.earthquakeSeconds(), RandomSource.create(shakeSeed));
+                    LOG.info(TAG + "the colony quake starts at {} {} {}, {} blocks outside the colony's land", edgeX + OUT, y0, CZ, OUT);
+                    next();
+                }
+                case 10 -> {
+                    if ((tick - stageTick) % 20 != 0) return;
+                    quakeTicks -= 20;
+                    final float strength = Earthquake.envelope(Math.min(1.0F, 1.0F - quakeTicks / (float) total));
+                    final boolean[] grounded = {colonist.onGround(), stranger.onGround()};
+                    final double[] dy = {colonist.getDeltaMovement().y, stranger.getDeltaMovement().y};
+                    Earthquake.second(level, colonyQuake(), strength);
+                    if (grounded[0] && colonist.getDeltaMovement().y - dy[0] > 0.01) colonistShoves++;
+                    if (grounded[1] && stranger.getDeltaMovement().y - dy[1] > 0.01) strangerShoves++;
+                    if (quakeTicks <= 0) {
+                        Earthquake.climax(level, colonyQuake(), level.random);
+                        next();
+                    }
+                }
+                case 11 -> {
+                    if (tick - stageTick < 120) return;
+                    afterColonyQuake(level);
                     stage = 50;
                 }
                 case 50 -> {
@@ -184,6 +240,77 @@ public class QuakeGuard {
         }
     }
 
+    private Vec3 colonyQuake() {
+        return new Vec3(edgeX + OUT + 0.5, y0, CZ + 0.5);
+    }
+
+    /**
+     * The colony as the mod sees it: its land must be there, and the town hall on it. Then where its
+     * land ends east of the hall, a villager each side of that edge, and the ground photographed.
+     */
+    private boolean colonySetUp(final ServerLevel level) {
+        final BlockPos hall = new BlockPos(CX, y0, CZ);
+        int claimedChunks = 0;
+        for (int cx = (CX >> 4) - 12; cx <= (CX >> 4) + 12; cx++) {
+            for (int cz = (CZ >> 4) - 12; cz <= (CZ >> 4) + 12; cz++) {
+                if (Colonies.claimed(level, new BlockPos(cx << 4, y0, cz << 4))) claimedChunks++;
+            }
+        }
+        edgeX = CX;
+        while (edgeX < CX + 400 && Colonies.keepOff(level, new BlockPos(edgeX, y0, CZ))) edgeX++;
+        final boolean seen = Colonies.active() && Colonies.keepOff(level, hall) && claimedChunks > 0;
+        check("MineColonies is running and the mod sees the colony's land", seen,
+                "active " + Colonies.active() + ", the hall kept off " + Colonies.keepOff(level, hall) + ", claimed chunks " + claimedChunks
+                        + ", the land ends " + (edgeX - CX) + " blocks east of the hall");
+        if (!seen) return false;
+        colonist = villagerAt(level, edgeX - 12, CZ + 18);
+        stranger = villagerAt(level, edgeX + OUT + 10, CZ + 18);
+        if (!Colonies.keepOff(level, colonist.blockPosition()) || Colonies.keepOff(level, stranger.blockPosition())) {
+            throw new IllegalStateException("the colony's villagers are on the wrong side of its edge");
+        }
+        final int side = INTO + OUT + 30 + 1;
+        colonyLand = new boolean[side * (WIDE * 2 + 1)];
+        int i = 0;
+        for (int x = edgeX - INTO; x <= edgeX + OUT + 30; x++) {
+            for (int z = CZ - WIDE; z <= CZ + WIDE; z++) colonyLand[i++] = Colonies.keepOff(level, new BlockPos(x, y0, z));
+        }
+        colonyBefore = snapshot(level, edgeX - INTO, edgeX + OUT + 30, CZ - WIDE, CZ + WIDE);
+        return true;
+    }
+
+    /** The colony's land compared with its photograph, and the wave run across its edge. */
+    private void afterColonyQuake(final ServerLevel level) {
+        final BlockState[] after = snapshot(level, edgeX - INTO, edgeX + OUT + 30, CZ - WIDE, CZ + WIDE);
+        int changedOn = 0, opened = 0, i = 0, column = 0;
+        String first = null;
+        for (int x = edgeX - INTO; x <= edgeX + OUT + 30; x++) {
+            for (int z = CZ - WIDE; z <= CZ + WIDE; z++, column++) {
+                for (int y = y0 - BELOW; y <= y0 + ABOVE; y++, i++) {
+                    if (colonyBefore[i] == after[i]) continue;
+                    if (colonyLand[column]) {
+                        changedOn++;
+                        if (first == null) first = x + " " + y + " " + z + ": " + colonyBefore[i] + " -> " + after[i];
+                    } else if (y == y0 - 1 && after[i].isAir()) {
+                        opened++;
+                    }
+                }
+            }
+        }
+        check("a quake beside a colony changes no block on its land", changedOn == 0 && opened > 0,
+                "changed on the colony's land " + changedOn + (first == null ? "" : " (first " + first + ")")
+                        + "; columns opened beside it " + opened);
+        check("a villager on the colony's land is not shoved, one beside it is", colonistShoves == 0 && strangerShoves > 0,
+                "on the land " + colonistShoves + ", beside it " + strangerShoves);
+        Earthquake.rippleUnwatched(level, colonyQuake(), OUT + 8, 1.0F, RandomSource.create(78));
+        int on = 0, off = 0;
+        final AABB box = new AABB(edgeX - INTO, y0 - 10, CZ - WIDE, edgeX + OUT + 60, y0 + 10, CZ + WIDE);
+        for (final FallingBlockEntity fb : level.getEntitiesOfClass(FallingBlockEntity.class, box)) {
+            if (Colonies.keepOff(level, fb.blockPosition())) on++;
+            else off++;
+        }
+        check("the wave throws nothing onto the colony's land", on == 0 && off > 0, "onto the land " + on + ", beside it " + off);
+    }
+
     /** The world spawn at S, the ground kept loaded, two wheat fields, the villagers, and the snapshot. */
     private void setUp(final ServerLevel level) {
         final MinecraftServer server = level.getServer();
@@ -195,6 +322,11 @@ public class QuakeGuard {
         level.setDayTime(1000);
         for (int cx = (SX - WEST - 16) >> 4; cx <= (SX + EAST + 16) >> 4; cx++) {
             for (int cz = (SZ - SIDE - 16) >> 4; cz <= (SZ + SIDE + 16) >> 4; cz++) {
+                level.setChunkForced(cx, cz, true);
+            }
+        }
+        for (int cx = (CX - 176) >> 4; cx <= (CX + 176) >> 4; cx++) {
+            for (int cz = (CZ - 96) >> 4; cz <= (CZ + 96) >> 4; cz++) {
                 level.setChunkForced(cx, cz, true);
             }
         }
@@ -253,10 +385,14 @@ public class QuakeGuard {
      * shoves it. One that cannot walk still falls, lands and can be thrown.
      */
     private Villager villager(final ServerLevel level, final int[] off) {
+        return villagerAt(level, SX + off[0], SZ + off[1]);
+    }
+
+    private Villager villagerAt(final ServerLevel level, final int x, final int z) {
         final Villager c = EntityType.VILLAGER.create(level);
         c.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(0.0);
         c.setPersistenceRequired();
-        c.setPos(SX + off[0] + 0.5, y0 + 0.2, SZ + off[1] + 0.5);
+        c.setPos(x + 0.5, y0 + 0.2, z + 0.5);
         level.addFreshEntity(c);
         return c;
     }
@@ -382,11 +518,15 @@ public class QuakeGuard {
     }
 
     private BlockState[] snapshot(final ServerLevel level) {
-        final int side = BOX * 2 + 1;
-        final BlockState[] states = new BlockState[side * side * (BELOW + ABOVE + 1)];
+        return snapshot(level, SX - BOX, SX + BOX, SZ - BOX, SZ + BOX);
+    }
+
+    /** Every block in the box, x then z then y from BELOW under the surface to ABOVE over it. */
+    private BlockState[] snapshot(final ServerLevel level, final int x0, final int x1, final int z0, final int z1) {
+        final BlockState[] states = new BlockState[(x1 - x0 + 1) * (z1 - z0 + 1) * (BELOW + ABOVE + 1)];
         int i = 0;
-        for (int x = SX - BOX; x <= SX + BOX; x++) {
-            for (int z = SZ - BOX; z <= SZ + BOX; z++) {
+        for (int x = x0; x <= x1; x++) {
+            for (int z = z0; z <= z1; z++) {
                 for (int y = y0 - BELOW; y <= y0 + ABOVE; y++) states[i++] = level.getBlockState(new BlockPos(x, y, z));
             }
         }

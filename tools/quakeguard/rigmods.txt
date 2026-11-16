@@ -1,0 +1,5 @@
+# MineColonies and what it needs, for the colony half of the probe
+libs/minecolonies-*.jar
+libs/structurize-*.jar
+libs/blockui-*.jar
+libs/domum-ornamentum-*.jar
